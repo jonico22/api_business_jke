@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  emailVerified  Boolean   @default(false)
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  isActive       Boolean   @default(false)
+  roleId         String
+  role           Role      @relation(fields: [roleId], references: [id])
+  accounts       Account[]
+  sessions       Session[]
+  person         Person?
+  resetTokens    PasswordResetToken[]
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
+
+  UserViewPermission UserViewPermission[]
+}
+
+model Account {
+  id                      String   @id @default(uuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id])
+  accountId              String
+  providerId             String
+  accessToken            String?
+  refreshToken           String?
+  accessTokenExpiresAt   DateTime?
+  refreshTokenExpiresAt  DateTime?
+  scope                  String?
+  idToken                String?
+  password               String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  token      String   @unique
+  expiresAt  DateTime
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Role {
+  id    String  @id @default(uuid())
+  name  String  @unique
+  users User[]
+
+  RoleViewPermission RoleViewPermission[]
+}
+
+model Person {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  firstName String
+  lastName  String
+  phone     String?
+  address   String?
+}
+
+model PasswordResetToken {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  RoleViewPermission RoleViewPermission[]
+
+  UserViewPermission UserViewPermission[]
+}
+
+model View {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  RoleViewPermission RoleViewPermission[]
+
+  UserViewPermission UserViewPermission[]
+}
+
+model RoleViewPermission {
+  id          String     @id @default(uuid())
+  roleId      String
+  role        Role       @relation(fields: [roleId], references: [id])
+  
+  viewId      String
+  view        View       @relation(fields: [viewId], references: [id])
+
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([roleId, viewId, permissionId]) // evita duplicados
+}
+
+model UserViewPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  viewId       String
+  permissionId String
+
+  user         User       @relation(fields: [userId], references: [id])
+  view         View       @relation(fields: [viewId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, viewId, permissionId])
+}
