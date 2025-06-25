@@ -2,11 +2,10 @@ import prisma from '../config/database';
 import { logger } from './logger';
 
 const permissions = [
-  { name: 'user:create', description: 'Crear usuario' },
-  { name: 'user:read', description: 'Ver usuario' },
-  { name: 'user:update', description: 'Actualizar usuario' },
-  { name: 'user:delete', description: 'Eliminar usuario' },
-  { name: 'role:manage', description: 'Gestionar roles y permisos' },
+  { name: 'create', description: 'Crear' },
+  { name: 'read', description: 'Ver' },
+  { name: 'update', description: 'Actualizar' },
+  { name: 'delete', description: 'Eliminar' },
 ];
 
 export const createPermissions = async () => {

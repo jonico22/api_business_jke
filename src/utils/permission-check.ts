@@ -22,7 +22,7 @@ export const hasCombinedPermission = async (
     include: {
       role: {
         include: {
-          roleViewPermissions: {
+          RoleViewPermission: {
             where: {
               view: { name: viewName },
               permission: { name: permissionName },
@@ -33,5 +33,5 @@ export const hasCombinedPermission = async (
     },
   });
 
-  return !!user?.role?.roleViewPermissions.length;
+  return !!user?.role?.RoleViewPermission.length;
 };

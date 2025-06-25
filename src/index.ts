@@ -1,34 +1,25 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
-import roleRoutes from './routes/role.routes';
-import adminRoutes from './routes/admin.routes';
-import permissionRoutes from './routes/permission.routes';
-import viewRoutes from './routes/view.routes';
-import roleViewPermissionRoutes from './routes/roleViewPermission.routes';
+import routes from './routes';
 import { createPermissions } from './utils/create-permissions';
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
 import requestLogger from './middlewares/logger.middleware';
 import { logger } from './utils/logger';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 4000;
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/roles', roleRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/permissions', permissionRoutes);
-app.use('/api/views', viewRoutes);
-app.use('/api/role-view-permissions', roleViewPermissionRoutes);
+app.use('/api', routes);
 app.get('/', (_req, res) => res.send('API activa'));
 
 (async () => { 
@@ -47,3 +38,6 @@ process.on('uncaughtException', (err) => {
   logger.error(`UNCAUGHT EXCEPTION: ${err.message}\n${err.stack}`);
   process.exit(1); // Puedes quitar esto si prefieres no reiniciar el proceso
 });
+
+// falta la paginacion en las tablas principales
+// falta buscar por campo en las tablas principales

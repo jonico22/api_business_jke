@@ -3,8 +3,13 @@ import prisma from '../config/database';
 import { logger } from '../utils/logger';
 import { cache } from '../utils/cache';
 
+interface AccessCheck {
+  viewName: string;
+  permissionName: string;
+}
+
 // Middleware que valida si el usuario tiene acceso a la vista con el permiso requerido
-export const checkAccess = (viewName: string, permissionName: string) => {
+export const checkAccess = ({viewName, permissionName}:AccessCheck) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user; // debe estar poblado por el middleware auth.middleware.ts

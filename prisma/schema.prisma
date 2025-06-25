@@ -20,10 +20,14 @@ model User {
   role           Role      @relation(fields: [roleId], references: [id])
   accounts       Account[]
   sessions       Session[]
-  person         Person?
+  person         BussinessPartner?
   resetTokens    PasswordResetToken[]
-  failedLoginAttempts Int      @default(0)
+  failedLoginAttempts Int  @default(0)
   lockedUntil         DateTime?
+
+  isDeleted   Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
 
   UserViewPermission UserViewPermission[]
 }
@@ -43,6 +47,8 @@ model Account {
   password               String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
 }
 
 model Session {
@@ -59,20 +65,57 @@ model Session {
 
 model Role {
   id    String  @id @default(uuid())
+  code  String  @unique
   name  String  @unique
+  isActive Boolean @default(true)
+  isDeleted Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy    String?
   users User[]
-
   RoleViewPermission RoleViewPermission[]
 }
 
-model Person {
-  id        String   @id @default(uuid())
+model DocumentType {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String   
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  isActive    Boolean @default(true)
+  createdBy   String?
+  updatedBy   String?
+
+  BussinessPartner BussinessPartner[]
+}
+
+model BussinessPartner {
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
-  firstName String
-  lastName  String
-  phone     String?
-  address   String?
+  id          String   @id @default(uuid())
+  typeBP      String?  @default("Person")
+  typeDocId   String?
+  documentType   DocumentType? @relation(fields: [typeDocId], references: [id])
+  documentNumber String? @unique
+  firstName  String
+  middleName String?
+  lastName   String
+  surname   String?
+  companyName String?
+  contactEmail String?
+  email String
+  phone      String @unique
+  telephone  String?
+  address    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  isActive    Boolean @default(true)
+  isDeleted   Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
+
 }
 
 model PasswordResetToken {
@@ -88,21 +131,28 @@ model Permission {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
+  isActive    Boolean @default(true)
+  isDeleted   Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
   RoleViewPermission RoleViewPermission[]
-
   UserViewPermission UserViewPermission[]
 }
 
 model View {
   id          String   @id @default(uuid())
-  name        String   @unique
-  description String
+  code        String   @unique
+  name        String   
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  RoleViewPermission RoleViewPermission[]
+  isActive Boolean @default(true)
+  isDeleted Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
 
+  RoleViewPermission RoleViewPermission[]
   UserViewPermission UserViewPermission[]
 }
 
@@ -119,6 +169,10 @@ model RoleViewPermission {
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  isActive    Boolean @default(true)
+  isDeleted   Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
 
   @@unique([roleId, viewId, permissionId]) // evita duplicados
 }
@@ -133,6 +187,10 @@ model UserViewPermission {
   view         View       @relation(fields: [viewId], references: [id])
   permission   Permission @relation(fields: [permissionId], references: [id])
 
+  isActive    Boolean @default(true)
+  isDeleted   Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

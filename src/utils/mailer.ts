@@ -41,3 +41,26 @@ export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date)
     `,
   });
 };
+
+export const sendResetEmail = async (to: string, token: string): Promise<void> => {
+  await transporter.sendMail({
+    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: 'Restablecimiento de contraseña',
+    html: `
+      <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+      <p>Haz clic en el siguiente enlace para restablecerla:</p>
+      <a href="${process.env.FRONTEND_URL}/reset-password?token=${token}">Restablecer contraseña</a>
+      <p>Si no solicitaste este cambio, ignora este mensaje.</p>
+    `,
+  });
+}
+
+export const sendResetByAdminEmail = async (to: string, newPassword: string): Promise<void> => {
+  await transporter.sendMail({
+    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: 'Nueva contraseña asignada por un administrador',
+    html: `<p>Se te ha asignado una nueva contraseña: <strong>${newPassword}</strong></p><p>Por favor, cambia esta contraseña después de iniciar sesión.</p>`,
+  });
+};

@@ -19,6 +19,7 @@ export const createInitialAdmin = async () => {
       email: adminEmail,
       roleId: adminRole.id,
       isActive: true,
+      emailVerified: true,
       accounts: {
         create: {
           accountId: adminEmail,
@@ -30,6 +31,8 @@ export const createInitialAdmin = async () => {
         create: {
           firstName: 'Admin',
           lastName: 'Principal',
+          email: adminEmail,
+          phone: '', // Add a default or valid phone value here
         },
       },
     },
