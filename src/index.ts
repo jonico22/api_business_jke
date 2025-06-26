@@ -9,18 +9,19 @@ import requestLogger from './middlewares/logger.middleware';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { errorHandler } from '@/middlewares/error.middleware';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 4000;
-
+app.get('/', (_req, res) => res.send('API activa'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 app.use('/api', routes);
-app.get('/', (_req, res) => res.send('API activa'));
+
 
 (async () => { 
   await createPermissions();
@@ -29,6 +30,17 @@ app.get('/', (_req, res) => res.send('API activa'));
 })();
 
 app.listen(port, () => console.log(`🚀 Servidor en http://localhost:${port}`));
+
+// Middleware para ruta no encontrada
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Ruta no encontrada',
+    path: req.originalUrl,
+  });
+});
+
+app.use(errorHandler);
 
 process.on('unhandledRejection', (reason) => {
   logger.error(`UNHANDLED REJECTION: ${reason}`);

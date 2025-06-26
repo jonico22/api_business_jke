@@ -7,7 +7,8 @@ import {
   changePassword,
   resetUserPassword,
   listSessions,
-  deleteSession
+  deleteSession,
+  logout
 } from './auth.controller';
 import auth from '@/middlewares/auth.middleware';
 import { allowRoles } from '@/middlewares/role.middleware';
@@ -15,6 +16,7 @@ import { allowRoles } from '@/middlewares/role.middleware';
 const router = Router();
 
 router.post('/login', login);
+router.post('/logout', auth, logout);
 // enviar correo de restablecimiento de contraseña
 router.post('/forgot-password', forgotPassword);
 // restablecer contraseña con token

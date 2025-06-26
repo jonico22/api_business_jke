@@ -64,3 +64,16 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
     html: `<p>Se te ha asignado una nueva contraseña: <strong>${newPassword}</strong></p><p>Por favor, cambia esta contraseña después de iniciar sesión.</p>`,
   });
 };
+
+export const sendEmailVerification = async (to: string, token: string): Promise<void> => {
+  await transporter.sendMail({
+    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: 'Verificación de correo electrónico',
+    html: `
+      <p>Por favor, verifica tu correo electrónico haciendo clic en el siguiente enlace:</p>
+      <a href="${process.env.FRONTEND_URL}/verify-email?token=${token}">Verificar correo electrónico</a>
+      <p>Si no solicitaste esta verificación, ignora este mensaje.</p>
+    `,
+  });
+};

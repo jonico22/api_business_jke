@@ -36,6 +36,7 @@ export class AuthService {
       throw new Error( 'Credenciales incorrectas');
     }
     const user = account.user;
+    if (!user.emailVerified) throw new Error('Debes verificar tu correo electrónico');
     if (!user.isActive) throw new Error('Cuenta inactiva');
     if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
     if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
@@ -64,6 +65,14 @@ export class AuthService {
       email: account.user.email,
       role: account.user.roleId,
     } };
+  }
+
+  async logout(userId: string, sessionId: string) {
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session || session.userId !== userId) {
+      throw new Error('No autorizado');
+    }
+    await prisma.session.delete({ where: { id: sessionId } });
   }
 
   async forgotPassword(email: string) {

@@ -83,7 +83,7 @@ class UserService {
 
     async updateProfile(userId: string, data: any) {
         const response = updateMeSchema.parse(data);
-        return prisma.person.update({
+        return prisma.bussinessPartner.update({
         where: { userId },
         data: {
             firstName: response.firstName,
@@ -143,8 +143,7 @@ class UserService {
         }
 
         return prisma.session.delete({ where: { id: sessionId } });
-    } 
-        
+    }   
     async deleteUserSessions(userId: string, sessionId: string) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new Error('Usuario no encontrado');
@@ -156,6 +155,22 @@ class UserService {
             where: {
             id: { in: sessionsToDelete.map((s) => s.id) },
             },
+        });
+    }
+    async logicalRemove(id: string) {
+        return prisma.user.update({
+            where: { id },
+            data: { isDeleted: true },
+        });
+    }
+    async verifyEmail(email: string) {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) throw new Error('Usuario no encontrado');
+        if (user.emailVerified) throw new Error('El correo ya está verificado');
+
+        return prisma.user.update({
+            where: { email },
+            data: { emailVerified: true },
         });
     }
 }

@@ -3,11 +3,20 @@ import { Request, Response } from 'express';
 import { authService } from './auth.service';
 import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from './auth.validation';
 
+// Extend Express Request interface to include sessionId
+declare global {
+  namespace Express {
+    interface Request {
+      sessionId?: string;
+    }
+  }
+}
+
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     const userAgent = req.headers['user-agent'] || 'unknown';
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
     const result = await authService.login(email, password, userAgent, ipAddress);
     res.json(result);
   } catch (error) {
@@ -15,6 +24,20 @@ export const login = async (req: Request, res: Response) => {
     res.status(401).json({ error: errorMessage });
   }
 };
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const sessionId = req.sessionId;
+    if (!userId || !sessionId) {
+      return res.status(400).json({ error: 'User ID or session ID is missing' });
+    }
+    await authService.logout(userId, sessionId);
+    res.json({ message: 'Sesión cerrada correctamente' });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(400).json({ error: errorMessage });
+  }
+}
 
 export const forgotPassword = async (req: Request, res: Response) => {
   try {

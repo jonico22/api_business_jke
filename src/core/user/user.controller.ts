@@ -3,6 +3,10 @@ import { Request, Response } from 'express';
 import { userService } from './user.service';
 import { createUserSchema, updateMeSchema } from './user.validation';
 import { buildPrismaFilters,buildPagination } from '@/utils/query-filter';
+import { successResponse, errorResponse } from '@/utils/response';
+
+import { generateEmailToken,verifyEmailToken } from '@/utils/token-email';
+import { sendEmailVerification } from '@/utils/mailer';
 
 // Extend Express Request interface to include 'user'
 declare global {
@@ -51,12 +55,25 @@ export const createUser = async (req: Request, res: Response) => {
   try {
     const data = createUserSchema.parse(req.body);
     const result = await userService.createUser(data);
+    const token = generateEmailToken(result.email);
+    await sendEmailVerification(result.email, token);
     res.status(201).json(result);
   } catch (error) {
    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 };
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Obtener perfil del usuario autenticado
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Perfil del usuario
+ * 
+ */
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
@@ -232,12 +249,40 @@ export const filterUsers = async (req: Request, res: Response) => {
       userService.getUsers(filters, skip, take),
       userService.countUsers(filters),
     ]);
-    res.json({ data: users, page, limit, total,warnings  });
-    res.json(users);
+    const data = {
+      users,
+      page,
+      limit,
+      total,
+      warnings,
+    };
+    return successResponse(res, data, 'Usuarios listados correctamente');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al obtener usuarios', 500, errorMessage);
+  }
+}
+
+export const logicalRemove = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const result = await userService.logicalRemove(userId);
+    res.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 }
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+    const { email } = verifyEmailToken(token as string);
+    await userService.verifyEmail(email);
+    return res.json({ success: true, message: 'Email verificado correctamente' });
+  } catch {
+    return res.status(400).json({ success: false, message: 'Token inválido o expirado' });
+  }
+};
 
 
