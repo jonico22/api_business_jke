@@ -1,7 +1,7 @@
 import prisma from '@/config/database';
 import { sendResetEmail, sendPasswordChangeEmail,sendResetByAdminEmail, 
   sendAccountLockedEmail, notifyAdminOnUserLock } from '@/utils/mailer';
-import { hashToken,generateToken,generateRandomPassword } from '@/utils/hash';
+import { hashToken,generateToken,generateRandomPassword,hashPassword } from '@/utils/hash';
 import argon2 from 'argon2';
 
 export class AuthService {
@@ -41,6 +41,7 @@ export class AuthService {
     if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
     if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
     const valid = await argon2.verify(account.password, password);
+    console.log('Validación de contraseña:', valid);
     if (!valid) {
       await this.incrementFailedAttempts(user.id,user.email);
       throw new Error('Credenciales inválidas');
@@ -95,22 +96,23 @@ export class AuthService {
     const reset = await prisma.passwordResetToken.findUnique({ where: { token: hashed } });
     if (!reset || reset.expiresAt < new Date()) throw new Error('Token inválido o expirado');
 
-    const hashedPass =  hashToken(newPassword);
+    const hashedPass =  await hashPassword(newPassword);
     await prisma.account.updateMany({ where: { userId: reset.userId }, data: { password: hashedPass } });
     await prisma.passwordResetToken.delete({ where: { token: hashed } });
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const account = await prisma.account.findFirst({ where: { userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!account || !account.password) throw new Error('Cuenta inválida');
 
     const valid = await argon2.verify(account.password, currentPassword);
     if (!valid) throw new Error('Contraseña actual incorrecta');
 
-    const hashedPass =  hashToken(newPassword);
+    const hashedPass =  await hashPassword(newPassword);
     if (!account.id) throw new Error('Cuenta inválida');
     await prisma.account.update({ where: { id: account.id }, data: { password: hashedPass } });
-    await sendPasswordChangeEmail(account.userId);
+    await sendPasswordChangeEmail(user?.email || '');
   }
 
   async isUserBlocked(userId: string) {
@@ -121,7 +123,7 @@ export class AuthService {
   async incrementFailedAttempts(userId: string, email: string) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const attempts = (user?.failedLoginAttempts ?? 0) + 1;
-    const max = parseInt(process.env.MAX_FAILED_ATTEMPTS || '5');
+    const max = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5');
     const blockMins = parseInt(process.env.LOGIN_BLOCK_TIME || '15');
 
     if (attempts >= max) {

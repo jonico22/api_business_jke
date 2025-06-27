@@ -25,7 +25,7 @@ router.post('/reset-password', resetPassword);
 // cambiar contraseña del usuario autenticado
 router.post('/change-password', auth, changePassword);
 // restablecer contraseña de un usuario por parte de un administrador
-router.post('/reset-user-password/:userId', allowRoles('admin', 'soporte'), resetUserPassword);
+router.post('/reset-user-password/:userId',auth,allowRoles('admin', 'soporte'), resetUserPassword);
 
 // Rutas protegidas POR REVISAR
 router.get('/sessions', auth, listSessions);

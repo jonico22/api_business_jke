@@ -21,6 +21,7 @@ class UserService {
                     email: response.email,
                     emailVerified: false,
                     roleId: role.id,
+                    isActive: false,
                     accounts: {
                         create: {
                             accountId: response.email,
@@ -75,9 +76,10 @@ class UserService {
         });
     }
 
-    async deleteUser(userId: string, currentUser: any) {
-        const isAdmin = currentUser.roles.some((r: any) => r.name === 'ADMIN');
-        if (!isAdmin) throw new Error('Solo el administrador puede eliminar usuarios');
+    async deleteUser(userId: string) {
+        await prisma.account.deleteMany({ where: { userId } });
+        await prisma.bussinessPartner.deleteMany({ where: { userId } });
+        await prisma.session.deleteMany({ where: { userId } });
         return prisma.user.delete({ where: { id: userId } });
     }
 
@@ -160,7 +162,7 @@ class UserService {
     async logicalRemove(id: string) {
         return prisma.user.update({
             where: { id },
-            data: { isDeleted: true },
+            data: { isDeleted: true,isActive: false },
         });
     }
     async verifyEmail(email: string) {

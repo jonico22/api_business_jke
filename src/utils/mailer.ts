@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
 
 export const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -10,7 +12,7 @@ export const transporter = nodemailer.createTransport({
 
 export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
   await transporter.sendMail({
-    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
     to,
     subject: 'Contraseña actualizada',
     html: `<p>Tu contraseña fue actualizada. Si no fuiste tú, contacta al soporte.</p>`,
@@ -19,7 +21,7 @@ export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
 
 export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Promise<void> => {
   await transporter.sendMail({
-    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
     to,
     subject: 'Cuenta bloqueada por seguridad',
     html: `
@@ -32,7 +34,7 @@ export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Prom
 
 export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date): Promise<void> => {
   await transporter.sendMail({
-    from: `"Sistema de Seguridad" <${process.env.EMAIL_USER}>`,
+    from: `"Sistema de Seguridad" <${process.env.ADMIN_EMAIL}>`,
     to: process.env.ADMIN_EMAIL,
     subject: 'Usuario bloqueado por intentos fallidos',
     html: `
@@ -44,7 +46,7 @@ export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date)
 
 export const sendResetEmail = async (to: string, token: string): Promise<void> => {
   await transporter.sendMail({
-    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
     to,
     subject: 'Restablecimiento de contraseña',
     html: `
@@ -58,7 +60,7 @@ export const sendResetEmail = async (to: string, token: string): Promise<void> =
 
 export const sendResetByAdminEmail = async (to: string, newPassword: string): Promise<void> => {
   await transporter.sendMail({
-    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
     to,
     subject: 'Nueva contraseña asignada por un administrador',
     html: `<p>Se te ha asignado una nueva contraseña: <strong>${newPassword}</strong></p><p>Por favor, cambia esta contraseña después de iniciar sesión.</p>`,
@@ -67,7 +69,7 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
 
 export const sendEmailVerification = async (to: string, token: string): Promise<void> => {
   await transporter.sendMail({
-    from: `"Soporte" <${process.env.EMAIL_USER}>`,
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
     to,
     subject: 'Verificación de correo electrónico',
     html: `

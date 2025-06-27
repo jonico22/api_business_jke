@@ -56,7 +56,8 @@ export const createUser = async (req: Request, res: Response) => {
     const data = createUserSchema.parse(req.body);
     const result = await userService.createUser(data);
     const token = generateEmailToken(result.email);
-    await sendEmailVerification(result.email, token);
+    const sendEmail = await sendEmailVerification(result.email, token);
+    console.log('Email enviado:', sendEmail);
     res.status(201).json(result);
   } catch (error) {
    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -140,8 +141,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-    const currentUser = req.user;
-    const result = await userService.deleteUser(userId, currentUser);
+    const result = await userService.deleteUser(userId);
     res.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
