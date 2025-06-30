@@ -2,23 +2,26 @@
 import { Request, Response } from 'express';
 import { permissionService } from './permission.service';
 import { permissionSchema } from './permission.validation';
+import { successResponse, errorResponse } from '@/utils/response';
 
 export const createPermission = async (req: Request, res: Response) => {
   try {
     const data = permissionSchema.parse(req.body);
     const result = await permissionService.create(data);
-    res.status(201).json(result);
+    return successResponse(res, result, 'Permiso creado correctamente');
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al eliminar permiso', 500, errorMessage);
   }
 };
 
 export const getPermissions = async (_req: Request, res: Response) => {
   try {
     const result = await permissionService.getAll();
-    res.json(result);
+    return successResponse(res, result, 'Listado de Permisos');
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al listar permiso', 500, errorMessage);
   }
 };
 
@@ -29,7 +32,8 @@ export const updatePermission = async (req: Request, res: Response) => {
     const result = await permissionService.update(id, data);
     res.json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al actualizar permiso', 500, errorMessage);
   }
 };
 
@@ -39,6 +43,7 @@ export const deletePermission = async (req: Request, res: Response) => {
     await permissionService.remove(id);
     res.json({ message: 'Permiso eliminado' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al eliminar permiso', 500, errorMessage);
   }
 };

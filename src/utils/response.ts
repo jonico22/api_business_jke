@@ -20,7 +20,7 @@ export const errorResponse = (
   res: Response,
   message = 'Error inesperado',
   status = 500,
-  errors:any 
+  errors?:any 
 ) => {
   return res.status(status).json({ success: false, message, errors });
 };

@@ -41,7 +41,6 @@ export class AuthService {
     if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
     if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
     const valid = await argon2.verify(account.password, password);
-    console.log('Validación de contraseña:', valid);
     if (!valid) {
       await this.incrementFailedAttempts(user.id,user.email);
       throw new Error('Credenciales inválidas');

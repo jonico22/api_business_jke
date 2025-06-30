@@ -10,8 +10,21 @@ import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
+import { redis } from '@/shared/services/redis.service';
 
 dotenv.config();
+
+async function startServer() {
+  if (redis.enabled) {
+     logger.info('[Redis] Verificando conexión...');
+    try {
+      await redis.set('ping', 'pong', 10);
+    } catch (err) {
+      logger.error('[Redis] Error de conexión', err);
+    }
+  }
+}
+
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -28,6 +41,10 @@ app.use('/api', routes);
   await createDefaultRoles();
   await createInitialAdmin();
 })();
+
+startServer()
+  .then(() => logger.info('Servidor iniciado y Redis verificado'))
+  .catch((err) => logger.error(`Error al iniciar el servidor: ${err.message}`));
 
 app.listen(port, () => console.log(`🚀 Servidor en http://localhost:${port}`));
 

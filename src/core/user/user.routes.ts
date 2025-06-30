@@ -1,7 +1,7 @@
 // src/core/user/user.routes.ts
 import { Router } from 'express';
 import { createUser, activateUser, deleteUser, updateProfile,getProfile,deleteAllSessions,filterUsers,
-    unlockUser,getAllSessions, deleteSessionUser,logicalRemove,verifyEmail  } from './user.controller';
+    unlockUser,getAllSessions, deleteSessionUser,logicalRemove,verifyEmail,getUserById  } from './user.controller';
 import  auth  from '@/middlewares/auth.middleware';
 import { allowRoles } from '@/middlewares/role.middleware';
 
@@ -14,7 +14,7 @@ router.put('/me',auth, updateProfile);
 // Listar y crear usuarios (admin y soporte)
 router.get('/',auth ,allowRoles('admin', 'soporte'), filterUsers);
 router.post('/',auth, allowRoles('admin', 'soporte'), createUser);
-
+router.get('/:id',auth, getUserById);
 
 
 router.get('/logicalRemove/:id',auth, allowRoles('admin', 'soporte'), logicalRemove);

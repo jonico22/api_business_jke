@@ -8,6 +8,8 @@ import { successResponse, errorResponse } from '@/utils/response';
 import { generateEmailToken,verifyEmailToken } from '@/utils/token-email';
 import { sendEmailVerification } from '@/utils/mailer';
 
+import { redis } from '@/shared/services/redis.service';
+
 // Extend Express Request interface to include 'user'
 declare global {
   namespace Express {
@@ -115,10 +117,11 @@ export const updateProfile = async (req: Request, res: Response) => {
     const userId = req.user.id;
     const data = updateMeSchema.parse(req.body);
     const result = await userService.updateProfile(userId, data);
-    res.json(result);
+    await redis.deleteKeysByPrefix('users:');
+    return successResponse(res, result,'Usuario actualizado');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al actualizar usuario', 500, errorMessage);
   }
 };
 
@@ -142,10 +145,11 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const result = await userService.deleteUser(userId);
-    res.json(result);
+    await redis.deleteKeysByPrefix('users:');
+    return successResponse(res, result, 'Usuario eliminado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al eliminar usuario', 500, errorMessage);
   }
 };
 
@@ -245,6 +249,11 @@ export const filterUsers = async (req: Request, res: Response) => {
     const filters = buildPrismaFilters(req.query);
     const { skip, take, page, limit,warnings  } = buildPagination(req.query);
 
+    const cacheKey = `users:${JSON.stringify(req.query)}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return successResponse(res, JSON.parse(cached), 'Usuarios cacheados');
+    }
     const [users, total] = await Promise.all([
       userService.getUsers(filters, skip, take),
       userService.countUsers(filters),
@@ -262,6 +271,12 @@ export const filterUsers = async (req: Request, res: Response) => {
     return errorResponse(res, 'Error al obtener usuarios', 500, errorMessage);
   }
 }
+
+export const getUserById = async (req: Request, res: Response) => {
+  const user = await userService.findById(req.params.id);
+  if (!user || user.isDeleted)  return errorResponse( res,'Usuario no encontrado',404);
+  return successResponse(res, user);
+};
 
 export const logicalRemove = async (req: Request, res: Response) => {
   try {

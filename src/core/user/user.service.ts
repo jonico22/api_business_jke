@@ -175,6 +175,14 @@ class UserService {
             data: { emailVerified: true },
         });
     }
+    async findById(id: string) {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            include: { role: true, person: true },
+        });
+        if (!user) throw new Error('Usuario no encontrado');
+        return user;
+    }
 }
 
 export const userService = new UserService();
