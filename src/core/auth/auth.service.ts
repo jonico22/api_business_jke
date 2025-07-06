@@ -162,6 +162,43 @@ export class AuthService {
     });
     await sendResetByAdminEmail(user.email, newPassword);
   }
+
+  async getPermissionsByRoleId(roleId: string) {
+    const permissions = await prisma.roleViewPermission.findMany({
+      where: { roleId },
+      include: { permission: true },
+    });
+    return permissions.map(p => ({ name: p.permission.name }));
+  }
+   async getViewsByRoleId(roleId: string) {
+    const views = await prisma.roleViewPermission.findMany({
+      where: { roleId, permission: { name : 'read' } },
+      include: { view: true,permission: true },
+    });
+    return views.map(v => ({ name: v.view.name , permissions: v.permission ? { name: v.permission.name } : null }));
+  }
+
+  async getCurrentUser(sessionId: string) {
+    if (!sessionId) throw new Error( 'No autorizado');
+
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { user: true },
+    });
+    if (!session || !session.user || !session.user.isActive) throw new Error( 'Sesión inválida');
+    const role = await prisma.role.findFirst({
+      where: { users: { some: { id: session.userId } } },
+    });
+    //const permissions = await this.getPermissionsByRoleId(role?.id || '');
+    const views = await this.getViewsByRoleId(role?.id || '');
+    
+    return {
+      user: session.user,
+      role,
+      //permissions,
+      views,
+    };
+  }
 }
 
 export const authService = new AuthService();

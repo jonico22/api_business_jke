@@ -5,12 +5,14 @@ import routes from './routes';
 import { createPermissions } from './utils/create-permissions';
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
+import { createViews } from './utils/create-view';
 import requestLogger from './middlewares/logger.middleware';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
 import { redis } from '@/shared/services/redis.service';
+import { createRoleViewPermission } from './utils/create-role-view-permission';
 
 dotenv.config();
 
@@ -25,12 +27,16 @@ async function startServer() {
   }
 }
 
-
 const app = express();
 const port = process.env.PORT || 4000;
 app.get('/', (_req, res) => res.send('API activa'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use(cors());
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL, // por ejemplo http://localhost:3001
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(requestLogger);
 app.use('/api', routes);
@@ -40,6 +46,9 @@ app.use('/api', routes);
   await createPermissions();
   await createDefaultRoles();
   await createInitialAdmin();
+  await createViews();
+  await createRoleViewPermission();
+  logger.info('Permisos, roles, administrador inicial y vistas creados');
 })();
 
 startServer()

@@ -6,6 +6,7 @@ const permissions = [
   { name: 'read', description: 'Ver' },
   { name: 'update', description: 'Actualizar' },
   { name: 'delete', description: 'Eliminar' },
+  { name: 'soft_delete', description: 'Eliminado logico' },
 ];
 
 export const createPermissions = async () => {

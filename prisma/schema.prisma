@@ -144,6 +144,7 @@ model View {
   code        String   @unique
   name        String   
   description String?
+  path        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
