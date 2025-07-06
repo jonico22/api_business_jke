@@ -30,3 +30,7 @@ prisma/dev.db-journal
 # OS
 .DS_Store
 Thumbs.db
+
+postgres/
+postgres/
+redis/
