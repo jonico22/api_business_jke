@@ -12,7 +12,7 @@ const views = [
   { code: 'PERM', name: 'permissions', description: 'Permisos',path: '/permissions' },
   { code: 'VIEW', name: 'views', description: 'vistas',path: '/views' },
   { code: 'VIEW_E', name: 'views edit', description: 'vistas editar',path: '/views/edit' },
-  { code: 'VIEW_c', name: 'views create', description: 'vistas crear',path: '/views/create' },
+  { code: 'VIEW_C', name: 'views create', description: 'vistas crear',path: '/views/create' },
 ];
 
 export const createViews = async () => {

@@ -24,12 +24,12 @@ const data = [
     },
     {
         role: 'admin',
-        view: 'USER ',
+        view: 'USER',
         permission: 'delete',
     },
     {
         role: 'admin',
-        view: 'USER ',
+        view: 'USER',
         permission: 'soft_delete',
     },
     {
