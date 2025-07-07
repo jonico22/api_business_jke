@@ -97,7 +97,7 @@ export const getProfile = async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /users/{id}:
+ * /users/me:
  *   put:
  *     summary: Actualizar datos del BP (persona, empresa) autenticado
  *     tags: [Users]
@@ -231,8 +231,8 @@ export const unlockUser = async (req: Request, res: Response) => {
 /** * @swagger
  * /users/sessions:
  *    get:
- *    summary: Obtener todas las sesiones de usuario
- *    tags: [Sessions]
+ *     summary: Obtener todas las sesiones de usuario
+ *     tags: [Sessions]
  *    responses:
  *      200:
  *        description: Sesiones obtenidas correctamente
@@ -279,7 +279,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
 /**
  * @swagger
   * /users/sessions/{id}:
-  *  patch:
+  *  delete:
   *   summary: Eliminar sesión de usuario por ID
   *   tags: [Sessions]
   *   parameters:
@@ -316,8 +316,8 @@ export const deleteSessionUser = async (req: Request, res: Response) => {
 /**
  * @swagger
  * /users/sessions:
- *   get:
- *     summary: Eliminar todas las sesiones de un usuario
+ *   delete:
+ *     summary: Eliminar todas las sesiones diferentes al autenticado
  *     tags: [Sessions]
  *     responses:
  *       200:
