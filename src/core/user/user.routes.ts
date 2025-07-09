@@ -2,8 +2,8 @@
 import { Router } from 'express';
 import { createUser, activateUser, deleteUser, updateProfile,getProfile,deleteAllSessions,filterUsers,
     unlockUser,getAllSessions, deleteSessionUser,logicalRemove,verifyEmail,getUserById  } from './user.controller';
-import  auth  from '@/middlewares/auth.middleware';
 import { allowRoles } from '@/middlewares/role.middleware';
+import auth from '@/middlewares/auth.middleware';
 
 const router = Router();
 
@@ -14,9 +14,12 @@ router.put('/me',auth, updateProfile);
 // Listar y crear usuarios (admin y soporte)
 router.get('/',auth ,allowRoles('admin', 'soporte'), filterUsers);
 router.post('/',auth, allowRoles('admin', 'soporte'), createUser);
-router.get('/:id',auth, getUserById);
 
-
+// Listar sesiones de usuario (admin y soporte)
+router.get('/sessions', auth, allowRoles('admin', 'soporte'), getAllSessions);
+// Eliminar sesión de usuario (admin y soporte)
+router.delete('/sessions',auth, allowRoles('admin', 'soporte'), deleteAllSessions);
+router.delete('/sessions/:id', auth, allowRoles('admin', 'soporte'), deleteSessionUser);
 router.get('/logicalRemove/:id',auth, allowRoles('admin', 'soporte'), logicalRemove);
 
 /*
@@ -28,13 +31,10 @@ router.post(
 
 // Eliminar usuario (solo admin)
 router.delete('/:id',auth, allowRoles('admin'), deleteUser);
+router.get('/:id',auth, getUserById);
 
 
-// Listar sesiones de usuario (admin y soporte)
-router.get('/sessions', allowRoles('admin', 'soporte'), getAllSessions);
-// Eliminar sesión de usuario (admin y soporte)
-router.delete('/sessions/:id', allowRoles('admin', 'soporte'), deleteSessionUser);
-router.delete('/:id/sessions',allowRoles('admin', 'soporte'), deleteAllSessions);
+
 
 // Activar/desactivar usuarios (admin y soporte)
 router.patch('/activate/:id',auth, allowRoles('admin', 'soporte'), activateUser);

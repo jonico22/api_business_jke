@@ -41,29 +41,35 @@ declare global {
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               lastName:
  *                 type: string
  *               email:
  *                 type: string
  *               password:
  *                 type: string
+ *               firstName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               role:
+ *                 type: string 
  *     responses:
- *       201:
- *         description: Usuario creado
- *       400:
- *         description: Error en los datos
+ *       200:
+ *         description: Usuario creado correctamente
+ *       500:
+ *         description: Error al crear usuario
  */
 export const createUser = async (req: Request, res: Response) => {
   try {
     const data = createUserSchema.parse(req.body);
-    const result = await userService.createUser(data);
+    const result: Awaited<ReturnType<typeof userService.createUser>> = await userService.createUser(data);
     const token = generateEmailToken(result.email);
     const sendEmail = await sendEmailVerification(result.email, token);
     console.log('Email enviado:', sendEmail);
-    res.status(201).json(result);
+    return successResponse(res, result,'Usuario creado correctamente');
   } catch (error) {
    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al crear usuario', 500, errorMessage);
   }
 };
 /**
@@ -73,33 +79,28 @@ export const createUser = async (req: Request, res: Response) => {
  *     summary: Obtener perfil del usuario autenticado
  *     tags: [Users]
  *     responses:
- *       200:
- *         description: Perfil del usuario
- * 
+ *      200:
+ *        description: Perfil del usuario obtenido correctamente
+ *      500:
+ *        description: Error al obtener perfil del usuario
  */
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
     const user = await userService.getProfile(userId);
-    res.json(user);
+    return successResponse(res, user,'Perfil del usuario obtenido correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al obterner perfil del usuario', 500, errorMessage);
   }
 };
 
 /**
  * @swagger
- * /users/{id}:
+ * /users/me:
  *   put:
- *     summary: Actualizar usuario por ID
+ *     summary: Actualizar datos del BP (persona, empresa) autenticado
  *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -138,8 +139,10 @@ export const updateProfile = async (req: Request, res: Response) => {
  *         schema:
  *           type: string
  *     responses:
- *       204:
- *         description: Usuario eliminado
+ *      200:
+ *        description: Usuario eliminado correctamente
+ *      500:
+ *        description: Error al eliminar usuario
  */
 export const deleteUser = async (req: Request, res: Response) => {
   try {
@@ -153,78 +156,190 @@ export const deleteUser = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * @swagger
+ * /users/activate/{id}:
+ *   patch:
+ *     summary: Activar usuario por ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario activado correctamente
+ *       403:
+ *         description: No autorizado para activar usuarios
+ *       500:
+ *         description: Error al activar usuario
+ */
 export const activateUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const requester = req.user;
-    if (!['admin', 'soporte'].includes(requester.role.name)) {
+    console.log('Activando usuario:', userId, 'por', requester);
+    if (!['admin', 'soporte'].includes(requester.role)) {
       return res.status(403).json({ message: 'No autorizado para activar usuarios' });
     }
     const result = await userService.activateUser(userId);
-    res.json(result);
+    return successResponse(res, result, 'Usuario activado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al activar usuario', 500, errorMessage);
   }
 };
+
+/**
+ * @swagger
+ * /users/unlock/{id}:
+ *   patch:
+ *     summary: Desbloquear usuario por ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario desbloqueado correctamente
+ *       403:
+ *         description: No autorizado para desbloquear usuarios
+ *       500:
+ *         description: Error al desbloquear usuario
+ */
 
 export const unlockUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const requester = req.user;
-    if (!['admin', 'soporte'].includes(requester.role.name)) {
-      return res.status(403).json({ message: 'No autorizado para desbloquear usuarios' });
+    if (!['admin', 'soporte'].includes(requester.role)) {
+     return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
     }
     const result = await userService.unlockUser(userId);
-    res.json(result);
+    return successResponse(res, result, 'Usuario desbloqueado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al desbloquear usuario', 500, errorMessage);
   }
 }
 
+/** * @swagger
+ * /users/sessions:
+ *    get:
+ *     summary: Obtener todas las sesiones de usuario
+ *     tags: [Sessions]
+ *    responses:
+ *      200:
+ *        description: Sesiones obtenidas correctamente
+ *      403:
+ *        description: No autorizado para ver sesiones
+ *      500:
+ *        description: Error al obtener sesiones
+ */
+
 export const getAllSessions = async (req: Request, res: Response) => {
   try {
+    console.log('Obteniendo sesiones con filtros:', req.query);
     const requester = req.user;
-    if (!['admin', 'soporte'].includes(requester.role.name)) {
+    const filters: Record<string, unknown> = buildPrismaFilters(req.query);
+    const { skip, take, page, limit,warnings  } = buildPagination(req.query);
+    const cacheKey = `sessions:${JSON.stringify(req.query)}`;
+    const cached = await redis.get(cacheKey);
+     console.log('Obteniendo sesiones con filtros:', filters, 'skip:', skip, 'take:', take);
+    if (cached) {
+      return successResponse(res, JSON.parse(cached), 'Sesiones cacheadas');
+    }
+   
+    const [sessions, total] = await Promise.all([
+      userService.getAllSessions(filters, skip, take),
+      userService.countSessions(filters),
+    ]);
+     const data = {
+      sessions,
+      page,
+      limit,
+      total,
+      warnings,
+    };
+    if (!['admin', 'soporte'].includes(requester.role)) {
       return res.status(403).json({ message: 'No autorizado para ver sesiones' });
     }
-    const sessions = await userService.getAllSessions();
-    res.json(sessions);
+    return successResponse(res, data, 'Sesiones obtenidas correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al listar sesiones', 500, errorMessage);
   } 
 }
+
+/**
+ * @swagger
+  * /users/sessions/{id}:
+  *  delete:
+  *   summary: Eliminar sesión de usuario por ID
+  *   tags: [Sessions]
+  *   parameters:
+  *     - in: path
+  *       name: id
+  *       required: true
+  *       schema:
+  *         type: string
+  *   responses:
+  *     200: 
+  *      description: Sesión eliminada correctamente
+  *     403:
+  *      description: No autorizado para eliminar sesiones
+  *     500:
+  *      description: Error al eliminar sesión
+ */
 
 export const deleteSessionUser = async (req: Request, res: Response) => {
   try {
     const sessionId = req.params.id;
-    const requester = req.user;
-    if (!['admin', 'soporte'].includes(requester.role.name)) {
+    const requester = req;
+    console.log('Eliminando sesión:', sessionId, 'por', requester.sessionId);
+    if (!['admin', 'soporte'].includes(requester.user.role)) {
       return res.status(403).json({ message: 'No autorizado para eliminar sesiones' });
     }
-    const result = await userService.deleteSession(sessionId, requester);
-    res.json(result);
+    const result = await userService.deleteSession(sessionId, requester.sessionId);
+    return successResponse(res, result, 'Sesión eliminada correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al eliminar sesión', 500, errorMessage);
   }
 }
 
+/**
+ * @swagger
+ * /users/sessions:
+ *   delete:
+ *     summary: Eliminar todas las sesiones diferentes al autenticado
+ *     tags: [Sessions]
+ *     responses:
+ *       200:
+ *         description: Sesiones de usuario eliminadas correctamente
+ *       403:
+ *        description: No autorizado para eliminar sesiones de usuarios
+ *       500:
+ *        description: Error al eliminar sesiones de usuario
+ */ 
+
 export const deleteAllSessions = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
     const requester = req.user;
     const sessionId = (req as any).sessionId;
-    if (!['admin', 'soporte'].includes(requester.role.name)) {
+    if (!['admin', 'soporte'].includes(requester.role)) {
       return res.status(403).json({ message: 'No autorizado para eliminar sesiones de usuarios' });
     }
-    const result = await userService.deleteUserSessions(userId,sessionId);
-    res.json(result);
+    const result = await userService.deleteUserSessions(sessionId);
+     return successResponse(res, result, 'Sesiones de usuario eliminadas correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al eliminar sesiones', 500, errorMessage);
   }
 }
 
@@ -242,7 +357,9 @@ export const deleteAllSessions = async (req: Request, res: Response) => {
  *         description: Filtro por nombre
  *     responses:
  *       200:
- *         description: Lista de usuarios
+ *         description: Lista de usuarios obtenida correctamente
+ *       500:
+ *       description: Error al obtener lista de usuarios
  */
 export const filterUsers = async (req: Request, res: Response) => {
   try {
@@ -271,32 +388,93 @@ export const filterUsers = async (req: Request, res: Response) => {
     return errorResponse(res, 'Error al obtener usuarios', 500, errorMessage);
   }
 }
+/** * @swagger
+ * /users/{id}:
+ *    get:
+ *      summary: Obtener usuario por ID
+ *      tags: [Users]
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *       200:
+ *        description: Usuario encontrado correctamente
+ *       404:
+ *        description: Usuario no encontrado
+ */
 
 export const getUserById = async (req: Request, res: Response) => {
-  const user = await userService.findById(req.params.id);
-  if (!user || user.isDeleted)  return errorResponse( res,'Usuario no encontrado',404);
-  return successResponse(res, user);
+  try {
+    const user = await userService.findById(req.params.id);
+    if (!user || user.isDeleted)  return errorResponse(res, 'Usuario no encontrado', 404, 'Usuario no encontrado');
+    return successResponse(res, user, 'Usuario encontrado correctamente');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al buscar usuario', 500, errorMessage);
+  }
 };
+
+/**
+ * @swagger
+ * /users/logicalRemove/{id}:
+ *    get:
+ *      summary: Eliminar lógicamente un usuario por ID
+ *      tags: [Users]
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: Usuario eliminado lógicamente correctamente
+ *        500:
+ *         description: Error al eliminar lógicamente el usuario
+ *    
+ */
 
 export const logicalRemove = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const result = await userService.logicalRemove(userId);
-    res.json(result);
+    return successResponse(res, result, 'Usuario eliminado lógicamente correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+    return errorResponse(res, 'Error al eliminar lógicamente el usuario', 500, errorMessage);
   }
 }
+
+/** * @swagger
+ * /users/verify-email: 
+ *    get:
+ *      summary: Verificar correo electrónico del usuario
+ *      tags: [Users]
+ *      parameters:
+ *        - in: query
+ *          name: token
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: Correo electrónico verificado correctamente
+ *        400:
+ *          description: Token inválido o expirado 
+ */
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
     const { email } = verifyEmailToken(token as string);
-    await userService.verifyEmail(email);
-    return res.json({ success: true, message: 'Email verificado correctamente' });
-  } catch {
-    return res.status(400).json({ success: false, message: 'Token inválido o expirado' });
+    const result = await userService.verifyEmail(email);
+    return successResponse(res, result, 'Email verificado correctamente');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Token inválido o expirado', 400, errorMessage);
   }
 };
 

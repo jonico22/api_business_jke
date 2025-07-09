@@ -53,23 +53,31 @@ class UserService {
         });
     }
     async countUsers(filters: any) {
-        const where = buildPrismaFilters(filters);
-        return prisma.user.count({ where });
+        return prisma.user.count({ where: filters });
     }
     async getUsers ( filters: any,skip: number, take: number) {
+        // Construir filtros para campos relacionados (role, person)
+
         const users = await prisma.user.findMany({
             where: filters,
             skip,
             take,
             include: {
-                role: true,
-                person: true,
+            role: true,
+            person: true,
             },
         });
         return users
     }
 
     async activateUser(userId: string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+        if (!user.emailVerified) {
+            throw new Error('El usuario no ha verificado su correo electrónico');
+        }
         return prisma.user.update({
         where: { id: userId },
         data: { isActive: true },
@@ -116,8 +124,11 @@ class UserService {
         });
     }
     
-    async getAllSessions() {
+    async getAllSessions(filters: any,skip: number, take: number) {
         return prisma.session.findMany({
+            where: filters,
+            skip,
+            take,
             include: {
                 user: {
                     select: {
@@ -131,26 +142,22 @@ class UserService {
             orderBy: { createdAt: 'desc' },
         });
     }
+
+    async countSessions(filters: any) {
+        return prisma.session.count({ where: filters });
+    }
+
     async deleteSession(sessionId: string, requester: any) {
         const session = await prisma.session.findUnique({ where: { id: sessionId } });
         if (!session) throw new Error('Sesión no encontrada');
-
         // Prevent deletion of the current session
-        if (session.id === requester.sessionId) {
+        if (session.id === requester) {
             throw new Error('No puedes eliminar tu propia sesión activa');
         }
-
-        if (!['admin', 'soporte'].includes(requester.role.name)) {
-            throw new Error('No autorizado para eliminar sesiones');
-        }
-
         return prisma.session.delete({ where: { id: sessionId } });
     }   
-    async deleteUserSessions(userId: string, sessionId: string) {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) throw new Error('Usuario no encontrado');
+    async deleteUserSessions( sessionId: string) {
         const allSessions = await prisma.session.findMany({
-            where: { userId },
         });
         const sessionsToDelete = allSessions.filter((s) => s.id !== sessionId);
         return prisma.session.deleteMany({
