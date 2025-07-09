@@ -3,6 +3,7 @@ import prisma from '../config/database';
 
 interface AuthRequest extends Request {
   user: any;
+  session?: any; // Change from string to any or the actual session type
   sessionId?: string;
 }
 
@@ -22,6 +23,7 @@ const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
     req.user = session.user;
     req.user.role = session.user.role.name; // Asignar el nombre del rol al usuario
     req.sessionId = session.id;
+    req.session = session;
     next();
   } catch (error) {
     if (!res.headersSent) {

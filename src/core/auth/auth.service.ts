@@ -49,28 +49,44 @@ export class AuthService {
     await this.resetFailedAttempts(user.id);
 
     await this.verifySession(user.id);
+    // new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 días
+    const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 2); // 2 horas
     const session = await prisma.session.create({
       data: {
         userId: user.id,
         token: generateToken(),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 días
+        expiresAt: newExpiresAt,
         userAgent,
         ipAddress,
       },
     });
+     const role = await prisma.role.findFirst({
+      where: { users: { some: { id: session.userId } } },
+    });
 
-    return { token: session.token, user: {
-      id: account.user.id,
-      name: account.user.name,
-      email: account.user.email,
-      role: account.user.roleId,
-    } };
+    return { 
+      token: session.token, 
+      user: account.user, 
+      newExpiresAt,
+      role,
+      views: await this.getViewsByRoleId(account.user.roleId || '') 
+    };
+  }
+
+  async destroyAllByUser(userId: string) {
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
   }
 
   async logout(userId: string, sessionId: string) {
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
     if (!session || session.userId !== userId) {
       throw new Error('No autorizado');
+    }
+    if (userId) {
+      // Elimina todas las sesiones del usuario
+      await this.destroyAllByUser(userId);
     }
     await prisma.session.delete({ where: { id: sessionId } });
   }
@@ -137,6 +153,7 @@ export class AuthService {
   async resetFailedAttempts(userId: string) {
     await prisma.user.update({ where: { id: userId }, data: { failedLoginAttempts: 0, lockedUntil: null } });
   }
+  
 
   async getUserSessions(userId: string) {
     return prisma.session.findMany({
@@ -194,6 +211,8 @@ export class AuthService {
     
     return {
       user: session.user,
+      expires: session.expiresAt,
+      token: session.token,
       role,
       //permissions,
       views,
