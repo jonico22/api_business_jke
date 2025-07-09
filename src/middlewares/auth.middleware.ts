@@ -9,7 +9,11 @@ interface AuthRequest extends Request {
 
 const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token =
+      req.cookies?.['session-token'] ||
+      req.headers.authorization?.split(' ')[1];
+    console.log('Cookies recibidas:', req.cookies);
+    console.log('Authorization:', req.headers.authorization);
     if (!token) return res.status(401).json({ message: 'No autorizado' });
     
     const session = await prisma.session.findUnique({

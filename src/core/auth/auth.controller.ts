@@ -24,8 +24,8 @@ export const login = async (req: Request, res: Response) => {
     const result = await authService.login(email, password, userAgent, ipAddress);
     res.cookie("session-token", result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: false ,
+      sameSite: "lax",
       path: "/",
       expires: result.newExpiresAt,
     });
@@ -47,8 +47,10 @@ export const logout = async (req: Request, res: Response) => {
        // Limpia la cookie
     res.clearCookie("session-token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: false ,
+      sameSite: "lax",
+      //secure: process.env.NODE_ENV === "production",
+      //sameSite: "none",
       path: "/",
     });
     res.json({ message: 'Sesión cerrada correctamente' });

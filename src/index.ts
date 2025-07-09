@@ -13,6 +13,7 @@ import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
 import { redis } from '@/shared/services/redis.service';
 import { createRoleViewPermission } from './utils/create-role-view-permission';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ async function startServer() {
 
 const app = express();
 const port = process.env.PORT || 4000;
+
 app.get('/', (_req, res) => res.send('API activa'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -36,7 +38,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL, // por ejemplo http://localhost:3001
   credentials: true
 }));
-
+app.use(cookieParser());
 app.use(express.json());
 app.use(requestLogger);
 app.use('/api', routes);

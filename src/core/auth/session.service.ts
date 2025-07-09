@@ -20,7 +20,6 @@ export const sessionService = {
         updatedAt: new Date(),
       },
     });
-
     return {
       token: newToken,
       expiresAt,
