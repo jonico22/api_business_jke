@@ -6,6 +6,7 @@ import { errorResponse, successResponse } from '@/utils/response';
 
 import { sessionService } from "./session.service";
 import { setSessionCookie } from "@/utils/cookies";
+
 // Extend Express Request interface to include sessionId
 declare global {
   namespace Express {
@@ -137,11 +138,12 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     const result = await authService.getCurrentUser(sessionId);
     res.cookie('auth.session', result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false ,
+      //secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       expires: result.expires,
     });
-    res.json(result);
+     return successResponse(res, result, 'datos del usuario exitoso');
   } catch (error) {
     return res.status(500).json({ error: 'Error al recuperar usuario' });
   }
@@ -163,5 +165,16 @@ export const refreshSession = async (req: Request, res: Response) => {
     return res.json({ ok: true });
   } catch (error) {
     return res.status(500).json({ error: "Error al renovar sesión" });
+  }
+};
+
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  try {
+    const result = await authService.verificationEmail(email);
+    return successResponse(res, result, 'Correo de verificación reenviado');
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Error al reenviar correo' });
   }
 };
