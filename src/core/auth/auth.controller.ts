@@ -136,11 +136,11 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'No autorizado: sessionId faltante' });
     }
     const result = await authService.getCurrentUser(sessionId);
-    res.cookie('auth.session', result.token, {
+    res.cookie("session-token", result.token, {
       httpOnly: true,
       secure: false ,
-      //secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: "lax",
+      path: "/",
       expires: result.expires,
     });
      return successResponse(res, result, 'datos del usuario exitoso');

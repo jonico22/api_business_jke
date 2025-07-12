@@ -24,6 +24,7 @@ declare global {
     }
     interface Request {
       user: User;
+      role: String
     }
   }
 }
@@ -365,15 +366,18 @@ export const filterUsers = async (req: Request, res: Response) => {
   try {
     const filters = buildPrismaFilters(req.query);
     const { skip, take, page, limit,warnings  } = buildPagination(req.query);
+    const filtersRemovePageLimit = { ...filters };
+    delete filtersRemovePageLimit.page;
+    delete filtersRemovePageLimit.limit;
 
     const cacheKey = `users:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
       return successResponse(res, JSON.parse(cached), 'Usuarios cacheados');
     }
-    const [users, total] = await Promise.all([
-      userService.getUsers(filters, skip, take),
-      userService.countUsers(filters),
+    const [users,total ] = await Promise.all([
+      userService.getUsers(filtersRemovePageLimit, skip, take),
+      userService.countUsers(filtersRemovePageLimit),
     ]);
     const data = {
       users,

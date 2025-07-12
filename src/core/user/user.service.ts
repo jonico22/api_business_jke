@@ -53,6 +53,7 @@ class UserService {
         });
     }
     async countUsers(filters: any) {
+        console.log(filters)
         return prisma.user.count({ where: filters });
     }
     async getUsers ( filters: any,skip: number, take: number) {
