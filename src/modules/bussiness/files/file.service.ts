@@ -1,5 +1,4 @@
-// src/core/file/file.service.ts
-import { prisma } from "@/config/database";
+import prisma from '@/config/database';
 
 export const fileService = async (data: {
   name: string;

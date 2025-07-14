@@ -4,7 +4,7 @@ import puppeteer from "puppeteer";
 import { v4 as uuidv4 } from "uuid";
 import { uploadFileToR2 } from "@/shared/services/upload.service";
 import { fileService } from "@/modules/bussiness/files/file.service";
-import { prisma } from "@/lib/prisma";
+import prisma from '@/config/database';
 import QRCode from "qrcode";
 import { generateQrAndUpload } from "@/utils/generateQr";
 
@@ -35,12 +35,10 @@ export const createReceipt = async (data: any) => {
 export const getReceipts = async () => {
   return prisma.receipt.findMany({
     include: {
-      paymentTransaction: true,
       currency: true,
       tax: true,
       receiptType: true,
       file: true,
-      businessPartner: true,
     },
   });
 };
@@ -49,12 +47,10 @@ export const getReceiptById = async (id: string) => {
   return prisma.receipt.findUnique({
     where: { id },
     include: {
-      paymentTransaction: true,
       currency: true,
       tax: true,
       receiptType: true,
       file: true,
-      businessPartner: true,
     },
   });
 };
@@ -74,7 +70,6 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
   const receipt = await prisma.receipt.findUnique({
     where: { id: receiptId },
     include: {
-      paymentTransaction: true,
       currency: true,
       tax: true,
       receiptType: true,

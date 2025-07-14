@@ -1,8 +1,7 @@
-import { prisma } from '@/config/database';
-import { Service } from '@prisma/client';
+import prisma from '@/config/database';
 
 export const serviceService = {
-  async create(data: Partial<Service>) {
+  async create(data: any) {
     return prisma.service.create({ data });
   },
 
@@ -14,7 +13,7 @@ export const serviceService = {
     return prisma.service.findUnique({ where: { id } });
   },
 
-  async update(id: string, data: Partial<Service>) {
+  async update(id: string, data: any) {
     return prisma.service.update({ where: { id }, data });
   },
 

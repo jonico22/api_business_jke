@@ -1,4 +1,4 @@
-import { prisma } from "@/config/database";
+import prisma from '@/config/database';
 
 export const subscriptionService = {
   create: (data: any) => prisma.subscription.create({ data }),

@@ -1,28 +1,28 @@
-import { prisma } from "@/config/database";
+import prisma from '@/config/database';
 import { CreateCuponUsadoInput } from './usedCoupons.validation';
 
 export const cuponesUsadosService = {
   create: (data: CreateCuponUsadoInput) => {
-    return prisma.UsedCoupons.create({
+    return prisma.usedCoupons.create({
       data,
     });
   },
 
-  findByUserAndPromocion: (userId: string, promocionId: string) => {
-    return prisma.UsedCoupons.findFirst({
+  findByUserAndPromocion: (userId: string, promotionId: string) => {
+    return prisma.usedCoupons.findFirst({
       where: {
         userId,
-        promocionId,
+        promotionId,
       },
     });
   },
 
   findAll: () => {
-    return prisma.UsedCoupons.findMany({
+    return prisma.usedCoupons.findMany({
       include: {
         user: true,
-        promocion: true,
-        suscripcion: true,
+        promotion: true,
+        subscription: true,
       },
     });
   },

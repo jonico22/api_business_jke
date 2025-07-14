@@ -1,5 +1,5 @@
-import { prisma } from '@/config/database';
-import { createPaymentTransactionSchema } from './paymentTransaction.validation';
+import prisma from '@/config/database';
+import { CreatePaymentTransactionInput } from './paymentTransaction.validation';
 
 export const paymentTransactionService = {
   create: async (data: CreatePaymentTransactionInput) => {
