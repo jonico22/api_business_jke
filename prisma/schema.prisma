@@ -30,6 +30,14 @@ model User {
   updatedBy   String?
 
   UserViewPermission UserViewPermission[]
+
+  Subscription Subscription[]
+
+  AuthorizedUserSubscription AuthorizedUserSubscription[]
+
+  UsedCoupons UsedCoupons[]
+
+  File File[]
 }
 
 model Account {
@@ -116,6 +124,8 @@ model BussinessPartner {
   createdBy   String?
   updatedBy   String?
 
+
+  Receipt Receipt[]
 }
 
 model PasswordResetToken {
@@ -196,4 +206,332 @@ model UserViewPermission {
   updatedAt    DateTime   @updatedAt
 
   @@unique([userId, viewId, permissionId])
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   String?
+  updatedBy   String?
+  plans  Plan[]
+}
+
+model PaymentFrequency {
+  id          String   @id @default(uuid())
+  name        String
+  description String? 
+  intervalDays Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy   String?
+  updatedBy   String?
+  plans  Plan[]
+}
+
+model Currency {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  symbol    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy   String?
+  updatedBy   String?
+  plans  Plan[]
+
+  Receipt Receipt[]
+}
+
+model Plan {
+  id                 String             @id @default(uuid())
+  name               String
+  price              Float
+  maxUsers           Int
+  isActive           Boolean            @default(true)
+
+  serviceId          String
+  service            Service            @relation(fields: [serviceId], references: [id])
+
+  frequencyId        String
+  paymentFrequency   PaymentFrequency   @relation(fields: [frequencyId], references: [id])
+
+  currencyId         String
+  currency           Currency           @relation(fields: [currencyId], references: [id])
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  isDeleted     Boolean @default(false)
+  createdBy   String?
+  updatedBy   String?
+
+  Subscription Subscription[]
+
+  Request Request[]
+}
+
+model Promotion {
+  id                String   @id @default(uuid())
+  code              String   @unique
+  name              String
+  description       String?
+  discountType      DiscountType
+  discountValue     Float
+  durationUnit      DurationUnit
+  durationValue     Int
+  isSingleUse       Boolean  @default(false)
+  startDate         DateTime
+  endDate           DateTime
+  maxUsages         Int
+  currentUsages     Int      @default(0)
+  isActive          Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  Subscription Subscription[]
+
+  UsedCoupons UsedCoupons[]
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum DurationUnit {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+model Subscription {
+  id          String     @id @default(uuid())
+  userId      String
+  planId      String
+  promotionId String?    // puede ser nulo si no se usó promoción
+
+  startDate   DateTime
+  endDate     DateTime
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  isActive          Boolean  @default(true)
+  
+  // Relaciones
+  user        User       @relation(fields: [userId], references: [id])
+  plan        Plan       @relation(fields: [planId], references: [id])
+  promotion   Promotion? @relation(fields: [promotionId], references: [id])
+
+  createdBy   String?
+  updatedBy   String?
+
+  AuthorizedUserSubscription AuthorizedUserSubscription[]
+
+  PaymentTransaction PaymentTransaction[]
+
+  UsedCoupons UsedCoupons[]
+}
+
+model AuthorizedUserSubscription {
+  id             String      @id @default(cuid())
+  userId         String
+  subscriptionId String
+  authorizedAt   DateTime    @default(now())
+
+  user           User        @relation(fields: [userId], references: [id])
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([userId, subscriptionId]) // Clave compuesta única
+  @@map("authorized_user_subscription")
+}
+
+model PaymentTransaction {
+  id                String       @id @default(uuid())
+  subscriptionId    String
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id])
+  amount            Float
+  paymentDate       DateTime
+  nextPaymentDate   DateTime?
+  paymentMethod     PaymentMethod
+  status            PaymentStatus
+  description       String?      // opcional para registrar detalles o errores
+  referenceCode     String?      // para conciliación (ej: código de pasarela)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  fileId  String?
+  file    File? @relation(fields: [fileId], references: [id])
+
+ receipt  Receipt?  @relation
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT
+  DEBIT
+  TRANSFER
+  PAYPAL
+  OTHER
+}
+
+enum PaymentStatus {
+  COMPLETED
+  PENDING
+  FAILED
+  REFUNDED
+  FREE
+}
+
+model UsedCoupons {
+  id              String      @id @default(uuid())
+  userId          String
+  subscriptionId  String
+  promotionId     String
+  usedAt          DateTime   @default(now())
+
+  user            User        @relation(fields: [userId], references: [id])
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+  promotion       Promotion   @relation(fields: [promotionId], references: [id])
+
+  @@unique([userId, promotionId], name: "unique_user_promotion_once")
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Request {
+  id          String             @id @default(uuid())
+  firstName   String
+  lastName    String
+  businessName String
+  email       String             @unique
+  phone       String
+  planId      String
+  plan        Plan               @relation(fields: [planId], references: [id])
+  status      RequestStatus      @default(pending)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  
+  commentaryRejection String?
+  createdBy   String?
+  updatedBy   String?
+  rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
+  rejectionid String?
+}
+
+enum RequestStatus {
+  pending
+  rejected
+  verified
+  paid
+  approved
+}
+
+model ReasoneForRejection {
+  id          String   @id @default(uuid())
+  reason      String   // texto del motivo de rechazo
+  Request Request[]
+}
+
+model File {
+  id           String   @id @default(uuid())
+  name         String
+  path         String
+  mimeType     String
+  size         Int
+  uploadedAt   DateTime @default(now())
+
+  // Relaciones
+  uploadedById String?  
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+
+  @@map("files")
+  PaymentTransaction PaymentTransaction[]
+  Receipt Receipt[]
+}
+
+model Tax {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  value       Float     // Porcentaje (ej. 18.0 para 18%)
+  type        TaxType   // Tipo de impuesto: porcentaje o fijo
+  description String?   // Descripción opcional
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  Receipt Receipt[]
+}
+
+enum TaxType {
+  percentage // Porcentaje, ej. 18%
+  fixed      // Monto fijo, ej. 5 USD
+}
+
+model ReceiptType {
+  id          String   @id @default(uuid())
+  code        String   @unique   // Código SUNAT o equivalente (ej. 01, 03)
+  name        String             // Nombre descriptivo (Factura, Boleta, etc.)
+  description String?            // Información adicional si se desea
+  isElectronic Boolean  @default(true) // Si es electrónico (e.g. para integración con SUNAT u otros)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  Receipt Receipt[]
+}
+
+model Receipt {
+  id                String    @id @default(uuid())
+  number            String    @unique    // Número del comprobante (ej. F001-000123)
+  issueDate         DateTime            // Fecha de emisión del comprobante
+  dueDate           DateTime            // Fecha y hora del comprobante
+  taxAmount         Float               // Monto del impuesto aplicado
+  totalAmount       Float               // Total a pagar (incluye impuestos)
+  status            ReceiptStatus       // Estado del comprobante
+  notes             String?             // Observaciones opcionales
+
+  // Relaciones
+  transactionId     String @unique
+  transaction       PaymentTransaction  @relation(fields: [transactionId], references: [id])
+
+  currencyId        String
+  currency          Currency            @relation(fields: [currencyId], references: [id])
+
+  taxId             String
+  tax               Tax                 @relation(fields: [taxId], references: [id])
+
+  receiptTypeId     String
+  receiptType       ReceiptType        @relation(fields: [receiptTypeId], references: [id])
+
+  fileId            String?             // Opcional: PDF o XML del comprobante
+  file              File?               @relation(fields: [fileId], references: [id])
+
+  partnerId         String?             // Opcional: Si el comprobante está asociado a un tercero
+  partner           BussinessPartner?   @relation(fields: [partnerId], references: [id])
+
+
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum ReceiptStatus {
+  issued       // Emitido correctamente
+  canceled     // Anulado
+  pending_send // Pendiente de envío a sistema externo (como SUNAT)
 }
