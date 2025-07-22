@@ -178,3 +178,15 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error al reenviar correo' });
   }
 };
+
+export const archiveUser = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  try {
+    const result = await authService.archiveUser(userId);
+    return successResponse(res, result, 'Usuario archivado correctamente');
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Error al archivar usuario' });
+  }
+};
+

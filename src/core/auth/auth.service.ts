@@ -91,11 +91,6 @@ export class AuthService {
       // Elimina todas las sesiones del usuario
       await this.destroyAllByUser(userId);
     }
-    if (session) {
-      await prisma.session.delete({
-        where: { id: sessionId },
-      });
-    }
   }
 
   async forgotPassword(email: string) {
@@ -241,6 +236,51 @@ export class AuthService {
     const token = generateEmailToken(user.email);
     await sendEmailVerification(email, token);
     return { message: 'Correo de verificación reenviado' };
+  }
+
+  async  archiveUser(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        isArchived: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error("Usuario no encontrado.");
+    }
+
+    if (user.isArchived) {
+      throw new Error("El usuario ya está archivado.");
+    }
+
+    const archivedEmail = `${user.email}.archived.${user.id}`;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        isDeleted: true,
+        isArchived: true,
+        email: archivedEmail,
+        image: null,
+        person: {
+          disconnect: true,
+        },
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        sessions: {
+          deleteMany: {},
+        },
+        resetTokens: {
+          deleteMany: {},
+        },
+      },
+    });
+
+    return { success: true, message: "Usuario archivado correctamente." };
   }
 }
 

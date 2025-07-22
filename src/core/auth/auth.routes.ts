@@ -9,7 +9,8 @@ import {
   logout,
   getCurrentUser,
   refreshSession,
-  resendVerificationEmail
+  resendVerificationEmail,
+  archiveUser
 } from './auth.controller';
 import auth from '@/middlewares/auth.middleware';
 import { allowRoles } from '@/middlewares/role.middleware';
@@ -29,9 +30,8 @@ router.post('/change-password', auth, changePassword);
 
 router.post("/refresh-session", auth, refreshSession);
 router.get("/me", auth, getCurrentUser);
+router.post('/archive-user/:userId',auth,allowRoles('admin', 'soporte'), archiveUser);
 // restablecer contraseña de un usuario por parte de un administrador
 router.post('/reset-user-password/:userId',auth,allowRoles('admin', 'soporte'), resetUserPassword);
-
-
 
 export default router;

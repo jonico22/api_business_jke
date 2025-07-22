@@ -20,21 +20,19 @@ model User {
   role           Role      @relation(fields: [roleId], references: [id])
   accounts       Account[]
   sessions       Session[]
+  personId       String?
   person         BussinessPartner?
   resetTokens    PasswordResetToken[]
   failedLoginAttempts Int  @default(0)
   lockedUntil         DateTime?
-
+  isArchived     Boolean   @default(false) // ✅ nuevo campo
   isDeleted   Boolean @default(false)
   createdBy   String?
   updatedBy   String?
 
   UserViewPermission UserViewPermission[]
-
   Subscription Subscription[]
-
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-
   UsedCoupons UsedCoupons[]
 
   File File[]
@@ -99,8 +97,8 @@ model DocumentType {
 }
 
 model BussinessPartner {
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  userId    String?   @unique
+  user      User?     @relation(fields: [userId], references: [id])
   id          String   @id @default(uuid())
   typeBP      String?  @default("Person")
   typeDocId   String?
@@ -123,8 +121,6 @@ model BussinessPartner {
   isDeleted   Boolean @default(false)
   createdBy   String?
   updatedBy   String?
-
-
   Receipt Receipt[]
 }
 
