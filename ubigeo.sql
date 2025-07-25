@@ -367,7 +367,7 @@ INSERT INTO UbigeoPeru (ubigeo_id, department, province, district, naturalRegion
 
 -- Actualizar coordenadas para principales ciudades
 UPDATE UbigeoPeru SET
-    latitude = CASE id
+    latitude = CASE ubigeo_id
         WHEN '150101' THEN -12.046374  -- Lima
         WHEN '130101' THEN -8.109052   -- Trujillo
         WHEN '140101' THEN -6.776597   -- Chiclayo
@@ -395,7 +395,7 @@ UPDATE UbigeoPeru SET
         WHEN '250101' THEN -8.379147   -- Calleria
         ELSE NULL
     END,
-    longitude = CASE id
+    longitude = CASE ubigeo_id
         WHEN '150101' THEN -77.042793  -- Lima
         WHEN '130101' THEN -79.021534  -- Trujillo
         WHEN '140101' THEN -79.844297  -- Chiclayo
