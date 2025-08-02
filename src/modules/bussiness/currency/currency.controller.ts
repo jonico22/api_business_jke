@@ -92,7 +92,7 @@ export const getCurrencyById = async (req: Request, res: Response) => {
  * @swagger
  * /currencies/{id}:
  *   put:
- *     summary: Actualizar moneda
+ *     summary: Actualizar moneda por Id
  *     tags: [Currency]
  * parameters:
  *       - in: put
@@ -136,7 +136,7 @@ export const updateCurrency = async (req: Request, res: Response) => {
  * @swagger
  * /currencies/{id}:
  *   delete:
- *     summary: Obtener una moneda por ID
+ *     summary: Eliminar una moneda por ID
  *     tags: [Currency]
  *     parameters:
  *       - in: get
