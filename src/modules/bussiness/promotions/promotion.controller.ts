@@ -149,7 +149,7 @@ export const getPromotionById = async (req: Request, res: Response) => {
  *      responses:
  *          200:
  *            description: Promoción actualizada correctamente
- * *        400:
+ *          400:
  *            description: Error al actualizar la promoción  
  * */ 
 
