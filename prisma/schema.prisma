@@ -555,13 +555,9 @@ model Society {
   updatedBy String?
 
   Product Product[]
-
   BranchOffice BranchOffice[]
-
   Purchase Purchase[]
-
   Order Order[]
-
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
 }
 
@@ -733,14 +729,14 @@ model ProductBranchMovement {
   originBranch        BranchOffice     @relation("OriginBranch", fields: [originBranchId], references: [id])
   destinationBranch   BranchOffice     @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
   product             Product    @relation(fields: [productId], references: [id])
-
-
 }
+
 enum MovementStatus {
   PENDING
   COMPLETED
   CANCELLED
 }
+
 model Order {
   id              String       @id @default(uuid())
   orderCode       String       @unique

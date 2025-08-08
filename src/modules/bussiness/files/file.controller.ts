@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { uploadFileToR2 } from "@/shared/services/upload.service";
-import { prisma } from "@/config/database";
+import prisma from '@/config/database';
 import {fileService} from "./file.service"
 
 // Al subir archivo
@@ -43,7 +43,7 @@ export const deleteFile = async (req: Request, res: Response) => {
   await r2Client.send(
     new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET,
-      Key: file.key,
+      Key: file.path,
     })
   );
 

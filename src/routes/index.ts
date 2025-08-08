@@ -15,6 +15,24 @@ import authorizedUserSubscriptionRoutes from '@/modules/bussiness/authorized-sub
 import paymentTransactionRoutes from '@/modules/bussiness/payment-transactions/paymentTransaction.routes';
 import receiptRoutes from "@/modules/bussiness/receipt/receipt.route";
 
+import reasonRoutes from '@/modules/bussiness/reasonForRejection/reasonForRejection.route'
+import tax from '@/modules/bussiness/tax/tax.route';
+import receiptType from '@/modules/bussiness/receiptType/receiptType.route';
+import societyRoutes from '@/modules/customer/society/society.route';
+import productRoutes from '@/modules/customer/product/product.route';
+import branchOfficeRoutes from '@/modules/customer/branchOffice/branchoffice.route';
+import branchOfficeProductRoutes from '@/modules/customer/branchOfficeProduct/branchofficeproduct.route';
+import purchaseDetailRoutes from '@/modules/customer/purchaseDetail/purchaseDetail.routes';
+import purchaseRoutes from '@/modules/customer/purchase/purchase.routes';
+
+import orderRoutes from '@/modules/customer/order/order.route';
+import orderItemRoutes from '@/modules/customer/orderItem/orderItem.route';
+import orderPaymentRoutes from '@/modules/customer/orderPayment/orderPayment.route';
+import societyReceiptRoutes from '@/modules/customer/societyReceipt/societyReceipt.routes';
+import outgoingConsignmentAgreementRoutes from '@/modules/customer/outgoingConsignmentAgreement/outgoingConsignmentAgreement.route';
+import deliveredConsignmentAgreementRoutes from '@/modules/customer/deliveredConsignmentAgreement/deliveredConsignmentAgreement.route';
+import receivedConsignmentSettlementRoutes from '@/modules/customer/receivedConsignmentSettlement/receivedConsignmentSettlement.route';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -35,6 +53,25 @@ router.use('/authorized-users', authorizedUserSubscriptionRoutes);
 router.use('/payment-transactions', paymentTransactionRoutes);
 router.use('/payment-transactions', paymentTransactionRoutes);
 router.use("/receipts", receiptRoutes);
+
+router.use('/rejection-reasons', reasonRoutes)
+router.use('/taxes', tax);
+router.use('/receipt-types', receiptType);
+
+// modulo de clientes
+router.use('/societies', societyRoutes);
+router.use('/products', productRoutes);
+router.use('/branch-offices', branchOfficeRoutes);
+router.use('/branch-office-products', branchOfficeProductRoutes);
+router.use('/purchases', purchaseRoutes);
+router.use('/purchase-details', purchaseDetailRoutes);
+router.use('/orders', orderRoutes);
+router.use('/order-items', orderItemRoutes);
+router.use('/order-payments', orderPaymentRoutes);
+router.use('/society-receipts', societyReceiptRoutes);
+router.use('/outgoing-consignment-agreements', outgoingConsignmentAgreementRoutes);
+router.use('/delivered-consignment-agreements', deliveredConsignmentAgreementRoutes);
+router.use('/received-consignment-settlements', receivedConsignmentSettlementRoutes);
 
 export default router;
 
