@@ -5,6 +5,7 @@ import roleRoutes from '@/core/role/role.routes';
 import permissionRoutes from '@/core/permission/permission.routes';
 import viewRoutes from '@/core/view/view.routes';
 import dashboard from '@/core/dashboard/dashboard.routes'
+
 import serviceRoutes from '@/modules/bussiness/services/service.routes';
 import paymentFrequencyRoutes from '@/modules/bussiness/payment-frequency/payment-frequency.routes';
 import currencyRoutes from "@/modules/bussiness/currency/currency.routes";
@@ -14,7 +15,7 @@ import subscriptionRoutes from "@/modules/bussiness/subscriptions/subscription.r
 import authorizedUserSubscriptionRoutes from '@/modules/bussiness/authorized-subscription/authorizedUserSubscription.routes';
 import paymentTransactionRoutes from '@/modules/bussiness/payment-transactions/paymentTransaction.routes';
 import receiptRoutes from "@/modules/bussiness/receipt/receipt.route";
-
+import requestRoutes from '@/modules/bussiness/request/request.routes';
 import reasonRoutes from '@/modules/bussiness/reasonForRejection/reasonForRejection.route'
 import tax from '@/modules/bussiness/tax/tax.route';
 import receiptType from '@/modules/bussiness/receiptType/receiptType.route';
@@ -53,7 +54,7 @@ router.use('/authorized-users', authorizedUserSubscriptionRoutes);
 router.use('/payment-transactions', paymentTransactionRoutes);
 router.use('/payment-transactions', paymentTransactionRoutes);
 router.use("/receipts", receiptRoutes);
-
+router.use('/requests', requestRoutes);
 router.use('/rejection-reasons', reasonRoutes)
 router.use('/taxes', tax);
 router.use('/receipt-types', receiptType);
