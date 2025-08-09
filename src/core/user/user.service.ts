@@ -2,7 +2,7 @@
 import prisma from '@/config/database';
 import { hashPassword } from '@/utils/hash';
 import { createUserSchema, updateMeSchema } from './user.validation';
-import { buildPrismaFilters } from '@/utils/query-filter';
+
 
 class UserService {
     async createUser(data: any) {
@@ -36,6 +36,7 @@ class UserService {
                             phone: response.phone,
                             address: response.address,
                             email: response.email,
+                            typeBP: response.typeBP || 'natural',
                         },
                     },
                 },

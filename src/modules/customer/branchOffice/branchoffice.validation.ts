@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const createBranchOfficeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  address: z.string().min(1, 'Address is required'),
-  phone: z.string().min(1, 'Phone is required'),
+  address: z.string().optional(),
+  phone: z.string().optional(),
   isMain: z.boolean().optional().default(false),
   societyId: z.string().uuid('Invalid society ID'),
   isActive: z.boolean().optional().default(true),

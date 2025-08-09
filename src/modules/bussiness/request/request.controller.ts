@@ -15,6 +15,7 @@ export const createRequest = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getRequests = async (req: Request, res: Response) => {
   try {
     const result = await requestService.findAll();

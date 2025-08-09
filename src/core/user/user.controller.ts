@@ -20,7 +20,7 @@ declare global {
     interface User {
       id: string;
       role: UserRole;
-      [key: string]: any;
+      [key: string]: any; 
     }
     interface Request {
       user: User;
@@ -64,9 +64,7 @@ export const createUser = async (req: Request, res: Response) => {
   try {
     const data = createUserSchema.parse(req.body);
     const result: Awaited<ReturnType<typeof userService.createUser>> = await userService.createUser(data);
-    const token = generateEmailToken(result.email);
-    const sendEmail = await sendEmailVerification(result.email, token);
-    console.log('Email enviado:', sendEmail);
+
     return successResponse(res, result,'Usuario creado correctamente');
   } catch (error) {
    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -181,11 +179,14 @@ export const activateUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const requester = req.user;
+    const role = req.role as string;
     console.log('Activando usuario:', userId, 'por', requester);
-    if (!['admin', 'soporte'].includes(requester.role)) {
+    if (!['admin', 'soporte'].includes(role)) {
       return res.status(403).json({ message: 'No autorizado para activar usuarios' });
     }
     const result = await userService.activateUser(userId);
+    const token = generateEmailToken(result.email);
+    await sendEmailVerification(result.email, token);
     return successResponse(res, result, 'Usuario activado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -218,7 +219,8 @@ export const unlockUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
     const requester = req.user;
-    if (!['admin', 'soporte'].includes(requester.role)) {
+    const role = req.role as string;
+    if (!['admin', 'soporte'].includes(role)) {
      return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
     }
     const result = await userService.unlockUser(userId);
@@ -251,6 +253,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
     const { skip, take, page, limit,warnings  } = buildPagination(req.query);
     const cacheKey = `sessions:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
+    const role = req.role as string;
      console.log('Obteniendo sesiones con filtros:', filters, 'skip:', skip, 'take:', take);
     if (cached) {
       return successResponse(res, JSON.parse(cached), 'Sesiones cacheadas');
@@ -267,7 +270,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
       total,
       warnings,
     };
-    if (!['admin', 'soporte'].includes(requester.role)) {
+    if (!['admin', 'soporte'].includes(role)) {
       return res.status(403).json({ message: 'No autorizado para ver sesiones' });
     }
     return successResponse(res, data, 'Sesiones obtenidas correctamente');
@@ -302,8 +305,9 @@ export const deleteSessionUser = async (req: Request, res: Response) => {
   try {
     const sessionId = req.params.id;
     const requester = req;
+    const role = req.role as string;
     console.log('Eliminando sesión:', sessionId, 'por', requester.sessionId);
-    if (!['admin', 'soporte'].includes(requester.user.role)) {
+    if (!['admin', 'soporte'].includes(role)) {
       return res.status(403).json({ message: 'No autorizado para eliminar sesiones' });
     }
     const result = await userService.deleteSession(sessionId, requester.sessionId);
@@ -333,7 +337,8 @@ export const deleteAllSessions = async (req: Request, res: Response) => {
   try {
     const requester = req.user;
     const sessionId = (req as any).sessionId;
-    if (!['admin', 'soporte'].includes(requester.role)) {
+    const role = req.role as string;
+    if (!['admin', 'soporte'].includes(role)) {
       return res.status(403).json({ message: 'No autorizado para eliminar sesiones de usuarios' });
     }
     const result = await userService.deleteUserSessions(sessionId);
@@ -481,5 +486,3 @@ export const verifyEmail = async (req: Request, res: Response) => {
     return errorResponse(res, 'Token inválido o expirado', 400, errorMessage);
   }
 };
-
-

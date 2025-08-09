@@ -9,6 +9,7 @@ export const createUserSchema = z.object({
   phone: z.string(),
   address: z.string().optional(),
   role: z.string().min(3),
+  typeBP: z.enum(['natural', 'negocio']).optional(),
 });
 
 export const updateMeSchema = z.object({
