@@ -9,6 +9,7 @@ export const statusSchema = z.enum([
 ]);
 
 export const createRequestSchema = z.object({
+  code: z.string().min(1).optional(),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   businessName: z.string().min(1),
@@ -17,6 +18,8 @@ export const createRequestSchema = z.object({
   status: statusSchema.optional().default("pending"),
   rejectionReason: z.string().optional(),
   planId: z.string(),
+  isBusiness: z.boolean().optional().default(false),
+  documentNumber: z.string().optional(),
 });
 
 

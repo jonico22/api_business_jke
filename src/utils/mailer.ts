@@ -79,3 +79,13 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
     `,
   });
 };
+
+export const sendRequestVerificationEmail = async (to: string, requestCode: string): Promise<void> => {
+  await transporter.sendMail({
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
+    to,
+    subject: 'Solicitud de registro ha sido verificada',
+    html: `<p>Tu solicitud de registro ha sido verificado con el código: <strong>${requestCode}</strong>.</p><p>Nos pondremos en contacto contigo pronto.</p>`,
+  });
+}
+

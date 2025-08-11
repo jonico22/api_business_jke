@@ -53,3 +53,13 @@ export const deleteRequest = async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+export const updateRequestStatusVerified = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+    const result = await requestService.updateStatusVerified(req.params.id, status);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};

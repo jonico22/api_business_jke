@@ -20,7 +20,6 @@ model User {
   role           Role      @relation(fields: [roleId], references: [id])
   accounts       Account[]
   sessions       Session[]
-  personId       String?
   person         BussinessPartner?
   resetTokens    PasswordResetToken[]
   failedLoginAttempts Int  @default(0)
@@ -419,20 +418,20 @@ model UsedCoupons {
 
 model Request {
   id          String             @id @default(uuid())
+  code        String            @unique
   firstName   String
   lastName    String
   businessName String
   email       String             @unique
   phone       String
-  documentNumber String? @unique
-  isBusiness Boolean @default(false)
+  documentNumber String?         @unique
+  isBusiness Boolean             @default(false)
   planId      String
   plan        Plan               @relation(fields: [planId], references: [id])
   status      RequestStatus      @default(pending)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   
-  commentaryRejection String?
   createdBy   String?
   updatedBy   String?
   rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
