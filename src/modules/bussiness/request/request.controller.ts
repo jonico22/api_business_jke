@@ -53,6 +53,7 @@ export const createRequest = async (req: Request, res: Response) => {
 };
 
 
+<<<<<<< HEAD
 /**
  * @swagger
  * /requests:
@@ -66,6 +67,8 @@ export const createRequest = async (req: Request, res: Response) => {
  *         description: Error al obtener las solicitudes
  */
 
+=======
+>>>>>>> 590f23d03982d0c220e9ac9107a9ed78de2ebdd0
 export const getRequests = async (req: Request, res: Response) => {
   try {
     const result = await requestService.findAll();
@@ -183,6 +186,16 @@ export const deleteRequest = async (req: Request, res: Response) => {
   try {
     await requestService.remove(req.params.id);
     res.status(204).send();
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const updateRequestStatusVerified = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+    const result = await requestService.updateStatusVerified(req.params.id, status);
+    res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }

@@ -6,6 +6,7 @@ import { createPermissions } from './utils/create-permissions';
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
 import { createViews } from './utils/create-view';
+import { createDocumentTypes} from './utils/create-type-doc';
 import requestLogger from './middlewares/logger.middleware';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
@@ -50,6 +51,7 @@ app.use('/api', routes);
   await createInitialAdmin();
   await createViews();
   await createRoleViewPermission();
+  await createDocumentTypes();
   logger.info('Permisos, roles, administrador inicial y vistas creados');
 })();
 

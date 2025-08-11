@@ -20,7 +20,6 @@ model User {
   role           Role      @relation(fields: [roleId], references: [id])
   accounts       Account[]
   sessions       Session[]
-  personId       String?
   person         BussinessPartner?
   resetTokens    PasswordResetToken[]
   failedLoginAttempts Int  @default(0)
@@ -419,18 +418,20 @@ model UsedCoupons {
 
 model Request {
   id          String             @id @default(uuid())
+  code        String            @unique
   firstName   String
   lastName    String
   businessName String
   email       String             @unique
   phone       String
+  documentNumber String?         @unique
+  isBusiness Boolean             @default(false)
   planId      String
   plan        Plan               @relation(fields: [planId], references: [id])
   status      RequestStatus      @default(pending)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   
-  commentaryRejection String?
   createdBy   String?
   updatedBy   String?
   rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
@@ -555,13 +556,9 @@ model Society {
   updatedBy String?
 
   Product Product[]
-
   BranchOffice BranchOffice[]
-
   Purchase Purchase[]
-
   Order Order[]
-
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
 }
 
@@ -616,8 +613,8 @@ model Category {
 model BranchOffice {
   id         String   @id @default(uuid())
   name       String
-  address    String
-  phone      String
+  address    String?
+  phone      String?
   isMain     Boolean  @default(false)
 
   societyId  String
@@ -733,14 +730,14 @@ model ProductBranchMovement {
   originBranch        BranchOffice     @relation("OriginBranch", fields: [originBranchId], references: [id])
   destinationBranch   BranchOffice     @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
   product             Product    @relation(fields: [productId], references: [id])
-
-
 }
+
 enum MovementStatus {
   PENDING
   COMPLETED
   CANCELLED
 }
+
 model Order {
   id              String       @id @default(uuid())
   orderCode       String       @unique

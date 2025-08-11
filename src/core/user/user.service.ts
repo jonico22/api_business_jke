@@ -2,7 +2,7 @@
 import prisma from '@/config/database';
 import { hashPassword } from '@/utils/hash';
 import { createUserSchema, updateMeSchema } from './user.validation';
-import { buildPrismaFilters } from '@/utils/query-filter';
+
 
 class UserService {
     async createUser(data: any) {
@@ -14,6 +14,8 @@ class UserService {
         if (!role) throw new Error('Rol no válido');
 
         const hashedPassword = await hashPassword(data.password);
+        const documentType = await prisma.documentType.findUnique({ where: { code: response.isBusiness ? 'RUC' : 'DNI' } });
+  
 
         const user = await prisma.user.create({
                 data: {
@@ -36,6 +38,9 @@ class UserService {
                             phone: response.phone,
                             address: response.address,
                             email: response.email,
+                            typeBP: response.typeBP || 'natural',
+                            typeDocId : documentType ? documentType.id : null,
+                            documentNumber: response.documentNumber || "",
                         },
                     },
                 },
@@ -46,14 +51,13 @@ class UserService {
 
     async listUsers() {
         return prisma.user.findMany({
-        include: {
-            person: true,
-            role: true,
-        },
+            include: {
+                person: true,
+                role: true,
+            },
         });
     }
     async countUsers(filters: any) {
-        console.log(filters)
         return prisma.user.count({ where: filters });
     }
     async getUsers ( filters: any,skip: number, take: number) {

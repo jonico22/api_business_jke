@@ -47,16 +47,12 @@ npx prisma studio
 
 ```
 
-## Estructura del proyecto
+## Problemas con cli prisma
 ```bash
-src/
-├── config/              # Configuración de Prisma y conexión DB
-├── controllers/         # Lógica de negocio por módulo
-├── middlewares/         # Middleware de autenticación, permisos, logs
-├── routes/              # Definición de rutas agrupadas
-├── utils/               # Helpers (correo, logs, hashes, tokens, permisos)
-├── validations/         # Validaciones con Zod
-├── index.ts             # Entrada principal del servidor
+
+  rm -rf node_modules #window sin -rf
+  npm install 
+  npx prisma generate
 
 ```
 
