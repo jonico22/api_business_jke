@@ -3,50 +3,48 @@ import { promotionService } from "./promotion.service";
 import { createPromotionSchema } from "./promotion.validation";
 
 /**
- * @swagger
- * /promotions:
- *   post:
- *     summary: Crear nueva promoción
- *     tags: [Promotion]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               discountPercentage:
- *                 type: number
- *               startDate:
- *                 type: string
- *                 format: date-time
- *               endDate:
- *                 type: string
- *                 format: date-time
- *               discountPercentage:
- *                 type: number
- *               code:
- *                 type: string
- *               durationUnit:
- *                 type: string
- *              durationValue:
- *                 type: integer
- *              maxUses:
- *                 type: integer
- *              currentUsages:
- *                 type: integer
- *              discountType:
- *                 type: string
- *     responses:
- *       201:
- *         description: Promoción creada correctamente
- *       400:
- *         description: Error al crear la promoción
- */
+* @swagger
+* /promotions:
+*   post:
+*    summary: Crear nueva promoción
+*    tags: [Promotion]
+*    requestBody:
+*      required: true
+*      content:
+*        application/json:
+*          schema:
+*            type: object
+*            properties:
+*              name:
+*               type: string
+*              description:
+*               type: string
+*              discountPercentage:
+*               type: number
+*              startDate:
+*               type: string
+*               format: date-time
+*              endDate:
+*               type: string
+*               format: date-time
+*              code:
+*               type: string
+*              durationUnit:
+*               type: string
+*              durationValue:
+*               type: integer
+*              maxUses:
+*               type: integer
+*              currentUsages:
+*               type: integer
+*              discountType:
+*               type: string
+*    responses:
+*      201:
+*        description: Promoción creada correctamente
+*      400:
+*        description: Error al crear la promoción
+*/
 
 
 export const createPromotion = async (req: Request, res: Response) => {
@@ -104,54 +102,55 @@ export const getPromotionById = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /promotions/{id}:
- *   put:
- *     summary: Actualizar promoción por ID
- *     tags: [Promotion]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               discountPercentage:
- *                 type: number
- *               startDate:
- *                 type: string
- *                 format: date-time
- *               endDate:
- *                 type: string
- *                 format: date-time
- *               code:
- *                 type: string
- *               durationUnit:
- *                 type: string
- *              durationValue:
- *                 type: integer
- *              maxUses:
- *                 type: integer
- *              currentUsages:
- *                 type: integer
- *              discountType: 
- *                type: string
- *      responses:
- *          200:
- *            description: Promoción actualizada correctamente
- *          400:
- *            description: Error al actualizar la promoción  
- * */ 
+* @swagger
+* /promotions/{id}:
+*   put:
+*    summary: Actualizar promoción por ID
+*    tags: [Promotion]
+*    parameters:
+*      - in: path
+*        name: id
+*        required: true
+*        schema:
+*          type: string
+*   requestBody:
+*      required: true
+*      content:
+*        application/json:
+*          schema:
+*            type: object
+*            properties:
+*              name:
+*                type: string
+*              description:
+*                type: string
+*              discountPercentage:
+*                type: number
+*              startDate:
+*                type: string
+*                format: date-time
+*              endDate:
+*                type: string
+*                format: date-time
+*              code:
+*                type: string
+*              durationUnit:
+*                type: string
+*              durationValue:
+*                type: integer
+*              maxUses:
+*                type: integer
+*              currentUsages:
+*                type: integer
+*              discountType: 
+*                type: string
+*      responses:
+*          200:
+*            description: Promoción actualizada correctamente
+*          400:
+*            description: Error al actualizar la promoción  
+* 
+*/ 
 
 
 export const updatePromotion = async (req: Request, res: Response) => {
