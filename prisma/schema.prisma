@@ -326,7 +326,8 @@ model Subscription {
 
   startDate   DateTime
   endDate     DateTime
-
+  status      SubscriptionStatus @default(PENDING)
+  lastRenewalDate DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   isActive    Boolean  @default(true)
@@ -340,14 +341,44 @@ model Subscription {
   updatedBy   String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-
   PaymentTransaction PaymentTransaction[]
-
   UsedCoupons UsedCoupons[]
 
   societyId String?
   society   Society? @relation(fields: [societyId], references: [id])
+
+  SubscriptionMovement SubscriptionMovement[]
 }
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+model SubscriptionMovement {
+  id              String        @id @default(uuid())
+  subscriptionId  String
+  movementDate    DateTime      @default(now())  // fecha de renovación o cambio
+  previousEndDate DateTime?     // fecha de fin antes de la renovación
+  newEndDate      DateTime      // nueva fecha de fin después de la renovación
+  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, DOWNGRADE
+  notes           String?       // comentarios o detalle de la renovación
+  createdAt       DateTime      @default(now())
+  createdBy       String?
+
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+}
+
+enum MovementType {
+  RENEWAL
+  CANCELLATION
+  UPGRADE
+  DOWNGRADE
+}
+
+
 
 model AuthorizedUserSubscription {
   id             String      @id @default(cuid())
