@@ -5,30 +5,30 @@ import swaggerJSDoc from "swagger-jsdoc";
 
 
 /**
- * @swagger
- * /currencies:
- *   post:
- *     summary: Crear nueva moneda
- *     tags: [Currency]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               code:
- *                 type: string
- *               symbol:
- *                 type: string
- *     responses:
- *       201:
- *         description: Moneda creada correctamente
- *       400:
- *         description: Error al crear la moneda
- */
+* @swagger
+* /currencies:
+*   post:
+*     summary: Crear nueva moneda
+*     tags: [Currency]
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             type: object
+*             properties:
+*               name:
+*                 type: string
+*               code:
+*                 type: string
+*               symbol:
+*                 type: string
+*     responses:
+*       201:
+*         description: Moneda creada correctamente
+*       400:
+*         description: Error al crear la moneda
+*/
 
 
 
@@ -44,16 +44,16 @@ export const createCurrency = async (req: Request, res: Response) => {
 
 
 /**
- * @swagger
- * /currencies:
- *   get:
- *     summary: Obtener todas las monedas
- *     tags: [Currency]
- *     responses:
- *       200:
- *         description: Lista de monedas obtenidas correctamente
- * 
- */
+* @swagger
+* /currencies:
+*   get:
+*     summary: Obtener todas las monedas
+*     tags: [Currency]
+*     responses:
+*       200:
+*         description: Lista de monedas obtenidas correctamente
+* 
+*/
 
 export const getCurrencies = async (_: Request, res: Response) => {
   const result = await currencyService.findAll();
@@ -62,23 +62,23 @@ export const getCurrencies = async (_: Request, res: Response) => {
 
 
 /**
- * @swagger
- * /currencies/{id}:
- *   get:
- *     summary: Obtener una moneda por ID
- *     tags: [Currency]
- *     parameters:
- *       - in: get
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Moneda obtenida correctamente
- *       404:
- *         description: Moneda no encontrada
- */
+* @swagger
+* /currencies/{id}:
+*   get:
+*     summary: Obtener una moneda por ID
+*     tags: [Currency]
+*     parameters:
+*       - in: get
+*         name: id
+*         required: true
+*         schema:
+*           type: string
+*     responses:
+*       200:
+*         description: Moneda obtenida correctamente
+*       404:
+*         description: Moneda no encontrada
+*/
 
 export const getCurrencyById = async (req: Request, res: Response) => {
   const result = await currencyService.findById(req.params.id);
@@ -89,36 +89,36 @@ export const getCurrencyById = async (req: Request, res: Response) => {
 
 
 /**
- * @swagger
- * /currencies/{id}:
- *   put:
- *     summary: Actualizar moneda por Id
- *     tags: [Currency]
- * parameters:
- *       - in: put
- *         name: id
- *         required: true
- *         schema:
- *          type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               code:
- *                 type: string
- *               symbol:
- *                 type: string
- *     responses:
- *       201:
- *         description: Moneda actualizada correctamente
- *       400:
- *         description: Error al actualizar la moneda
- */
+* @swagger
+* /currencies/{id}:
+*   put:
+*     summary: Actualizar moneda por Id
+*     tags: [Currency]
+*     parameters:
+*       - in: put
+*         name: id
+*         required: true
+*         schema:
+*          type: string
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             type: object
+*             properties:
+*               name:
+*                 type: string
+*               code:
+*                 type: string
+*               symbol:
+*                 type: string
+*     responses:
+*       201:
+*         description: Moneda actualizada correctamente
+*       400:
+*         description: Error al actualizar la moneda
+*/
 
 
 export const updateCurrency = async (req: Request, res: Response) => {
@@ -133,23 +133,23 @@ export const updateCurrency = async (req: Request, res: Response) => {
 
 
 /**
- * @swagger
- * /currencies/{id}:
- *   delete:
- *     summary: Eliminar una moneda por ID
- *     tags: [Currency]
- *     parameters:
- *       - in: get
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Moneda eliminada correctamente
- *       400:
- *         description: Moneda no encontrada o error al eliminar
- */
+* @swagger
+* /currencies/{id}:
+*   delete:
+*     summary: Eliminar una moneda por ID
+*     tags: [Currency]
+*     parameters:
+*       - in: get
+*         name: id
+*         required: true
+*         schema:
+*           type: string
+*     responses:
+*       204:
+*         description: Moneda eliminada correctamente
+*       400:
+*         description: Moneda no encontrada o error al eliminar
+*/
 
 
 export const deleteCurrency = async (req: Request, res: Response) => {
