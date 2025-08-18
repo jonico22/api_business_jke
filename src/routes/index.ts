@@ -19,6 +19,8 @@ import requestRoutes from '@/modules/bussiness/request/request.routes';
 import reasonRoutes from '@/modules/bussiness/reasonForRejection/reasonForRejection.route'
 import tax from '@/modules/bussiness/tax/tax.route';
 import receiptType from '@/modules/bussiness/receiptType/receiptType.route';
+import subscriptionMovementRoutes from '@/modules/bussiness/subscriptionMovement/subscriptionMovement.routes';
+
 import societyRoutes from '@/modules/customer/society/society.route';
 import productRoutes from '@/modules/customer/product/product.route';
 import branchOfficeRoutes from '@/modules/customer/branchOffice/branchoffice.route';
@@ -33,6 +35,7 @@ import societyReceiptRoutes from '@/modules/customer/societyReceipt/societyRecei
 import outgoingConsignmentAgreementRoutes from '@/modules/customer/outgoingConsignmentAgreement/outgoingConsignmentAgreement.route';
 import deliveredConsignmentAgreementRoutes from '@/modules/customer/deliveredConsignmentAgreement/deliveredConsignmentAgreement.route';
 import receivedConsignmentSettlementRoutes from '@/modules/customer/receivedConsignmentSettlement/receivedConsignmentSettlement.route';
+
 
 const router = Router();
 
@@ -58,6 +61,7 @@ router.use('/requests', requestRoutes);
 router.use('/rejection-reasons', reasonRoutes)
 router.use('/taxes', tax);
 router.use('/receipt-types', receiptType);
+router.use('/subscription-movements', subscriptionMovementRoutes);
 
 // modulo de clientes
 router.use('/societies', societyRoutes);
