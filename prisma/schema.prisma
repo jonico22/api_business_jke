@@ -255,6 +255,7 @@ model Currency {
 
 model Plan {
   id                 String             @id @default(uuid())
+  code               String             @unique @default("DEFAULT_CODE")
   name               String
   price              Float
   maxUsers           Int
@@ -367,7 +368,8 @@ model SubscriptionMovement {
   notes           String?       // comentarios o detalle de la renovación
   createdAt       DateTime      @default(now())
   createdBy       String?
-
+  paymentTransactionId String? // opcional, si se asocia a un pago
+  paymentTransaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
   subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
 }
 
@@ -377,7 +379,6 @@ enum MovementType {
   UPGRADE
   DOWNGRADE
 }
-
 
 
 model AuthorizedUserSubscription {
@@ -395,8 +396,8 @@ model AuthorizedUserSubscription {
 
 model PaymentTransaction {
   id                String       @id @default(uuid())
-  subscriptionId    String
-  subscription      Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionMovementId    String
+  subscriptionMovement      Subscription @relation(fields: [subscriptionMovementId], references: [id])
   amount            Float
   paymentDate       DateTime
   nextPaymentDate   DateTime?
@@ -411,6 +412,8 @@ model PaymentTransaction {
   fileId  String?
   file    File? @relation(fields: [fileId], references: [id])
   receipt  Receipt?  @relation
+
+  SubscriptionMovement SubscriptionMovement[]
 }
 
 enum PaymentMethod {
