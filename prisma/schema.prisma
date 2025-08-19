@@ -70,7 +70,7 @@ model Session {
 
 model Role {
   id    String  @id @default(uuid())
-  code  String  @unique
+  code  String  @unique @default("DEFAULT_ROLE")
   name  String  
   isActive Boolean @default(true)
   isDeleted Boolean @default(false)
