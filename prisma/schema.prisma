@@ -24,7 +24,7 @@ model User {
   resetTokens    PasswordResetToken[]
   failedLoginAttempts Int  @default(0)
   lockedUntil         DateTime?
-  isArchived     Boolean   @default(false) // ✅ nuevo campo
+  isArchived     Boolean   @default(false) 
   isDeleted   Boolean @default(false)
   createdBy   String?
   updatedBy   String?
@@ -71,15 +71,17 @@ model Session {
 model Role {
   id    String  @id @default(uuid())
   code  String  @unique
-  name  String  @unique
+  name  String  
   isActive Boolean @default(true)
   isDeleted Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String?
-  updatedBy    String?
+  updatedBy   String?
   users User[]
   RoleViewPermission RoleViewPermission[]
+  society     Society?   @relation(fields: [societyId], references: [id])
+  societyId   String?
 }
 
 model DocumentType {
@@ -125,8 +127,6 @@ model BussinessPartner {
 
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
 }
-
-
 
 model PasswordResetToken {
   token     String   @id
@@ -303,7 +303,6 @@ model Promotion {
   updatedBy   String?
 
   Subscription Subscription[]
-
   UsedCoupons UsedCoupons[]
 }
 
@@ -594,6 +593,8 @@ model Society {
   Purchase Purchase[]
   Order Order[]
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
+
+  Role Role[]
 }
 
 model Product {
