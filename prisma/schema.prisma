@@ -24,7 +24,7 @@ model User {
   resetTokens    PasswordResetToken[]
   failedLoginAttempts Int  @default(0)
   lockedUntil         DateTime?
-  isArchived     Boolean   @default(false) // ✅ nuevo campo
+  isArchived     Boolean   @default(false) 
   isDeleted   Boolean @default(false)
   createdBy   String?
   updatedBy   String?
@@ -70,16 +70,18 @@ model Session {
 
 model Role {
   id    String  @id @default(uuid())
-  code  String  @unique
-  name  String  @unique
+  code  String  @unique @default("DEFAULT_ROLE")
+  name  String  
   isActive Boolean @default(true)
   isDeleted Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdBy   String?
-  updatedBy    String?
+  updatedBy   String?
   users User[]
   RoleViewPermission RoleViewPermission[]
+  society     Society?   @relation(fields: [societyId], references: [id])
+  societyId   String?
 }
 
 model DocumentType {
@@ -125,8 +127,6 @@ model BussinessPartner {
 
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
 }
-
-
 
 model PasswordResetToken {
   token     String   @id
@@ -255,6 +255,7 @@ model Currency {
 
 model Plan {
   id                 String             @id @default(uuid())
+  code               String             @unique @default("DEFAULT_CODE")
   name               String
   price              Float
   maxUsers           Int
@@ -302,7 +303,6 @@ model Promotion {
   updatedBy   String?
 
   Subscription Subscription[]
-
   UsedCoupons UsedCoupons[]
 }
 
@@ -326,7 +326,8 @@ model Subscription {
 
   startDate   DateTime
   endDate     DateTime
-
+  status      SubscriptionStatus @default(PENDING)
+  lastRenewalDate DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   isActive    Boolean  @default(true)
@@ -340,14 +341,44 @@ model Subscription {
   updatedBy   String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-
   PaymentTransaction PaymentTransaction[]
-
   UsedCoupons UsedCoupons[]
 
   societyId String?
   society   Society? @relation(fields: [societyId], references: [id])
+
+  SubscriptionMovement SubscriptionMovement[]
 }
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+model SubscriptionMovement {
+  id              String        @id @default(uuid())
+  subscriptionId  String
+  movementDate    DateTime      @default(now())  // fecha de renovación o cambio
+  previousEndDate DateTime?     // fecha de fin antes de la renovación
+  newEndDate      DateTime      // nueva fecha de fin después de la renovación
+  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, DOWNGRADE
+  notes           String?       // comentarios o detalle de la renovación
+  createdAt       DateTime      @default(now())
+  createdBy       String?
+  paymentTransactionId String? // opcional, si se asocia a un pago
+  paymentTransaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+}
+
+enum MovementType {
+  RENEWAL
+  CANCELLATION
+  UPGRADE
+  DOWNGRADE
+}
+
 
 model AuthorizedUserSubscription {
   id             String      @id @default(cuid())
@@ -364,8 +395,8 @@ model AuthorizedUserSubscription {
 
 model PaymentTransaction {
   id                String       @id @default(uuid())
-  subscriptionId    String
-  subscription      Subscription @relation(fields: [subscriptionId], references: [id])
+  subscriptionMovementId    String
+  subscriptionMovement      Subscription @relation(fields: [subscriptionMovementId], references: [id])
   amount            Float
   paymentDate       DateTime
   nextPaymentDate   DateTime?
@@ -380,6 +411,8 @@ model PaymentTransaction {
   fileId  String?
   file    File? @relation(fields: [fileId], references: [id])
   receipt  Receipt?  @relation
+
+  SubscriptionMovement SubscriptionMovement[]
 }
 
 enum PaymentMethod {
@@ -560,6 +593,8 @@ model Society {
   Purchase Purchase[]
   Order Order[]
   OutgoingConsignmentAgreement OutgoingConsignmentAgreement[]
+
+  Role Role[]
 }
 
 model Product {
