@@ -276,9 +276,6 @@ model Plan {
   createdBy   String?
   updatedBy   String?
 
-
-  Request Request[]
-
   Tariff Tariff[]
 }
 
@@ -333,18 +330,18 @@ model Subscription {
   
   // Relaciones
   user        User       @relation(fields: [userId], references: [id])
-
   createdBy   String?
   updatedBy   String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
   PaymentTransaction PaymentTransaction[]
   UsedCoupons UsedCoupons[]
-
-  societyId String?
-  society   Society? @relation(fields: [societyId], references: [id])
-
   SubscriptionMovement SubscriptionMovement[]
+  societyId String?
+  society   Society?  @relation(fields: [societyId], references: [id])
+  tariffId   String    
+  tariff     Tariff   @relation(fields: [tariffId], references: [id])
+ 
 }
 
 enum SubscriptionStatus {
@@ -456,8 +453,6 @@ model Request {
   phone       String
   documentNumber String?         @unique
   isBusiness Boolean             @default(false)
-  planId      String
-  plan        Plan               @relation(fields: [planId], references: [id])
   status      RequestStatus      @default(pending)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -493,6 +488,7 @@ model Tariff {
   promotion    Promotion?  @relation(fields: [promotionId], references: [id])
 
   Request Request[]
+  Subscription Subscription[]
 }
 
 

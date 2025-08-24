@@ -17,7 +17,7 @@ export const createRequestSchema = z.object({
   phone: z.string().min(7),
   status: statusSchema.optional().default("pending"),
   rejectionReason: z.string().optional(),
-  planId: z.string(),
+  tariff: z.string(),
   isBusiness: z.boolean().optional().default(false),
   documentNumber: z.string().optional(),
 });

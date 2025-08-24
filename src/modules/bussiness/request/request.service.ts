@@ -27,19 +27,19 @@ export const requestService = {
     if (!data.code) {
       data.code = `REQ-${generateCodeUnique()}`;
     }
-    
+
     sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
     return prisma.request.create({ data });
   },
   findAll: () => prisma.request.findMany({
-    include: { plan: true },
+    include: { tariff: true },
     orderBy: { createdAt: "desc" },
   }),
 
   findById: (id: string) =>
     prisma.request.findUnique({
       where: { id },
-      include: { plan: true },
+      include: { tariff: true },
       // Ensure 'code' is selected
     }),
   update: (id: string, data: any) =>
