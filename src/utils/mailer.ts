@@ -67,6 +67,20 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
   });
 };
 
+
+// crear un validaciond de datos y correo electronico cuando envia un solicitud de registro firstName,lastName,businessName,email,phone , enviar un correo de confirmacion de registro
+export const sendRegistrationEmail = async (to: string, firstName: string, lastName: string, token: string): Promise<void> => {
+  await transporter.sendMail({
+    from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,
+    to,
+    subject: 'Confirmación de registro',
+    html: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${process.env.FRONTEND_URL}/verify-email?token=${token}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
+  });
+};
+
+
+
+
 export const sendEmailVerification = async (to: string, token: string): Promise<void> => {
   await transporter.sendMail({
     from: `"Soporte" <${process.env.ADMIN_EMAIL}>`,

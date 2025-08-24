@@ -218,7 +218,6 @@ export const activateUser = async (req: Request, res: Response) => {
 export const unlockUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-    const requester = req.user;
     const role = req.role as string;
     if (!['admin', 'soporte'].includes(role)) {
      return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
@@ -247,14 +246,12 @@ export const unlockUser = async (req: Request, res: Response) => {
 
 export const getAllSessions = async (req: Request, res: Response) => {
   try {
-    console.log('Obteniendo sesiones con filtros:', req.query);
-    const requester = req.user;
+
     const filters: Record<string, unknown> = buildPrismaFilters(req.query);
     const { skip, take, page, limit,warnings  } = buildPagination(req.query);
     const cacheKey = `sessions:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
     const role = req.role as string;
-     console.log('Obteniendo sesiones con filtros:', filters, 'skip:', skip, 'take:', take);
     if (cached) {
       return successResponse(res, JSON.parse(cached), 'Sesiones cacheadas');
     }

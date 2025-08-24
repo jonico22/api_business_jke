@@ -3,17 +3,14 @@ import { RequestStatus } from '@prisma/client';
 import { userService } from '@/core/user/user.service';
 import { generateCodeUnique }  from '@/utils/generateCode'
 import { generateRandomPassword } from '@/utils/hash';
-import {sendRequestVerificationEmail} from '@/utils/mailer';
+import {sendRequestVerificationEmail, sendRegistrationEmail} from '@/utils/mailer';
 import argon2 from 'argon2';
 
 enum Status {
   Pending = "pending",
   Rejected = "rejected",
-  Verified = "verified",
-  Paid = "paid",
-  Approved = "approved",
+  Verified = "verified"
 }
-
 
 const newCreateUser = async (data: any) => {
   const newPassword = generateRandomPassword();
@@ -30,6 +27,8 @@ export const requestService = {
     if (!data.code) {
       data.code = `REQ-${generateCodeUnique()}`;
     }
+    
+    sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
     return prisma.request.create({ data });
   },
   findAll: () => prisma.request.findMany({

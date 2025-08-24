@@ -276,9 +276,10 @@ model Plan {
   createdBy   String?
   updatedBy   String?
 
-  Subscription Subscription[]
 
   Request Request[]
+
+  Tariff Tariff[]
 }
 
 model Promotion {
@@ -302,8 +303,9 @@ model Promotion {
   createdBy   String?
   updatedBy   String?
 
-  Subscription Subscription[]
   UsedCoupons UsedCoupons[]
+
+  Tariff Tariff[]
 }
 
 enum DiscountType {
@@ -321,9 +323,6 @@ enum DurationUnit {
 model Subscription {
   id          String     @id @default(uuid())
   userId      String
-  planId      String
-  promotionId String?    // puede ser nulo si no se usó promoción
-
   startDate   DateTime
   endDate     DateTime
   status      SubscriptionStatus @default(PENDING)
@@ -334,8 +333,6 @@ model Subscription {
   
   // Relaciones
   user        User       @relation(fields: [userId], references: [id])
-  plan        Plan       @relation(fields: [planId], references: [id])
-  promotion   Promotion? @relation(fields: [promotionId], references: [id])
 
   createdBy   String?
   updatedBy   String?
@@ -464,10 +461,12 @@ model Request {
   status      RequestStatus      @default(pending)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+  tariffId   String            // tarifa aplicada si es que se verificó
   
   createdBy   String?
   updatedBy   String?
   rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
+  tariff      Tariff            @relation(fields: [tariffId], references: [id])
   rejectionid String?
 }
 
@@ -475,9 +474,27 @@ enum RequestStatus {
   pending
   rejected
   verified
-  paid
-  approved
 }
+
+model Tariff {
+  id           String      @id @default(uuid())
+  planId       String
+  promotionId  String?     // opcional: si está asociado a una promoción específica
+  
+  totalCost    Float       // Costo final de la tarifa
+  description  String?     // Descripción opcional de la tarifa (ej: "Plan anual con descuento")
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  isActive     Boolean     @default(true)
+
+  // Relaciones
+  plan         Plan        @relation(fields: [planId], references: [id])
+  promotion    Promotion?  @relation(fields: [promotionId], references: [id])
+
+  Request Request[]
+}
+
 
 model ReasoneForRejection {
   id          String   @id @default(uuid())
