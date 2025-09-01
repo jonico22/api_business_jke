@@ -17,9 +17,9 @@ export const allowRoles = (...allowedRoles: string[]) => {
       return res.status(403).json({ message: 'Rol no asignado' });
     }
 
-    const hasAccess = allowedRoles.includes(dbUser.role.name.toLowerCase());
+    const hasAccess = allowedRoles.includes(dbUser.role.code);
     if (!hasAccess) {
-      logger.warn(`❌ Acceso denegado: ${dbUser.role.name} no permitido → ruta ${req.originalUrl}`);
+      logger.warn(`❌ Acceso denegado: ${dbUser.role.code} no permitido → ruta ${req.originalUrl}`);
       return res.status(403).json({ message: 'Acceso denegado: Rol insuficiente' });
     }
 

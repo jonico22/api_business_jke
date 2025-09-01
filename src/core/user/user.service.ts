@@ -10,20 +10,19 @@ class UserService {
         
         const existing = await prisma.user.findUnique({ where: { email: response.email } });
         if (existing) throw new Error('Email ya registrado');
-        const role = await prisma.role.findUnique({ where: { name: response.role } });
+        const role = await prisma.role.findUnique({ where: { code: response.role } });
         if (!role) throw new Error('Rol no válido');
 
         const hashedPassword = await hashPassword(data.password);
         const documentType = await prisma.documentType.findUnique({ where: { code: response.isBusiness ? 'RUC' : 'DNI' } });
   
-
         const user = await prisma.user.create({
                 data: {
                     name: response.firstName + ' ' + response.lastName,
                     email: response.email,
-                    emailVerified: false,
+                    emailVerified: true,
                     roleId: role.id,
-                    isActive: false,
+                    isActive: true,
                     accounts: {
                         create: {
                             accountId: response.email,

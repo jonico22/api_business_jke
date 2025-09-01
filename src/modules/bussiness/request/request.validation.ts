@@ -4,8 +4,6 @@ export const statusSchema = z.enum([
   "pending",
   "rejected",
   "verified",
-  "paid",
-  "approved",
 ]);
 
 export const createRequestSchema = z.object({
@@ -17,7 +15,7 @@ export const createRequestSchema = z.object({
   phone: z.string().min(7),
   status: statusSchema.optional().default("pending"),
   rejectionReason: z.string().optional(),
-  tariff: z.string(),
+  tariffId: z.string(),
   isBusiness: z.boolean().optional().default(false),
   documentNumber: z.string().optional(),
 });

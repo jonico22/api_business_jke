@@ -2,8 +2,8 @@
 import prisma from '@/config/database';
 
 class RoleService {
-  async create(data: { name: string; code: string }) {
-    const exists = await prisma.role.findUnique({ where: { name: data.name } });
+  async create(data: any) {
+    const exists = await prisma.role.findUnique({ where: { code: data.name } });
     if (exists) throw new Error('El rol ya existe');
 
     return prisma.role.create({ data });

@@ -6,14 +6,15 @@ const prisma = new PrismaClient();
 
 export const subscriptionMovementService = {
   async create(data: z.infer<typeof createSubscriptionMovementSchema>) {
-    return prisma.subscriptionMovement.create({ data });
+    return prisma.subscriptionMovement.create({
+      data});
   },
 
   async getAll() {
     return prisma.subscriptionMovement.findMany({
       include: {
         subscription: {
-          select: { id: true, userId: true, planId: true, endDate: true },
+          select: { id: true, userId: true, request: true, endDate: true },
         },
       },
     });
@@ -24,7 +25,7 @@ export const subscriptionMovementService = {
       where: { id },
       include: {
         subscription: {
-          select: { id: true, userId: true, planId: true, endDate: true },
+          select: { id: true, userId: true, request: true, endDate: true },
         },
       },
     });

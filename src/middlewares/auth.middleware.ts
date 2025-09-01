@@ -23,7 +23,7 @@ const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: 'Sesión inválida o expirada' });
     }
     req.user = session.user;
-    req.role = session.user.role.name; // Asignar el nombre del rol al usuario
+    req.role = session.user.role.code; // Asignar el nombre del rol al usuario
     req.sessionId = session.id;
     req.session = session;
     next();

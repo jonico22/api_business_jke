@@ -111,8 +111,8 @@ model BussinessPartner {
   surname   String?
   companyName String?
   contactEmail String?
-  email String
-  phone      String @unique
+  email      String @unique
+  phone      String 
   telephone  String?
   address    String?
   createdAt   DateTime @default(now())
@@ -257,6 +257,7 @@ model Plan {
   id                 String             @id @default(uuid())
   code               String             @unique @default("DEFAULT_CODE")
   name               String
+  description        String?
   price              Float
   maxUsers           Int
   isActive           Boolean            @default(true)
@@ -334,14 +335,12 @@ model Subscription {
   updatedBy   String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-  PaymentTransaction PaymentTransaction[]
   UsedCoupons UsedCoupons[]
   SubscriptionMovement SubscriptionMovement[]
   societyId String?
   society   Society?  @relation(fields: [societyId], references: [id])
-  tariffId   String    
-  tariff     Tariff   @relation(fields: [tariffId], references: [id])
- 
+  requestId   String    
+  request     Request   @relation(fields: [requestId], references: [id])
 }
 
 enum SubscriptionStatus {
@@ -357,22 +356,20 @@ model SubscriptionMovement {
   movementDate    DateTime      @default(now())  // fecha de renovación o cambio
   previousEndDate DateTime?     // fecha de fin antes de la renovación
   newEndDate      DateTime      // nueva fecha de fin después de la renovación
-  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, DOWNGRADE
+  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, SUBSCRIBED
   notes           String?       // comentarios o detalle de la renovación
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime?      @default(now())
   createdBy       String?
-  paymentTransactionId String? // opcional, si se asocia a un pago
-  paymentTransaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
   subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+  paymentTransactions  PaymentTransaction[]   // AÑADIDO: Relación inversa a las transacciones
 }
 
 enum MovementType {
   RENEWAL
   CANCELLATION
   UPGRADE
-  DOWNGRADE
+  SUBSCRIBED
 }
-
 
 model AuthorizedUserSubscription {
   id             String      @id @default(cuid())
@@ -390,23 +387,21 @@ model AuthorizedUserSubscription {
 model PaymentTransaction {
   id                String       @id @default(uuid())
   subscriptionMovementId    String
-  subscriptionMovement      Subscription @relation(fields: [subscriptionMovementId], references: [id])
-  amount            Float
-  paymentDate       DateTime
-  nextPaymentDate   DateTime?
-  paymentMethod     PaymentMethod
-  status            PaymentStatus
-  description       String?      // opcional para registrar detalles o errores
-  referenceCode     String?      // para conciliación (ej: código de pasarela)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  fileId  String?
-  file    File? @relation(fields: [fileId], references: [id])
-  receipt  Receipt?  @relation
-
-  SubscriptionMovement SubscriptionMovement[]
+  subscriptionMovement   SubscriptionMovement @relation(fields: [subscriptionMovementId], references: [id])
+  amount                 Float
+  paymentDate            DateTime
+  nextPaymentDate        DateTime?
+  paymentMethod          PaymentMethod
+  status                 PaymentStatus
+  description            String?       // opcional para registrar detalles o errores
+  referenceCode          String?       // para conciliación (ej: código de pasarela)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdBy              String?
+  updatedBy              String?
+  fileId                 String?
+  file                   File?         @relation(fields: [fileId], references: [id])
+  receipt                Receipt?      // Relación uno a uno con el comprobante
 }
 
 enum PaymentMethod {
@@ -463,6 +458,7 @@ model Request {
   rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
   tariff      Tariff            @relation(fields: [tariffId], references: [id])
   rejectionid String?
+  Subscription Subscription[]
 }
 
 enum RequestStatus {
@@ -481,14 +477,13 @@ model Tariff {
 
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  isActive     Boolean     @default(true)
+  isActive     Boolean     @default(false)
 
   // Relaciones
   plan         Plan        @relation(fields: [planId], references: [id])
   promotion    Promotion?  @relation(fields: [promotionId], references: [id])
 
   Request Request[]
-  Subscription Subscription[]
 }
 
 
@@ -504,13 +499,13 @@ model File {
   path         String
   mimeType     String
   size         Int
+  key          String   @unique
   uploadedAt   DateTime @default(now())
 
   // Relaciones
   uploadedById String?  
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
 
-  @@map("files")
   PaymentTransaction PaymentTransaction[]
   Receipt Receipt[]
   Product Product[]

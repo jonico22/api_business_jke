@@ -8,7 +8,7 @@ export const createInitialAdmin = async () => {
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (existing) return;
 
-  const adminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
+  const adminRole = await prisma.role.findUnique({ where: { code: 'ADMIN' } });
   if (!adminRole) throw new Error('Rol admin no existe. Ejecuta createDefaultRoles primero.');
 
   const hashed = await argon2.hash(adminPassword);
@@ -33,7 +33,7 @@ export const createInitialAdmin = async () => {
           firstName: 'Admin',
           lastName: 'Principal',
           email: adminEmail,
-          phone: '', // Add a default or valid phone value here
+          phone: '123456789', // Add a default or valid phone value here
         },
       },
     },

@@ -70,6 +70,7 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
   const receipt = await prisma.receipt.findUnique({
     where: { id: receiptId },
     include: {
+      transaction: true,
       currency: true,
       tax: true,
       receiptType: true,
@@ -81,15 +82,21 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
   // Leer plantilla HTML
   const templatePath = path.join(__dirname, "../../templates/receipt-item.html");
   const template = await fs.readFile(templatePath, "utf8");
-  /*
-  const rows = receipt.items.map((item: { description: any; quantity: number; unitPrice: number; }) => `
-    <tr>
-      <td>${item.description}</td>
-      <td>${item.quantity}</td>
-      <td>S/. ${item.unitPrice.toFixed(2)}</td>
-      <td>S/. ${(item.quantity * item.unitPrice).toFixed(2)}</td>
-    </tr>
-  `).join("");
+  
+  // Generar las filas de la tabla de items de forma iterativa
+  let itemRows = "";
+  // Asumimos que `items` es un array de arrays, ej: [["Descripción", cantidad, precioUnitario], ...]
+  for (const item of receipt.items as [string, number, number][]) {
+    const [description, quantity, unitPrice] = item;
+    itemRows += `
+      <tr>
+        <td>${description}</td>
+        <td>${quantity}</td>
+        <td>S/. ${unitPrice.toFixed(2)}</td>
+        <td>S/. ${(quantity * unitPrice).toFixed(2)}</td>
+      </tr>`;
+  }
+
   const url = `https://midominio.com/verify-receipt/${receipt.id}`;
   const qrCodeBase64 = await QRCode.toDataURL(url);
   const html = template
@@ -100,10 +107,9 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
     .replace("{{tax}}", `S/. ${receipt.taxAmount.toFixed(2)}`)
     .replace("{{amount}}", `S/. ${receipt.totalAmount.toFixed(2)}`)
     .replace("{{qr}}", `data:image/png;base64,${qrCodeBase64}`)
-    .replace("{{items}}", rows)
+    .replace("{{items}}", itemRows)
     .replace("{{receiptId}}", receipt.id);
-  */
-  // Generar PDF con Puppeteer
+
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });

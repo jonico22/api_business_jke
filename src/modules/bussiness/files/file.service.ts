@@ -5,6 +5,7 @@ export const fileService = async (data: {
   path: string;
   mimeType: string;
   size: number;
+  key: string;
 }) => {
   return prisma.file.create({ data });
 };
