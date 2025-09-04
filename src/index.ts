@@ -50,7 +50,7 @@ app.use('/api', routes);
   await createDefaultRoles();
   await createInitialAdmin();
   await createViews();
-  await createRoleViewPermission();
+  //await createRoleViewPermission();
   await createDocumentTypes();
   logger.info('Permisos, roles, administrador inicial y vistas creados');
 })();

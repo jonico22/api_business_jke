@@ -3,10 +3,10 @@ import { r2Client } from "@/config/r2.config";
 import { randomUUID } from "crypto";
 import path from "path";
 
-/*
-export const uploadFileToR2 = async (file: Express.Multer.File) => {
+
+export const uploadFileToR2 = async (file: Express.Multer.File,folder:string) => {
   const extension = path.extname(file.originalname);
-  const filename = `${randomUUID()}${extension}`;
+  const filename = `${folder}/${randomUUID()}${extension}`;
 
   const command = new PutObjectCommand({
     Bucket: process.env.R2_BUCKET,
@@ -14,10 +14,10 @@ export const uploadFileToR2 = async (file: Express.Multer.File) => {
     Body: file.buffer,
     ContentType: file.mimetype,
   });
+  
 
   await r2Client.send(command);
-
-  const fileUrl = `${process.env.R2_ENDPOINT}/${process.env.R2_BUCKET}/${filename}`;
+  const fileUrl = `${process.env.R2_PUBLIC_URL}/${process.env.R2_BUCKET}/${filename}`;
 
   return {
     url: fileUrl,
@@ -26,9 +26,10 @@ export const uploadFileToR2 = async (file: Express.Multer.File) => {
     size: file.size,
     key: filename,
   };
-};*/
+};
 
-export const uploadFileToR2 = async (
+
+export const uploadFileTypeToR2 = async (
   key: string,
   buffer: Buffer,
   contentType: string,

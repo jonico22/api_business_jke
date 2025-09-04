@@ -70,7 +70,7 @@ model Session {
 
 model Role {
   id    String  @id @default(uuid())
-  code  String  @unique @default("DEFAULT_ROLE")
+  code  String  @unique
   name  String  
   isActive Boolean @default(true)
   isDeleted Boolean @default(false)
@@ -111,8 +111,8 @@ model BussinessPartner {
   surname   String?
   companyName String?
   contactEmail String?
-  email String
-  phone      String @unique
+  email      String @unique
+  phone      String 
   telephone  String?
   address    String?
   createdAt   DateTime @default(now())
@@ -257,6 +257,7 @@ model Plan {
   id                 String             @id @default(uuid())
   code               String             @unique @default("DEFAULT_CODE")
   name               String
+  description        String?
   price              Float
   maxUsers           Int
   isActive           Boolean            @default(true)
@@ -276,9 +277,7 @@ model Plan {
   createdBy   String?
   updatedBy   String?
 
-  Subscription Subscription[]
-
-  Request Request[]
+  Tariff Tariff[]
 }
 
 model Promotion {
@@ -302,8 +301,9 @@ model Promotion {
   createdBy   String?
   updatedBy   String?
 
-  Subscription Subscription[]
   UsedCoupons UsedCoupons[]
+
+  Tariff Tariff[]
 }
 
 enum DiscountType {
@@ -321,9 +321,6 @@ enum DurationUnit {
 model Subscription {
   id          String     @id @default(uuid())
   userId      String
-  planId      String
-  promotionId String?    // puede ser nulo si no se usó promoción
-
   startDate   DateTime
   endDate     DateTime
   status      SubscriptionStatus @default(PENDING)
@@ -334,20 +331,16 @@ model Subscription {
   
   // Relaciones
   user        User       @relation(fields: [userId], references: [id])
-  plan        Plan       @relation(fields: [planId], references: [id])
-  promotion   Promotion? @relation(fields: [promotionId], references: [id])
-
   createdBy   String?
   updatedBy   String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-  PaymentTransaction PaymentTransaction[]
   UsedCoupons UsedCoupons[]
-
-  societyId String?
-  society   Society? @relation(fields: [societyId], references: [id])
-
   SubscriptionMovement SubscriptionMovement[]
+  societyId String?
+  society   Society?  @relation(fields: [societyId], references: [id])
+  requestId   String    
+  request     Request   @relation(fields: [requestId], references: [id])
 }
 
 enum SubscriptionStatus {
@@ -363,22 +356,20 @@ model SubscriptionMovement {
   movementDate    DateTime      @default(now())  // fecha de renovación o cambio
   previousEndDate DateTime?     // fecha de fin antes de la renovación
   newEndDate      DateTime      // nueva fecha de fin después de la renovación
-  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, DOWNGRADE
+  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, SUBSCRIBED
   notes           String?       // comentarios o detalle de la renovación
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime?      @default(now())
   createdBy       String?
-  paymentTransactionId String? // opcional, si se asocia a un pago
-  paymentTransaction PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
   subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+  paymentTransactions  PaymentTransaction[]   // AÑADIDO: Relación inversa a las transacciones
 }
 
 enum MovementType {
   RENEWAL
   CANCELLATION
   UPGRADE
-  DOWNGRADE
+  SUBSCRIBED
 }
-
 
 model AuthorizedUserSubscription {
   id             String      @id @default(cuid())
@@ -396,23 +387,21 @@ model AuthorizedUserSubscription {
 model PaymentTransaction {
   id                String       @id @default(uuid())
   subscriptionMovementId    String
-  subscriptionMovement      Subscription @relation(fields: [subscriptionMovementId], references: [id])
-  amount            Float
-  paymentDate       DateTime
-  nextPaymentDate   DateTime?
-  paymentMethod     PaymentMethod
-  status            PaymentStatus
-  description       String?      // opcional para registrar detalles o errores
-  referenceCode     String?      // para conciliación (ej: código de pasarela)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  fileId  String?
-  file    File? @relation(fields: [fileId], references: [id])
-  receipt  Receipt?  @relation
-
-  SubscriptionMovement SubscriptionMovement[]
+  subscriptionMovement   SubscriptionMovement @relation(fields: [subscriptionMovementId], references: [id])
+  amount                 Float
+  paymentDate            DateTime
+  nextPaymentDate        DateTime?
+  paymentMethod          PaymentMethod
+  status                 PaymentStatus
+  description            String?       // opcional para registrar detalles o errores
+  referenceCode          String?       // para conciliación (ej: código de pasarela)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdBy              String?
+  updatedBy              String?
+  fileId                 String?
+  file                   File?         @relation(fields: [fileId], references: [id])
+  receipt                Receipt?      // Relación uno a uno con el comprobante
 }
 
 enum PaymentMethod {
@@ -421,6 +410,7 @@ enum PaymentMethod {
   DEBIT
   TRANSFER
   PAYPAL
+  FREE
   OTHER
 }
 
@@ -429,7 +419,6 @@ enum PaymentStatus {
   PENDING
   FAILED
   REFUNDED
-  FREE
 }
 
 model UsedCoupons {
@@ -459,25 +448,44 @@ model Request {
   phone       String
   documentNumber String?         @unique
   isBusiness Boolean             @default(false)
-  planId      String
-  plan        Plan               @relation(fields: [planId], references: [id])
   status      RequestStatus      @default(pending)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+  tariffId   String            // tarifa aplicada si es que se verificó
   
   createdBy   String?
   updatedBy   String?
   rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
+  tariff      Tariff            @relation(fields: [tariffId], references: [id])
   rejectionid String?
+  Subscription Subscription[]
 }
 
 enum RequestStatus {
   pending
   rejected
   verified
-  paid
-  approved
 }
+
+model Tariff {
+  id           String      @id @default(uuid())
+  planId       String
+  promotionId  String?     // opcional: si está asociado a una promoción específica
+  
+  totalCost    Float       // Costo final de la tarifa
+  description  String?     // Descripción opcional de la tarifa (ej: "Plan anual con descuento")
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  isActive     Boolean     @default(false)
+
+  // Relaciones
+  plan         Plan        @relation(fields: [planId], references: [id])
+  promotion    Promotion?  @relation(fields: [promotionId], references: [id])
+
+  Request Request[]
+}
+
 
 model ReasoneForRejection {
   id          String   @id @default(uuid())
@@ -491,13 +499,13 @@ model File {
   path         String
   mimeType     String
   size         Int
+  key          String   @unique
   uploadedAt   DateTime @default(now())
 
   // Relaciones
   uploadedById String?  
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
 
-  @@map("files")
   PaymentTransaction PaymentTransaction[]
   Receipt Receipt[]
   Product Product[]
@@ -534,17 +542,16 @@ model ReceiptType {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   Receipt Receipt[]
-
   SocietyReceipt SocietyReceipt[]
 }
 
 model Receipt {
   id                String    @id @default(uuid())
+  series            String         // Serie del comprobante (ej: F001)
   number            String    @unique    // Número del comprobante (ej. F001-000123)
-  issueDate         DateTime            // Fecha de emisión del comprobante
-  dueDate           DateTime            // Fecha y hora del comprobante
+  issueDate         DateTime  @default(now())   // Fecha de emisión del comprobante
+  dueDate           DateTime  @default(now())   // Fecha y hora vencimiento del comprobante
   taxAmount         Float               // Monto del impuesto aplicado
   totalAmount       Float               // Total a pagar (incluye impuestos)
   status            ReceiptStatus       // Estado del comprobante

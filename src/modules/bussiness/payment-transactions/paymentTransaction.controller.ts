@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import { paymentTransactionService } from './paymentTransaction.service';
-import { createPaymentTransactionSchema } from './paymentTransaction.validation';
+import { CreatePaymentTransactionSchema } from './paymentTransaction.validation';
 
 export const createPaymentTransaction = async (req: Request, res: Response) => {
   try {
-    const data = createPaymentTransactionSchema.parse(req.body);
-    const transaction = await paymentTransactionService.create(data);
-    res.status(201).json(transaction);
+  const validate = CreatePaymentTransactionSchema.parse(req.body);
+  const transaction = await paymentTransactionService.create(validate);
+
+  res.status(201).json(transaction);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

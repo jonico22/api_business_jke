@@ -1,18 +1,22 @@
 import { z } from "zod";
+import { ddMMyyyyStringToDate } from "@/utils/convert-date";
 
 export const createSubscriptionMovementSchema = z.object({
   subscriptionId: z.string().uuid(),
-  previousEndDate: z.string().datetime().optional(),
-  newEndDate: z.string().datetime(),
-  movementType: z.enum(["RENEWAL", "CANCELLATION", "UPGRADE", "DOWNGRADE"]),
+  movementDate: ddMMyyyyStringToDate("Fecha de inicio inválida"),
+  previousEndDate: ddMMyyyyStringToDate("Fecha de previus inválida").optional(),
+  newEndDate: ddMMyyyyStringToDate("Fecha de fin inválida"),
+  movementType: z.enum(["RENEWAL", "CANCELLATION", "UPGRADE", "SUBSCRIBED"]),
+  paymentTransactionId: z.string().uuid().optional(),
   notes: z.string().optional(),
   createdBy: z.string().optional(),
 });
 
 export const updateSubscriptionMovementSchema = z.object({
-  previousEndDate: z.string().datetime().optional(),
-  newEndDate: z.string().datetime().optional(),
-  movementType: z.enum(["RENEWAL", "CANCELLATION", "UPGRADE", "DOWNGRADE"]).optional(),
+  previousEndDate: ddMMyyyyStringToDate("Fecha de previus inválida").optional(),
+  newEndDate: ddMMyyyyStringToDate("Fecha fin inválida").optional(),
+  movementType: z.enum(["RENEWAL", "CANCELLATION", "UPGRADE", "SUBSCRIBED"]).optional(),
   notes: z.string().optional(),
+  paymentTransactionId: z.string().uuid().optional(),
   createdBy: z.string().optional(),
 });

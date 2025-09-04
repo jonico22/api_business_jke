@@ -20,6 +20,8 @@ import reasonRoutes from '@/modules/bussiness/reasonForRejection/reasonForReject
 import tax from '@/modules/bussiness/tax/tax.route';
 import receiptType from '@/modules/bussiness/receiptType/receiptType.route';
 import subscriptionMovementRoutes from '@/modules/bussiness/subscriptionMovement/subscriptionMovement.routes';
+import tariffRoutes from '@/modules/bussiness/tariff/tariff.routes';
+import files from '@/modules/bussiness/files/file.routes';
 
 import societyRoutes from '@/modules/customer/society/society.route';
 import productRoutes from '@/modules/customer/product/product.route';
@@ -55,13 +57,14 @@ router.use("/plans", planRoutes);
 router.use("/subscriptions", subscriptionRoutes);
 router.use('/authorized-users', authorizedUserSubscriptionRoutes);
 router.use('/payment-transactions', paymentTransactionRoutes);
-router.use('/payment-transactions', paymentTransactionRoutes);
 router.use("/receipts", receiptRoutes);
 router.use('/requests', requestRoutes);
 router.use('/rejection-reasons', reasonRoutes)
 router.use('/taxes', tax);
+router.use('/files', files);
 router.use('/receipt-types', receiptType);
 router.use('/subscription-movements', subscriptionMovementRoutes);
+router.use('/tariffs', tariffRoutes);
 
 // modulo de clientes
 router.use('/societies', societyRoutes);

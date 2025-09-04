@@ -11,15 +11,13 @@ export const uploadFile = async (req: Request, res: Response) => {
 
     if (!file) return res.status(400).json({ message: 'Archivo no proporcionado' });
 
-    const key = `${folder}/${file.originalname}`;
-
-    const result = await uploadFileToR2(key, file.buffer, file.mimetype, file.size);
-
+    const result = await uploadFileToR2(file,folder);
     await fileService({
-      name: file.originalname,
-      path: key,
-      mimeType: file.mimetype,
-      size: file.size,
+      name: result.name,
+      path: result.url,
+      mimeType: result.type,
+      size: result.size,
+      key: result.key,
     });
 
     res.status(201).json({ message: 'Archivo subido con éxito', file: result });
@@ -43,11 +41,21 @@ export const deleteFile = async (req: Request, res: Response) => {
   await r2Client.send(
     new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET,
-      Key: file.path,
+      Key: file.key,
     })
   );
-
   await prisma.file.delete({ where: { id } });
-
   res.json({ message: "Archivo eliminado exitosamente" });
+};
+
+export const getFile = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const file = await prisma.file.findUnique({ where: { id } });
+  if (!file) return res.status(404).json({ message: "Archivo no encontrado" });
+  res.json(file);
+};
+
+export const listFiles = async (req: Request, res: Response) => {
+  const files = await prisma.file.findMany();
+  res.json(files);
 };

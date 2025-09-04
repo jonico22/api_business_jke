@@ -178,15 +178,9 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const activateUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-    const requester = req.user;
-    const role = req.role as string;
-    console.log('Activando usuario:', userId, 'por', requester);
-    if (!['admin', 'soporte'].includes(role)) {
-      return res.status(403).json({ message: 'No autorizado para activar usuarios' });
-    }
     const result = await userService.activateUser(userId);
-    const token = generateEmailToken(result.email);
-    await sendEmailVerification(result.email, token);
+    //const token = generateEmailToken(result.email);
+    //await sendEmailVerification(result.email, token);
     return successResponse(res, result, 'Usuario activado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -218,9 +212,8 @@ export const activateUser = async (req: Request, res: Response) => {
 export const unlockUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
-    const requester = req.user;
     const role = req.role as string;
-    if (!['admin', 'soporte'].includes(role)) {
+    if (!['ADMIN', 'SUPPORT'].includes(role)) {
      return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
     }
     const result = await userService.unlockUser(userId);
@@ -247,14 +240,12 @@ export const unlockUser = async (req: Request, res: Response) => {
 
 export const getAllSessions = async (req: Request, res: Response) => {
   try {
-    console.log('Obteniendo sesiones con filtros:', req.query);
-    const requester = req.user;
+
     const filters: Record<string, unknown> = buildPrismaFilters(req.query);
     const { skip, take, page, limit,warnings  } = buildPagination(req.query);
     const cacheKey = `sessions:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
     const role = req.role as string;
-     console.log('Obteniendo sesiones con filtros:', filters, 'skip:', skip, 'take:', take);
     if (cached) {
       return successResponse(res, JSON.parse(cached), 'Sesiones cacheadas');
     }
@@ -270,7 +261,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
       total,
       warnings,
     };
-    if (!['admin', 'soporte'].includes(role)) {
+    if (!['ADMIN', 'SUPPORT'].includes(role)) {
       return res.status(403).json({ message: 'No autorizado para ver sesiones' });
     }
     return successResponse(res, data, 'Sesiones obtenidas correctamente');
