@@ -1,17 +1,16 @@
 import { z } from "zod";
 
 export const receiptSchema = z.object({
-  paymentTransactionId: z.string(),
-  currencyId: z.string(),
-  taxId: z.string(),
-  receiptTypeId: z.string(),
-  fileId: z.string().optional(),
-  businessPartnerId: z.string().optional(),
+  transactionId: z.string().uuid(),
+  currencyId: z.string().uuid(),
+  taxId: z.string().uuid(),
+  receiptTypeId: z.string().uuid(),
+  fileId: z.string().uuid().optional(),
+  series: z.string().min(1),
   number: z.string().min(1),
-  date: z.string().datetime(),
   taxAmount: z.number().min(0),
   totalAmount: z.number().min(0),
-  status: z.enum(["issued", "cancelled", "pending"]),
+  status: z.enum(["issued", "cancelled", "pending_send"]),
 });
 
 export const updateReceiptSchema = receiptSchema.partial();

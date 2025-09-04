@@ -410,6 +410,7 @@ enum PaymentMethod {
   DEBIT
   TRANSFER
   PAYPAL
+  FREE
   OTHER
 }
 
@@ -418,7 +419,6 @@ enum PaymentStatus {
   PENDING
   FAILED
   REFUNDED
-  FREE
 }
 
 model UsedCoupons {
@@ -542,17 +542,16 @@ model ReceiptType {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   Receipt Receipt[]
-
   SocietyReceipt SocietyReceipt[]
 }
 
 model Receipt {
   id                String    @id @default(uuid())
+  series            String         // Serie del comprobante (ej: F001)
   number            String    @unique    // Número del comprobante (ej. F001-000123)
-  issueDate         DateTime            // Fecha de emisión del comprobante
-  dueDate           DateTime            // Fecha y hora del comprobante
+  issueDate         DateTime  @default(now())   // Fecha de emisión del comprobante
+  dueDate           DateTime  @default(now())   // Fecha y hora vencimiento del comprobante
   taxAmount         Float               // Monto del impuesto aplicado
   totalAmount       Float               // Total a pagar (incluye impuestos)
   status            ReceiptStatus       // Estado del comprobante

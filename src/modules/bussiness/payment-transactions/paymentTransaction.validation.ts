@@ -6,8 +6,8 @@ export const CreatePaymentTransactionSchema = z.object({
   amount: z.number().min(0, "El monto debe ser mayor o igual a 0"),
   paymentDate: ddMMyyyyStringToDate("Fecha de pago inválida"),
   nextPaymentDate: ddMMyyyyStringToDate("Fecha de próximo pago inválida").optional(),
-  paymentMethod: z.enum(["CASH", "CREDIT", "DEBIT", "TRANSFER", "PAYPAL", "OTHER"]),
-  status: z.enum(["COMPLETED", "PENDING", "FAILED", "REFUNDED", "FREE"]),
+  paymentMethod: z.enum(["CASH", "CREDIT", "DEBIT", "TRANSFER", "PAYPAL","FREE","OTHER"]),
+  status: z.enum(["COMPLETED", "PENDING", "FAILED", "REFUNDED"]),
   description: z.string().optional(),
   referenceCode: z.string().optional(),
 }).refine(

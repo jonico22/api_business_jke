@@ -16,8 +16,7 @@ export const uploadFileToR2 = async (file: Express.Multer.File,folder:string) =>
   });
   
 
-  const result = await r2Client.send(command);
-  console.log('Archivo subido a R2 con clave:', result);
+  await r2Client.send(command);
   const fileUrl = `${process.env.R2_PUBLIC_URL}/${process.env.R2_BUCKET}/${filename}`;
 
   return {
@@ -29,8 +28,8 @@ export const uploadFileToR2 = async (file: Express.Multer.File,folder:string) =>
   };
 };
 
-/*
-export const uploadFileToR2 = async (
+
+export const uploadFileTypeToR2 = async (
   key: string,
   buffer: Buffer,
   contentType: string,
@@ -45,4 +44,4 @@ export const uploadFileToR2 = async (
   });
 
   await r2Client.send(command);
-};*/
+};

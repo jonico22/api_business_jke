@@ -85,3 +85,11 @@ export const sendRequestVerificationEmail = async (to: string, requestCode: stri
   });
 }
 
+// crear un servicio de correo para enviar el pago de la suscripcion y ajuntar el recibo en formato pdf
+export const sendSubscriptionPaymentEmail = async (to: string, amount: number, currency: string, receiptUrl: string): Promise<void> => {
+  sendEmail({
+    to,
+    subject: 'Pago de suscripción recibido',
+    htmlContent: `<p>Hemos recibido tu pago de suscripción por un monto de <strong>${amount} ${currency}</strong>.</p><p>Adjuntamos el recibo de tu pago para tus registros.</p><p><a href="${receiptUrl}">Ver recibo</a></p>`,
+  });
+}

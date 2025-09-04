@@ -2,11 +2,14 @@ import fs from "fs/promises";
 import path from "path";
 import puppeteer from "puppeteer";
 import { v4 as uuidv4 } from "uuid";
-import { uploadFileToR2 } from "@/shared/services/upload.service";
+import { uploadFileToR2,uploadFileTypeToR2 } from "@/shared/services/upload.service";
 import { fileService } from "@/modules/bussiness/files/file.service";
 import prisma from '@/config/database';
 import QRCode from "qrcode";
 import { generateQrAndUpload } from "@/utils/generateQr";
+import { sendSubscriptionPaymentEmail } from "@/utils/mailer";
+// Define the path to the template file using path.join
+import {generateReceiptHtml} from '@/templates/receipt.template'
 
 export const createReceipt = async (data: any) => {
    const receipt = await prisma.receipt.create({
@@ -15,20 +18,13 @@ export const createReceipt = async (data: any) => {
       },
     });
    // 2. Generar QR con la URL de verificación
-
-    const qrText = `${process.env.PUBLIC_RECEIPT_VERIFY_URL}/${receipt.id}`;
-    const qrFileName = `qr-receipt-${receipt.id}`;
-    const folder = "qrs/receipts";
-
-    const { key, url } = await generateQrAndUpload(qrText, folder, qrFileName);
-
-    // 3. Registrar el archivo en la tabla File
-    await fileService({
-      name: `${qrFileName}.png`,
-      path: key,
-      mimeType: "image/png",
-      size: 0, // opcional, puedes estimar el tamaño si es necesario
-    });
+   // const qrText = `${process.env.PUBLIC_RECEIPT_VERIFY_URL}/${receipt.id}`;
+   // const qrFileName = `qr-receipt-${receipt.id}`;
+   // const folder = "qrs/receipts";
+   // await generateQrAndUpload(qrText, folder, qrFileName);
+   setTimeout(async() => {
+    await generateAndStoreReceiptPdf(receipt.id);
+   }, 100);
   return receipt;
 };
 
@@ -76,18 +72,48 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
       receiptType: true,
     },
   });
+  const transaction = await prisma.paymentTransaction.findUnique({
+    where: { id: receipt?.transactionId },
+    include: {  subscriptionMovement: true},
+  });
+
+  const suscripcion = await prisma.subscriptionMovement.findUnique({
+    where: { id: transaction?.subscriptionMovementId },
+    include: {  subscription: true},
+  });
+
+  const request = await prisma.request.findUnique({
+    where: { id: suscripcion?.subscription.requestId }
+  });
+
+  const tariff = await prisma.tariff.findUnique({
+    where: { id: request?.tariffId },
+    include: { plan: true },
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: suscripcion?.subscription.userId },
+  });
+
+  const bussiness = await prisma.bussinessPartner.findFirst({
+    where: { userId: user?.id },
+  });
 
   if (!receipt) throw new Error("Comprobante no encontrado");
 
   // Leer plantilla HTML
-  const templatePath = path.join(__dirname, "../../templates/receipt-item.html");
-  const template = await fs.readFile(templatePath, "utf8");
-  
+  //const templatePath = path.join(__dirname, "../../../../templates/receipt-item.html");
+  console.log(generateReceiptHtml)
+  try {
+    const template = generateReceiptHtml();
+
   // Generar las filas de la tabla de items de forma iterativa
   let itemRows = "";
   // Asumimos que `items` es un array de arrays, ej: [["Descripción", cantidad, precioUnitario], ...]
-  for (const item of receipt.items as [string, number, number][]) {
-    const [description, quantity, unitPrice] = item;
+    const description = tariff?.plan.name ? tariff.plan.name : "N/A";
+    const quantity = tariff?.plan.name ? 1 : 0;
+    const unitPrice = tariff?.plan.price ? tariff.plan.price : 0;
+    //
     itemRows += `
       <tr>
         <td>${description}</td>
@@ -95,20 +121,25 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
         <td>S/. ${unitPrice.toFixed(2)}</td>
         <td>S/. ${(quantity * unitPrice).toFixed(2)}</td>
       </tr>`;
+  
+  // Mejorar el reemplazo de variables usando una función para mayor claridad y evitar errores de concatenación
+  function replaceTemplateVars(templateStr: string, vars: Record<string, string>): string {
+    return Object.entries(vars).reduce(
+      (acc, [key, value]) => acc.replace(new RegExp(`{{${key}}}`, "g"), value),
+      templateStr
+    );
   }
 
-  const url = `https://midominio.com/verify-receipt/${receipt.id}`;
-  const qrCodeBase64 = await QRCode.toDataURL(url);
-  const html = template
-    .replace("{{number}}", receipt.number)
-    .replace("{{date}}", new Date(receipt.dueDate).toLocaleString("es-PE"))
-    .replace("{{status}}", receipt.status)
-    .replace("{{customer}}", receipt.fullName ?? "N/A")
-    .replace("{{tax}}", `S/. ${receipt.taxAmount.toFixed(2)}`)
-    .replace("{{amount}}", `S/. ${receipt.totalAmount.toFixed(2)}`)
-    .replace("{{qr}}", `data:image/png;base64,${qrCodeBase64}`)
-    .replace("{{items}}", itemRows)
-    .replace("{{receiptId}}", receipt.id);
+  const html = replaceTemplateVars(template, {
+    number: receipt.series + " - " + receipt.number,
+    date: new Date(receipt.dueDate).toLocaleDateString("es-PE"),
+    status: receipt.status, //eliminar
+    customer: `${bussiness?.lastName ?? "N/A"} ${bussiness?.firstName ?? "N/A"}`,
+    tax: `S/. ${receipt.taxAmount.toFixed(2)}`,
+    amount: `S/. ${receipt.totalAmount.toFixed(2)}`,
+    items: itemRows,
+    receiptId: receipt.id,
+  });
 
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
@@ -116,30 +147,38 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
   const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
   await browser.close();
   
-
   // Subir a R2
   const fileName = `receipt-${receipt.number}-${uuidv4()}.pdf`;
   const folder = "receipts";
   const key = `${folder}/${fileName}`;
+  const fileUrl = `${process.env.R2_PUBLIC_URL}/${process.env.R2_BUCKET}/${key}`;
 
-  await uploadFileToR2(key, pdfBuffer as Buffer, "application/pdf", pdfBuffer.length);
+  await uploadFileTypeToR2(key, pdfBuffer as Buffer, "application/pdf", pdfBuffer.length);
 
   // Registrar en tabla File
   const fileRecord = await fileService({
     name: fileName,
-    path: key,
+    path: fileUrl,
     mimeType: "application/pdf",
     size: pdfBuffer.length,
+    key: key,
   });
   
+    // Enlazar con el comprobante
+    await prisma.receipt.update({
+      where: { id: receipt.id },
+      data: { fileId: fileRecord.id },
+    });
 
-  // Enlazar con el comprobante
-  await prisma.receipt.update({
-    where: { id: receipt.id },
-    data: { fileId: fileRecord.id },
-  });
+    setTimeout(() => {
+      sendSubscriptionPaymentEmail(user?.email || "", receipt.totalAmount, receipt.currency.name, fileUrl);
+    }, 200);
+  } catch (error) {
+    
+    console.error("Error reading template file:", error);
+    return error;
+  }
+
   
-
-
-  return fileRecord;
+  
 };
