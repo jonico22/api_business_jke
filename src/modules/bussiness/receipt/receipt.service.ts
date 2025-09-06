@@ -1,17 +1,34 @@
-import fs from "fs/promises";
-import path from "path";
+
 import puppeteer from "puppeteer";
 import { v4 as uuidv4 } from "uuid";
-import { uploadFileToR2,uploadFileTypeToR2 } from "@/shared/services/upload.service";
+import { uploadFileTypeToR2 } from "@/shared/services/upload.service";
 import { fileService } from "@/modules/bussiness/files/file.service";
 import prisma from '@/config/database';
-import QRCode from "qrcode";
-import { generateQrAndUpload } from "@/utils/generateQr";
+//import QRCode from "qrcode";
+//import { generateQrAndUpload } from "@/utils/generateQr";
 import { sendSubscriptionPaymentEmail } from "@/utils/mailer";
 // Define the path to the template file using path.join
 import {generateReceiptHtml} from '@/templates/receipt.template'
 
 export const createReceipt = async (data: any) => {
+   if (data.currencyId){
+    const currency = await prisma.currency.findUnique({
+      where: { code: data.currencyId },
+    });
+    data.currencyId = currency?.id;
+   }
+   if (data.taxId){
+      const tax = await prisma.tax.findUnique({
+        where: { code: data.taxId },
+      });
+      data.taxId = tax?.id;
+   }
+   if (data.receiptTypeId){
+      const receiptType = await prisma.receiptType.findUnique({
+        where: { code: data.receiptTypeId },
+      });
+      data.receiptTypeId = receiptType?.id;
+   }
    const receipt = await prisma.receipt.create({
       data: {
         ...data,
@@ -101,14 +118,10 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
 
   if (!receipt) throw new Error("Comprobante no encontrado");
 
-  // Leer plantilla HTML
-  //const templatePath = path.join(__dirname, "../../../../templates/receipt-item.html");
-  console.log(generateReceiptHtml)
+
   try {
     const template = generateReceiptHtml();
-
-  // Generar las filas de la tabla de items de forma iterativa
-  let itemRows = "";
+    let itemRows = "";
   // Asumimos que `items` es un array de arrays, ej: [["Descripción", cantidad, precioUnitario], ...]
     const description = tariff?.plan.name ? tariff.plan.name : "N/A";
     const quantity = tariff?.plan.name ? 1 : 0;

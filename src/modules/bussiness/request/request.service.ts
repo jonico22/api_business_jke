@@ -3,11 +3,17 @@ import { RequestStatus } from '@prisma/client';
 import { createSociety} from '@/modules/customer/society/society.service';
 import { userService } from '@/core/user/user.service';
 import { roleService } from '@/core/role/role.service';
+import {subscriptionService} from '@/modules/bussiness/subscriptions/subscription.service';
 import { BranchOfficeService } from '@/modules/customer/branchOffice/branchoffice.service';
-import { generateCodeUnique }  from '@/utils/generateCode'
+import {subscriptionMovementService} from '@/modules/bussiness/subscriptionMovement/subscriptionMovement.service';
+import {paymentTransactionService} from '@/modules/bussiness/payment-transactions/paymentTransaction.service';
+import {createReceipt} from '@/modules/bussiness/receipt/receipt.service';
+import { generateCodeUnique, generateNumericCodeUnique }  from '@/utils/generateCode'
 import { generateRandomPassword } from '@/utils/hash';
-import {sendRequestVerificationEmail, sendRegistrationEmail} from '@/utils/mailer';
+import {sendWelcomeEmail, sendRegistrationEmail} from '@/utils/mailer';
+import {addDays} from 'date-fns';
 import argon2 from 'argon2';
+
 
 enum Status {
   Pending = "pending",
@@ -39,25 +45,71 @@ const planService = async (data: any) => {
     where: { id: tariff.planId }
   });
 }
-const newCreateUser = async (data: any,society:string) => {
-  
+const newCreateUser = async (data: any,society:string) => {  
   const plan = await planService(data);
+  const nameRole = `OWNER-${generateCodeUnique()}-${plan?.code}`;
   await roleService.create({
-    code: `OWNER-${generateCodeUnique()}-${plan?.code}`,
+    code: nameRole,
     name: `titular`,
     societyId: society,
   });
   const newPassword = generateRandomPassword();
   const hashedPassword = await argon2.hash(newPassword);
-  data.role = `OWNER-${generateCodeUnique()}-${plan?.code}`
+  data.role = nameRole;
   data.password = data.password || hashedPassword;
   data.typeBP = data.isBusiness ? "empresa" : "natural";
   data.documentNumber = data.documentNumber || "";
+  data.name = data.firstName + ' ' + (data.lastName || '');
+  const user = await userService.createUser(data)
   return {
-    user : await userService.createUser(data),
+    user,
     password : newPassword
   }
 };
+
+const suscripcion = async (userId: string, requestId: string) => {
+  const data = await subscriptionService.create({
+    userId,
+    requestId,
+    status: 'ACTIVE',
+    startDate: new Date(),
+    endDate: addDays(new Date(), 30), // agregar 30 dias a la fecha actual
+  });
+  return subscriptionMovementService.create({
+      subscriptionId: data.id,
+      movementDate: new Date(),
+      newEndDate: addDays(new Date(), 30), // agregar 30 dias a la fecha actual,
+      movementType: 'SUBSCRIBED',
+  });
+}
+
+const paymentTransaction = async (subscriptionMovementId: string) => {
+  return paymentTransactionService.create({
+    amount: 0,
+    paymentDate: new Date(),
+    paymentMethod: 'FREE',
+    status: 'COMPLETED',
+    subscriptionMovementId,
+  });
+}
+
+const createReceiptPdf = async (transactionId: string) => {
+  const receipt = await createReceipt({
+    series:'R001',
+    number: generateNumericCodeUnique(8),
+    transactionId,
+    currencyId: 'PEN',
+    taxId: 'IGV',
+    receiptTypeId: 'NF',
+    issueDate: new Date(),
+    taxAmount: 0.00,
+    totalAmount:0.00,
+    status: 'issued',
+  });
+  return receipt;
+}
+
+
 
 export const requestService = {
   async create (data: any) {
@@ -97,7 +149,10 @@ export const requestService = {
     const society = await newSociety(request);
     await branchOffice(society.id);
     const {user,password} = await newCreateUser(request,society.id);
-    await sendRequestVerificationEmail(request.email, request.code);
+    await sendWelcomeEmail(request.email, request.firstName, request.lastName,request.email, password);
+    const subscriptionMovement = await suscripcion(user.id, request.id);
+    const payment = await paymentTransaction(subscriptionMovement.id);
+    await createReceiptPdf(payment.id);
     await requestService.updateStatus(id, status);
     return request;
   },
