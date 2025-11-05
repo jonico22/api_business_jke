@@ -77,11 +77,21 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
   });
 };
 
-export const sendRequestVerificationEmail = async (to: string, requestCode: string): Promise<void> => {
+// envia un correo electronico enviando los accesos de la cuenta como usuario y constraseña , adicional un mensaje de bienvenida
+export const sendWelcomeEmail = async (to: string, firstName: string, lastName: string, username: string, password: string): Promise<void> => {
   sendEmail({
     to,
-    subject: 'Solicitud de registro verificada',
-    htmlContent: `<p>Tu solicitud de registro ha sido verificado con el código: <strong>${requestCode}</strong>.</p><p>Nos pondremos en contacto contigo pronto.</p>`,
+    subject: 'Bienvenido a nuestra plataforma',
+    htmlContent: `
+      <p>Hola ${firstName} ${lastName},</p>
+      <p>Tu cuenta ha sido creada exitosamente. Aquí están tus credenciales de acceso:</p>
+      <ul>
+        <li>Usuario: <strong>${username}</strong></li>
+        <li>Contraseña: <strong>${password}</strong></li>
+      </ul>
+      <p>Por favor, cambia tu contraseña después de iniciar sesión por primera vez.</p>
+      <p>¡Bienvenido a bordo!</p>
+    `,
   });
 }
 

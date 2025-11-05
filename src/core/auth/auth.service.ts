@@ -37,11 +37,14 @@ export class AuthService {
     if (!account || !account.password) {
       throw new Error( 'Credenciales incorrectas');
     }
+    console.log('account',account);
+    console.log('account user',password);    
     const user = account.user;
     if (!user.emailVerified) throw new Error('Debes verificar tu correo electrónico');
     if (!user.isActive) throw new Error('Cuenta inactiva');
     if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
     if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
+    
     const valid = await argon2.verify(account.password, password);
     if (!valid) {
       const { attemptsLeft } = await this.incrementFailedAttempts(user.id, user.email);
