@@ -13,5 +13,12 @@ export const hashPassword = async (password: string): Promise<string> => {
 }
 
 export const generateRandomPassword = () => {
-  return crypto.randomBytes(6).toString('base64'); // genera una cadena segura
+  // generar contraseña aleatoria de 8 caracteres
+  let password = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 8; i++) {
+    password += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return password;
+  //return crypto.randomBytes(6).toString('base64'); // genera una cadena segura
 };

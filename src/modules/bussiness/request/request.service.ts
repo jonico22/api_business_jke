@@ -54,9 +54,8 @@ const newCreateUser = async (data: any,society:string) => {
     societyId: society,
   });
   const newPassword = generateRandomPassword();
-  const hashedPassword = await argon2.hash(newPassword);
   data.role = nameRole;
-  data.password = data.password || hashedPassword;
+  data.password = data.password || newPassword;
   data.typeBP = data.isBusiness ? "empresa" : "natural";
   data.documentNumber = data.documentNumber || "";
   data.name = data.firstName + ' ' + (data.lastName || '');
@@ -149,6 +148,7 @@ export const requestService = {
     const society = await newSociety(request);
     await branchOffice(society.id);
     const {user,password} = await newCreateUser(request,society.id);
+    console.log('usuario creado',user);
     await sendWelcomeEmail(request.email, request.firstName, request.lastName,request.email, password);
     const subscriptionMovement = await suscripcion(user.id, request.id);
     const payment = await paymentTransaction(subscriptionMovement.id);

@@ -15,7 +15,7 @@ class UserService {
 
         const hashedPassword = await hashPassword(data.password);
         const documentType = await prisma.documentType.findUnique({ where: { code: response.isBusiness ? 'RUC' : 'DNI' } });
-  
+        if (!documentType) throw new Error('Tipo de documento no válido')
         const user = await prisma.user.create({
                 data: {
                     name: response.firstName + ' ' + response.lastName,
@@ -39,7 +39,7 @@ class UserService {
                             email: response.email,
                             typeBP: response.typeBP || 'natural',
                             typeDocId : documentType ? documentType.id : null,
-                            documentNumber: response.documentNumber || "",
+                            documentNumber: response.documentNumber || null,
                         },
                     },
                 },

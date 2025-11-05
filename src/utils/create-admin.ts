@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import argon2 from 'argon2';
 
 export const createInitialAdmin = async () => {
+
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin1234!';
 
