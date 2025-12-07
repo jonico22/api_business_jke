@@ -1,82 +1,76 @@
-# 🛡️ Secure Auth API
+  ---
 
-API RESTful construida con **Node.js**, **TypeScript**, **Express**, **Prisma** y **PostgreSQL**, que implementa autenticación segura con `better-auth`, control de usuarios, roles, permisos, vistas y sesiones.
+  🛡️ Secure Auth API
 
-## 📦 Tecnologías
+  API RESTful construida con Node.js, TypeScript, Express, Prisma y PostgreSQL, que implementa autenticación
+  segura, gestión de usuarios, roles, permisos y sesiones.
 
-- Node.js + TypeScript
-- Express
-- PostgreSQL
-- Prisma ORM
-- Zod (validaciones)
-- Argon2 (hash de contraseñas)
-- Nodemailer (correo electrónico)
-- Winston (logs)
-- better-auth (autenticación segura)
-- CORS
+  🚀 Levantando el Proyecto Localmente (con Docker)
 
----
+  La forma recomendada y más sencilla de ejecutar este proyecto es a través de Docker, que gestionará tanto la
+  API como la base de datos y Redis de manera aislada y consistente.
 
-## 🚀 Instalación
+  Prerrequisitos
 
-### 1. Clonar repositorio
+   * Asegúrate de tener instalado Docker y Docker Compose.
 
-```bash
-git clone https://github.com/tu-usuario/secure-auth-api.git
-cd secure-auth-api
-```
+  Pasos para la Instalación
 
-### 2. Instalar dependencias
-```bash
-npm install
-```
-### 3. Configurar variables de entorno
+  1. Clonar el Repositorio
 
-```bash
-cp .env.example .env
-```
-### 4. Crear base de datos y aplicar migraciones
+   1 git clone https://github.com/tu-usuario/secure-auth-api.git
+   2 cd secure-auth-api
 
-```bash
-npx prisma migrate dev --name init
-```
+  2. Configurar las Variables de Entorno
 
-Opcional para revisar con GUI:
-```bash
-npx prisma studio
+  Este proyecto utiliza un archivo .env para gestionar las credenciales y otras configuraciones sensibles. Para
+  empezar, simplemente copia el archivo de ejemplo:
 
-```
+   1 cp .env.example .env
 
-## Problemas con cli prisma
-```bash
+  Importante: El archivo .env ya viene preconfigurado para funcionar con los servicios definidos en
+  docker-compose.yml (por ejemplo, DATABASE_URL apunta al servicio db). No necesitas cambiar nada en este
+  archivo para el entorno local de Docker.
 
-  rm -rf node_modules #window sin -rf
-  npm install 
-  npx prisma generate
+  3. Iniciar los Contenedores
 
-```
+  Ejecuta el siguiente comando para construir las imágenes y levantar todos los servicios en segundo plano:
 
-## Nueva estructura
+   1 docker-compose up -d --build
 
-```bash
-src/
-├── config/
-├── core/
-│   ├── auth/
-│   ├── user/
-│   ├── role/
-│   ├── permission/
-│   └── view/
-├── modules/
-│   ├── empresa/
-│   ├── producto/
-│   ├── venta/
-│   └── factura/
-├── middlewares/
-├── routes/
-│   └── index.ts
-├── utils/
-├── validations/
-├── index.ts
-```
+  Este comando hará lo siguiente:
+   * Construirá la imagen de Docker para la API de Node.js según las instrucciones del Dockerfile.
+   * Descargará y ejecutará las imágenes oficiales de PostgreSQL y Redis.
+   * Creará una red interna para que los contenedores se comuniquen entre sí.
 
+  4. Aplicar Migraciones de la Base de Datos
+
+  Con los servicios ya en ejecución, necesitas aplicar el esquema de la base de datos. Para ello, ejecuta el
+  siguiente comando que se conecta al contenedor de la API y corre la migración de Prisma:
+
+   1 docker-compose exec api npx prisma migrate deploy
+
+  5. (Opcional) Cargar Datos Iniciales (Semillas)
+
+  El proyecto está configurado para crear automáticamente permisos, roles por defecto y un usuario administrador
+  la primera vez que se inicia. Si necesitas volver a ejecutar este proceso o modificarlo, puedes encontrar la
+  lógica en los archivos dentro de src/utils/.
+
+  6. ¡Listo para Usar!
+
+  Tu entorno de desarrollo completo está ahora en funcionamiento:
+   * API disponible en: http://localhost:4000
+   * Documentación de la API (Swagger): http://localhost:4000/api-docs
+
+  Comandos Útiles de Docker
+
+   * Ver los logs de la API:
+   1     docker-compose logs -f api
+   * Detener todos los servicios:
+   1     docker-compose down
+   * Acceder al shell del contenedor de la API:
+
+   1     docker-compose exec api bash
+   * Acceder a la base de datos PostgreSQL:
+   1     docker-compose exec db psql -U user -d secure_auth_api
+      (La contraseña es password, como se define en docker-compose.yml)

@@ -5,6 +5,15 @@ services:
       - "4000:4000"
     env_file:
       - .env
+    # Variables de Entorno para OpenTelemetry
+    environment:
+      # **IMPORTANTE:** Este nombre aparecerá en el Dashboard de SigNoz
+      - OTEL_SERVICE_NAME=SecureAuthApi
+      # Esto permite que el contenedor se conecte al host (donde está SigNoz corriendo)
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318/v1/traces
+      # Para la instrumentación automática
+      - NODE_OPTIONS=-r ./dist/tracer.js 
+      # Ajusta la ruta a tu archivo tracer.js compilado
     depends_on:
       - db
       - redis
