@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { currencyService } from "./currency.service";
 import { createCurrencySchema, updateCurrencySchema } from "./currency.validation";
 import swaggerJSDoc from "swagger-jsdoc";
+import { errorResponse, successResponse } from "@/utils/response";
 
 
 /**
@@ -36,9 +37,10 @@ export const createCurrency = async (req: Request, res: Response) => {
   try {
     const data = createCurrencySchema.parse(req.body);
     const result = await currencyService.create(data);
-    res.status(201).json(result);
+    return successResponse(res, result, 'Moneda creada correctamente');
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al crear moneda', 500, errorMessage);
   }
 };
 
@@ -56,8 +58,13 @@ export const createCurrency = async (req: Request, res: Response) => {
 */
 
 export const getCurrencies = async (_: Request, res: Response) => {
+  try {
   const result = await currencyService.findAll();
-  res.json(result);
+  return successResponse(res, result, 'Monedas listadas correctamente');
+  } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al obtener modenas', 500, errorMessage);
+  }
 };
 
 
@@ -82,7 +89,8 @@ export const getCurrencies = async (_: Request, res: Response) => {
 
 export const getCurrencyById = async (req: Request, res: Response) => {
   const result = await currencyService.findById(req.params.id);
-  if (!result) return res.status(404).json({ error: "Moneda no encontrada" });
+  if (!result) 
+    return res.status(404).json({ error: "Moneda no encontrada" });
   res.json(result);
 };
 
