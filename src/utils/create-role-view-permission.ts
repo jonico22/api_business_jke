@@ -62,7 +62,7 @@ export const createRoleViewPermission = async () => {
     for (const item of data) {
         const { role, view, permission } = item;
 
-        const roleExists = await prisma.role.findUnique({ where: { name: role } });
+        const roleExists = await prisma.role.findFirst({ where: { name: role } });
         if (!roleExists) {
             logger.warn(`Rol no encontrado: ${role}`);
             continue;

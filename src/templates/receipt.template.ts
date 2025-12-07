@@ -1,6 +1,55 @@
+import {
+  Receipt,
+  PaymentTransaction,
+  Currency,
+  Tax,
+  ReceiptType,
+} from '@prisma/client';
 
-export const generateReceiptHtml = (): string => {
-  return `
+// Define a type for the receipt data, including relations
+type ReceiptData = Receipt & {
+  transaction: PaymentTransaction & {
+    subscriptionMovement: {
+      subscription: {
+        user: {
+          name: string | null;
+        };
+      };
+    } | null;
+  };
+  currency: Currency;
+  tax: Tax;
+  receiptType: ReceiptType;
+};
+
+export const generateReceiptHtml = (receipt: ReceiptData): string => {
+  if (!receipt) {
+    return '<p>Recibo no encontrado.</p>';
+  }
+
+  // Helper para formatear fechas
+  const formatDate = (date: Date) => new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+
+  // Helper para formatear moneda
+  const formatCurrency = (amount: number, currencySymbol: string) => {
+    return `${currencySymbol} ${amount.toFixed(2)}`;
+  };
+  
+  // Asumiendo que el item es la descripción de la transacción
+  const itemsHtml = `
+    <tr>
+      <td>${receipt.transaction.description || 'Descripción no disponible'}</td>
+      <td>1</td>
+      <td>${formatCurrency(receipt.totalAmount - receipt.taxAmount, receipt.currency.symbol)}</td>
+      <td>${formatCurrency(receipt.totalAmount - receipt.taxAmount, receipt.currency.symbol)}</td>
+    </tr>
+  `;
+
+  let html = `
     <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -97,10 +146,10 @@ export const generateReceiptHtml = (): string => {
   <h1>Comprobante de Pago</h1>
 
   <div class="info">
-    <div><strong>Número:</strong> {{number}}</div>
-    <div><strong>Fecha:</strong> {{date}}</div>
-    <div><strong>Estado:</strong> {{status}}</div>
-    <div><strong>Cliente:</strong> {{customer}}</div>
+    <div><strong>Número:</strong> ${receipt.series}-${receipt.number}</div>
+    <div><strong>Fecha:</strong> ${formatDate(receipt.issueDate)}</div>
+    <div><strong>Estado:</strong> ${receipt.status}</div>
+    <div><strong>Cliente:</strong> ${receipt.transaction.subscriptionMovement?.subscription.user.name || 'N/A'}</div>
   </div>
 
   <table>
@@ -113,13 +162,13 @@ export const generateReceiptHtml = (): string => {
       </tr>
     </thead>
     <tbody>
-      {{items}}
+      ${itemsHtml}
     </tbody>
   </table>
 
   <div class="amount-section">
-    <div><strong>Impuesto:</strong> {{tax}}</div>
-    <div><strong>Total:</strong> {{amount}}</div>
+    <div><strong>Impuesto:</strong> ${formatCurrency(receipt.taxAmount, receipt.currency.symbol)}</div>
+    <div><strong>Total:</strong> ${formatCurrency(receipt.totalAmount, receipt.currency.symbol)}</div>
   </div>
 
   <div class="qr-section">
@@ -128,10 +177,13 @@ export const generateReceiptHtml = (): string => {
 
   <footer>
     Documento generado automáticamente. No requiere firma.<br />
-    Verifica en: https://midominio.com/verify-receipt/{{receiptId}}
+    Verifica en: https://midominio.com/verify-receipt/${receipt.id}
   </footer>
 </body>
 </html>
-
-  `;
+`;
+  // QR placeholder needs to be replaced with actual QR generation logic if available
+  // For now, it's left as a placeholder.
+  return html.replace('{{qr}}', '');
 };
+

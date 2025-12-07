@@ -4,7 +4,12 @@ import { CreateCuponUsadoInput } from './usedCoupons.validation';
 export const cuponesUsadosService = {
   create: (data: CreateCuponUsadoInput) => {
     return prisma.usedCoupons.create({
-      data,
+      data: {
+        userId: data.userId,
+        promotionId: data.promocionId,
+        subscriptionId: data.suscripcionId,
+        usedAt: data.fechaUso,
+      },
     });
   },
 

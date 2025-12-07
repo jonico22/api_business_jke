@@ -63,6 +63,7 @@ class AttributeRedactingProcessor implements SpanProcessor {
 
 // 3. Inicialización del SDK
 const sdk = new NodeSDK({
+  // @ts-ignore
   resource: new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: process.env.OTEL_SERVICE_NAME,
   }),
@@ -83,8 +84,10 @@ const sdk = new NodeSDK({
             // *todos* los headers, obligándote a listar solo los seguros.
             // Si no especificas 'authorization', no se captura desde el inicio.
             headersToSpanAttributes: {
-                requestHeaders: ['User-Agent', 'Content-Type', 'Accept-Encoding'], 
-                responseHeaders: ['Content-Type', 'server'],
+                server: {
+                    requestHeaders: ['User-Agent', 'Content-Type', 'Accept-Encoding'], 
+                    responseHeaders: ['Content-Type', 'server'],
+                },
             },
         },
     }),

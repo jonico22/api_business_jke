@@ -35,7 +35,11 @@ export const createService = async (req: Request, res: Response) => {
     const result = await serviceService.create(data);
     res.status(201).json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
@@ -122,7 +126,11 @@ export const updateService = async (req: Request, res: Response) => {
     const result = await serviceService.update(req.params.id, data);
     res.json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
@@ -153,6 +161,10 @@ export const deleteService = async (req: Request, res: Response) => {
     await serviceService.remove(req.params.id);
     res.status(204).send();
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };

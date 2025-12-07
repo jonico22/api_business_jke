@@ -25,8 +25,25 @@ export class ProductBranchMovementService {
     });
   }
 
-  static async create(data: Prisma.ProductBranchMovementCreateInput) {
-    return prisma.productBranchMovement.create({ data });
+  static async create(data: {
+    originBranchId: string;
+    destinationBranchId: string;
+    productId: string;
+    quantityMoved: number;
+    notes?: string;
+    referenceCode?: string;
+    status?: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+    createdBy?: string;
+  }) {
+    const { originBranchId, destinationBranchId, productId, ...rest } = data;
+    return prisma.productBranchMovement.create({
+      data: {
+        ...rest,
+        originBranch: { connect: { id: originBranchId } },
+        destinationBranch: { connect: { id: destinationBranchId } },
+        product: { connect: { id: productId } },
+      },
+    });
   }
 
   static async update(id: string, data: Prisma.ProductBranchMovementUpdateInput) {

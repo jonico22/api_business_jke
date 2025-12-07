@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createCuponUsado, getCuponesUsados } from './usedCoupons.controller';
-import { auth } from '@/middlewares/auth.middleware';
+import auth from '@/middlewares/auth.middleware';
 
 const router = Router();
 

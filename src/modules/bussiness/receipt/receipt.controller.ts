@@ -138,7 +138,11 @@ export const generatePdfAndAttach = async (req: Request, res: Response) => {
     const file = await receiptService.generateAndStoreReceiptPdf(id);
     res.json({ message: "PDF generado y guardado", file });
   } catch (error) {
-    res.status(500).json({ message: "Error al generar el PDF", error: error.message });
+    if (error instanceof Error) {
+      res.status(500).json({ message: 'Error al generar el PDF', error: error.message });
+    } else {
+      res.status(500).json({ message: 'Error al generar el PDF', error: 'An unknown error occurred' });
+    }
   }
 };
 

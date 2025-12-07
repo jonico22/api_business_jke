@@ -7,7 +7,11 @@ export const orderItemController = {
       const orderItem = await orderItemService.create(req.body)
       res.status(201).json(orderItem)
     } catch (error) {
-      res.status(400).json({ error: error.message })
+      if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
     }
   },
 
@@ -17,7 +21,11 @@ export const orderItemController = {
       const items = await orderItemService.findAll(filters)
       res.json(items)
     } catch (error) {
-      res.status(500).json({ error: error.message })
+      if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   },
 
@@ -27,7 +35,11 @@ export const orderItemController = {
       if (!item) return res.status(404).json({ error: 'Order item not found' })
       res.json(item)
     } catch (error) {
-      res.status(500).json({ error: error.message })
+      if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   },
 
@@ -36,7 +48,11 @@ export const orderItemController = {
       const item = await orderItemService.update(req.params.id, req.body)
       res.json(item)
     } catch (error) {
-      res.status(400).json({ error: error.message })
+      if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
     }
   },
 
@@ -45,7 +61,11 @@ export const orderItemController = {
       await orderItemService.delete(req.params.id)
       res.status(204).send()
     } catch (error) {
-      res.status(500).json({ error: error.message })
+      if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   },
 }

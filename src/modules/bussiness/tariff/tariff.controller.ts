@@ -11,7 +11,11 @@ export class TariffController {
       const tariff = await service.create(validated);
       res.status(201).json(tariff);
     } catch (error) {
+      if (error instanceof Error) {
       res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
     }
   }
 
@@ -25,7 +29,11 @@ export class TariffController {
       const tariffs = await service.findAll(filters);
       res.json(tariffs);
     } catch (error) {
+      if (error instanceof Error) {
       res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   }
 
@@ -35,7 +43,11 @@ export class TariffController {
       if (!tariff) return res.status(404).json({ message: "Tariff not found" });
       res.json(tariff);
     } catch (error) {
+      if (error instanceof Error) {
       res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   }
 
@@ -45,7 +57,11 @@ export class TariffController {
       const tariff = await service.update(req.params.id, validated);
       res.json(tariff);
     } catch (error) {
+      if (error instanceof Error) {
       res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
     }
   }
 
@@ -54,7 +70,11 @@ export class TariffController {
       const tariff = await service.delete(req.params.id);
       res.json(tariff);
     } catch (error) {
+      if (error instanceof Error) {
       res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
     }
   }
 }

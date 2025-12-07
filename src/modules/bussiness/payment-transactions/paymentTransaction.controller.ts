@@ -9,7 +9,11 @@ export const createPaymentTransaction = async (req: Request, res: Response) => {
 
   res.status(201).json(transaction);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
