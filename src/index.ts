@@ -1,8 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import routes from './routes';
-import { createPermissions } from './utils/create-permissions';
+//import { createPermissions } from './utils/create-permissions';
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
 import { createViews } from './utils/create-view';
@@ -13,10 +12,12 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
 import { redis } from '@/shared/services/redis.service';
-import { createRoleViewPermission } from './utils/create-role-view-permission';
+//import { createRoleViewPermission } from './utils/create-role-view-permission';
 import cookieParser from 'cookie-parser';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config(); // Cargar solo en desarrollo local
+}
 
 async function startServer() {
   if (redis.enabled) {
@@ -46,7 +47,7 @@ app.use('/api', routes);
 
 
 (async () => { 
-  await createPermissions();
+  //await createPermissions();
   await createDefaultRoles();
   await createInitialAdmin();
   await createViews();
