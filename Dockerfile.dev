@@ -1,0 +1,15 @@
+FROM node:20-slim
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+# No copiamos todo el código ni lo compilamos aquí,
+# ya que lo montaremos como volumen y usaremos ts-node-dev.
+
+EXPOSE 4000
+
+# El comando se ejecutará a través de docker-compose con el volumen montado
+CMD ["npm", "run", "dev"]

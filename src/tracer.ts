@@ -3,8 +3,7 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+
 import { 
   Span, 
   SpanProcessor, 
@@ -64,9 +63,6 @@ class AttributeRedactingProcessor implements SpanProcessor {
 // 3. Inicialización del SDK
 const sdk = new NodeSDK({
   // @ts-ignore
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: process.env.OTEL_SERVICE_NAME,
-  }),
 
   // USAMOS EL PROCESADOR PERSONALIZADO EN LUGAR DEL POR DEFECTO
   spanProcessors: [
