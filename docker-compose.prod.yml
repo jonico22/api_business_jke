@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env.prod # Carga las variables de entorno para producción
+    # No se definen servicios 'db' ni 'redis' aquí, ya que se conectará a servicios externos.
+
+# Nota: No se definen 'volumes' de persistencia para la base de datos local aquí,
+# ya que la base de datos y Redis serán servicios gestionados externamente.
