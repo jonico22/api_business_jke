@@ -1,76 +1,119 @@
-  ---
+# 🚀 Secure Auth API - Guía de Entornos Docker
 
-  🛡️ Secure Auth API
+Esta guía explica cómo configurar y ejecutar la API utilizando **Docker Compose** en dos modos distintos: **Desarrollo (DEV)** para *hot-reload* y **Producción (PROD)** para despliegue final.
 
-  API RESTful construida con Node.js, TypeScript, Express, Prisma y PostgreSQL, que implementa autenticación
-  segura, gestión de usuarios, roles, permisos y sesiones.
+## 🛠️ Requisitos Previos
 
-  🚀 Levantando el Proyecto Localmente (con Docker)
+Asegúrate de tener instalados los siguientes programas:
 
-  La forma recomendada y más sencilla de ejecutar este proyecto es a través de Docker, que gestionará tanto la
-  API como la base de datos y Redis de manera aislada y consistente.
+* **Docker Desktop** (o Docker Engine)
+* **Docker Compose** (Generalmente incluido en Docker Desktop)
 
-  Prerrequisitos
-
-   * Asegúrate de tener instalado Docker y Docker Compose.
-
-  Pasos para la Instalación
-
-  1. Clonar el Repositorio
-
-   1 git clone https://github.com/tu-usuario/secure-auth-api.git
-   2 cd secure-auth-api
-
-  2. Configurar las Variables de Entorno
+## Configurar las Variables de Entorno
 
   Este proyecto utiliza un archivo .env para gestionar las credenciales y otras configuraciones sensibles. Para
   empezar, simplemente copia el archivo de ejemplo:
+  
+  ```bash
+  cp .env.example .env
+  ```
 
-   1 cp .env.example .env
+## 📂 Estructura de Archivos y Estrategia
 
-  Importante: El archivo .env ya viene preconfigurado para funcionar con los servicios definidos en
-  docker-compose.yml (por ejemplo, DATABASE_URL apunta al servicio db). No necesitas cambiar nada en este
-  archivo para el entorno local de Docker.
+La separación entre entornos se logra mediante la estrategia de **Multi-stage Build** en el `Dockerfile` y la **Sobrescritura de Comandos** en Docker Compose.
 
-  3. Iniciar los Contenedores
+| Archivo | Uso | Alias/Target | Comando de Inicio |
+| :--- | :--- | :--- | :--- |
+| **`Dockerfile`** | PROD / DEV Base | `deps`, `runner` | `CMD ["node", "dist/index.js"]` (Por defecto) |
+| **`docker-compose.yaml`** | **PROD** Base | `target: runner` | **`command: npm run start:prod`** |
+| **`docker-compose.dev.yaml`** | **DEV** Override | `target: deps` | **`command: npm run dev`** |
 
-  Ejecuta el siguiente comando para construir las imágenes y levantar todos los servicios en segundo plano:
+---
 
-   1 docker-compose up -d --build
+## I. 💻 Modo Desarrollo (DEV)
 
-  Este comando hará lo siguiente:
-   * Construirá la imagen de Docker para la API de Node.js según las instrucciones del Dockerfile.
-   * Descargará y ejecutará las imágenes oficiales de PostgreSQL y Redis.
-   * Creará una red interna para que los contenedores se comuniquen entre sí.
+El modo Desarrollo utiliza **volúmenes montados** para compartir el código fuente y el modo **`--poll`** para la **recarga en caliente (*hot-reload*)**.
 
-  4. Aplicar Migraciones de la Base de Datos
+### 1. Comando de Ejecución
 
-  Con los servicios ya en ejecución, necesitas aplicar el esquema de la base de datos. Para ello, ejecuta el
-  siguiente comando que se conecta al contenedor de la API y corre la migración de Prisma:
+Usamos ambos archivos Compose para fusionar la configuración base con los *overrides* de desarrollo.
 
-   1 docker-compose exec api npx prisma migrate deploy
+```bash
+# Ejecuta la API, DB y Redis usando la configuración de desarrollo
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build
+```
 
-  5. (Opcional) Cargar Datos Iniciales (Semillas)
+### 2. Comportamiento
+Construcción: Docker construye solo hasta la etapa deps del Dockerfile (la que tiene npm install).
 
-  El proyecto está configurado para crear automáticamente permisos, roles por defecto y un usuario administrador
-  la primera vez que se inicia. Si necesitas volver a ejecutar este proceso o modificarlo, puedes encontrar la
-  lógica en los archivos dentro de src/utils/.
+Volúmenes: El código local sobrescribe el directorio /usr/src/app en el contenedor.
 
-  6. ¡Listo para Usar!
+Inicio: El comando sobrescrito es npm run dev, que ejecuta:
 
-  Tu entorno de desarrollo completo está ahora en funcionamiento:
-   * API disponible en: http://localhost:4000
-   * Documentación de la API (Swagger): http://localhost:4000/api-docs
+npx prisma generate y npx prisma migrate dev (Generación de cliente y migraciones de desarrollo).
 
-  Comandos Útiles de Docker
+ts-node-dev --poll src/index.ts (Inicia el servidor con hot-reload).
 
-   * Ver los logs de la API:
-   1     docker-compose logs -f api
-   * Detener todos los servicios:
-   1     docker-compose down
-   * Acceder al shell del contenedor de la API:
+Acceso: La API estará disponible en http://localhost:4000.
 
-   1     docker-compose exec api bash
-   * Acceder a la base de datos PostgreSQL:
-   1     docker-compose exec db psql -U user -d secure_auth_api
-      (La contraseña es password, como se define en docker-compose.yml)
+### 3. Detener el Entorno
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+```
+## 🏭 Modo Producción (PROD)
+
+El modo Producción utiliza la imagen final optimizada (target: runner) y ejecuta el script de migración e inicio de forma secuencial, garantizando que la base de datos esté lista.
+
+### 1. Comando de Ejecución
+Solo usamos el archivo base docker-compose.yaml.
+
+```bash
+# Ejecuta la API, DB y Redis en modo producción y en segundo plano
+docker compose up api db redis --build -d
+```
+### 2. Comportamiento
+Construcción: Docker construye hasta la etapa runner (imagen final, sin código fuente ni dependencias de desarrollo).
+
+Dependencia: El servicio api espera a que el servicio db esté en estado service_healthy antes de iniciar.
+
+Inicio: El comando sobrescrito es npm run start:prod, que ejecuta:
+
+npm run migrate:deploy (Aplica las migraciones pendientes en el servidor).
+
+node dist/index.js (Inicia el servidor compilado).
+
+Acceso: La API estará disponible en http://localhost:4000 (o el puerto configurado).
+
+### 3. Detener el Entorno
+
+```bash
+docker compose down
+```
+
+# III. 💡 Comandos Adicionales Útiles
+
+Comando	Descripción	Entorno
+
+Logs	Ver logs de un servicio (ejemplo: API) en tiempo real.	DEV / PROD
+
+```bash
+  docker compose logs api -f	
+```
+
+Entrar al Contenedor	Abrir una shell bash dentro del contenedor API.	DEV / PROD
+		
+```bash
+docker compose exec api bash
+```
+Reconstruir Solo API	Reconstruir la imagen de la API (útil si cambias dependencias).	DEV / PROD
+
+```bash
+docker compose up api --build	
+```
+	
+Limpiar Volúmenes	Eliminar los datos persistentes de la DB (¡usar con precaución!).	DEV
+
+```bash
+docker compose down -v
+```

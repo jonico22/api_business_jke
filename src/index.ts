@@ -13,7 +13,7 @@ import { redis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
 
 
-console.log(`[APP DEBUG] Iniciando xsxs...`);
+
 
 
 async function initializeDataAndServices() {
