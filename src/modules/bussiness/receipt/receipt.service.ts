@@ -1,5 +1,4 @@
 
-import puppeteer from "puppeteer";
 import { v4 as uuidv4 } from "uuid";
 import { uploadFileTypeToR2 } from "@/shared/services/upload.service";
 import { fileService } from "@/modules/bussiness/files/file.service";
@@ -8,7 +7,8 @@ import prisma from '@/config/database';
 //import { generateQrAndUpload } from "@/utils/generateQr";
 import { sendSubscriptionPaymentEmail } from "@/utils/mailer";
 // Define the path to the template file using path.join
-import {generateReceiptHtml} from '@/templates/receipt.template'
+import { generatePdfBuffer } from '@/shared/services/pdf-maker.service'; // 1. De PDFMake
+import { generateReceiptDefinition } from '@/utils/pdfkit/generateReceiptPdfBuffer'; // 2. Definición de recibo en PDFMake
 
 export const createReceipt = async (data: any) => {
    if (data.currencyId){
@@ -110,13 +110,14 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
 
   try {
     // 3. Directly call the HTML generation function
-    const html = generateReceiptHtml(receipt as any); // Cast to any to satisfy the complex type, as we know it's correct
+    // 3. Generar la definición JSON (Lógica de PDFMake)
+    const docDefinition = generateReceiptDefinition(receipt as any); 
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-    await browser.close();
+    // 4. Generar el Buffer PDF (MUCHO más rápido)
+    // El proceso es síncrono y no requiere recursos externos como el navegador.
+    const pdfBuffer = await generatePdfBuffer(docDefinition); 
+    
+    // --- FIN DEL REEMPLAZO DE PUPPETEER ---
 
     // Subir a R2
     const fileName = `receipt-${receipt.number}-${uuidv4()}.pdf`;
@@ -147,6 +148,8 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
         sendSubscriptionPaymentEmail(userEmail, receipt.totalAmount, receipt.currency.name, fileUrl);
       }, 200);
     }
+    // Devolvemos el registro del archivo
+    return fileRecord;
   } catch (error) {
     console.error("Error generating or storing PDF:", error);
     // No retornar el error directamente, podría causar un ciclo si el error es de la base de datos

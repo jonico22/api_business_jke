@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import * as receiptService from "./receipt.service";
 import { receiptSchema, updateReceiptSchema } from "./receipt.schema";
-import { generateReceiptPdfBuffer } from "@/utils/pdfkit/generateReceiptPdfBuffer";
-
+import { generateReceiptDefinition } from "@/utils/pdfkit/generateReceiptPdfBuffer";
 
 /**
  * @swagger
@@ -150,7 +149,11 @@ export const previewReceipt = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const buffer = await generateReceiptPdfBuffer(id);
+    const receipt = await receiptService.getReceiptById(id);
+    if (!receipt) {
+      return res.status(404).json({ message: "Recibo no encontrado" });
+    }
+    const buffer = await generateReceiptDefinition(receipt as any); // Generar el buffer PDF directamente
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "inline; filename=receipt-preview.pdf");
