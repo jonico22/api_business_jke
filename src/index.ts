@@ -9,12 +9,8 @@ import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
-import { redis } from '@/shared/services/redis.service';
+import { initializeRedis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
-
-
-
-
 
 async function initializeDataAndServices() {
     // 1.1 Ejecuta la lógica asíncrona de creación de datos
@@ -22,25 +18,12 @@ async function initializeDataAndServices() {
     await createInitialAdmin();
     await createDocumentTypes();
     logger.info('roles, administrador inicial');
-
-    // 1.2 Ejecuta la lógica de Redis
-    if (redis.enabled) {
-        logger.info('[Redis] Verificando conexión...');
-        try {
-            await redis.set('ping', 'pong', 10);
-            logger.info('Redis verificado');
-        } catch (err) {
-            logger.error('[Redis] Error de conexión', err);
-            // IMPORTANTE: Si la conexión a Redis es crítica, lanza el error
-            // throw err; 
-        }
-    }
 }
 
 async function main() {
     // Ejecuta todas las inicializaciones asíncronas
     await initializeDataAndServices(); 
-    
+    await initializeRedis();
     const port = process.env.PORT || 4000;
     const app = express();
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -50,7 +33,7 @@ async function main() {
     }));
     app.use(cookieParser());
     app.use(express.json());
-    app.use(requestLogger)
+    app.use(requestLogger);
     app.use('/api', routes);
     app.get('/', (_req, res) => res.send('API activa test probando'));
     app.use((req, res) => {
@@ -62,7 +45,6 @@ async function main() {
     });
     app.use(errorHandler);
     //app.listen(port, () => console.log(`🚀 Servidor en el http://localhost:${port}`));
-
     // 5. Escuchar explícitamente en 0.0.0.0
     app.listen(Number(port), '0.0.0.0', () => {
         console.log(`🚀 Servidor listo y escuchando en puerto ${port}`);
@@ -71,9 +53,7 @@ async function main() {
 
 // 4. Llama a la función main y maneja el error globalmente
 main().catch((err) => {
-    //console.log(`[APP DEBUG] Error fatal al iniciar la aplicación: ${err.message}`);
     logger.error(`Error fatal al iniciar la aplicación: ${err.message}`, err);
-    // 🛑 Forzar el cierre con código de error si la inicialización falla
     process.exit(1);
 });
 
@@ -82,5 +62,5 @@ process.on('unhandledRejection', (reason) => {
 });
 process.on('uncaughtException', (err) => {
   logger.error(`UNCAUGHT EXCEPTION: ${err.message}\n${err.stack}`);
-  process.exit(1); // Puedes quitar esto si prefieres no reiniciar el proceso
+  process.exit(1);
 });
