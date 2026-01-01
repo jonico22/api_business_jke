@@ -3,12 +3,15 @@ import prisma from '../config/database';
 
 interface AuthRequest extends Request {
   user: any;
+  session?: any; // Change from string to any or the actual session type
   sessionId?: string;
 }
 
 const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token =
+      req.cookies?.['session-token'] ||
+      req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'No autorizado' });
     
     const session = await prisma.session.findUnique({
@@ -20,8 +23,9 @@ const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: 'Sesión inválida o expirada' });
     }
     req.user = session.user;
-    req.user.role = session.user.role.name; // Asignar el nombre del rol al usuario
+    req.role = session.user.role.code; // Asignar el nombre del rol al usuario
     req.sessionId = session.id;
+    req.session = session;
     next();
   } catch (error) {
     if (!res.headersSent) {

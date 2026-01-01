@@ -5,16 +5,31 @@ export const buildPrismaFilters = (query: Record<string, any>) => {
     const value = query[key];
     if (value === undefined || value === '') continue;
 
-    // Conversión básica de boolean y número
-    if (value === 'true' || value === 'false') {
-      filters[key] = value === 'true';
-    } else if (!isNaN(Number(value))) {
-      filters[key] = Number(value);
+    // Soporte para filtros anidados: person.lastName
+    if (key.includes('.')) {
+      const [relation, field] = key.split('.');
+      filters[relation] = filters[relation] || {};
+      if (value === 'true' || value === 'false') {
+        filters[relation][field] = value === 'true';
+      } else if (!isNaN(Number(value))) {
+        filters[relation][field] = Number(value);
+      } else {
+        filters[relation][field] = {
+          contains: String(value),
+          mode: 'insensitive',
+        };
+      }
     } else {
-      filters[key] = {
-        contains: String(value),
-        mode: 'insensitive',
-      };
+      if (value === 'true' || value === 'false') {
+        filters[key] = value === 'true';
+      } else if (!isNaN(Number(value))) {
+        filters[key] = Number(value);
+      } else {
+        filters[key] = {
+          contains: String(value),
+          mode: 'insensitive',
+        };
+      }
     }
   }
 

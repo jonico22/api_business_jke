@@ -3,10 +3,11 @@ import prisma from '@/config/database';
 
 class ViewService {
   async create(data: { name: string; description?: string }) {
-    const exists = await prisma.view.findUnique({ where: { name: data.name } });
+    const exists = await prisma.view.findFirst({ where: { name: data.name } });
     if (exists) throw new Error('La vista ya existe');
 
-    return prisma.view.create({ data });
+    const code = data.name.toLowerCase().replace(/\s+/g, '-');
+    return prisma.view.create({ data: { ...data, code } });
   }
 
   async getAll() {

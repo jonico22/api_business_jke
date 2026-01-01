@@ -3,6 +3,8 @@ import { sendResetEmail, sendPasswordChangeEmail,sendResetByAdminEmail,
   sendAccountLockedEmail, notifyAdminOnUserLock } from '@/utils/mailer';
 import { hashToken,generateToken,generateRandomPassword,hashPassword } from '@/utils/hash';
 import argon2 from 'argon2';
+import { generateEmailToken } from '@/utils/token-email';
+import { sendEmailVerification } from '@/utils/mailer';
 
 export class AuthService {
 
@@ -35,36 +37,52 @@ export class AuthService {
     if (!account || !account.password) {
       throw new Error( 'Credenciales incorrectas');
     }
+    console.log('account',account);
+    console.log('account user',password);    
     const user = account.user;
     if (!user.emailVerified) throw new Error('Debes verificar tu correo electrónico');
     if (!user.isActive) throw new Error('Cuenta inactiva');
     if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
     if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
+    
     const valid = await argon2.verify(account.password, password);
     if (!valid) {
-      await this.incrementFailedAttempts(user.id,user.email);
-      throw new Error('Credenciales inválidas');
+      const { attemptsLeft } = await this.incrementFailedAttempts(user.id, user.email);
+      const message = attemptsLeft > 0 ? `Te quedan ${attemptsLeft} intentos.` : 'Has superado el número de intentos. Tu cuenta ha sido bloqueada temporalmente.';
+      throw new Error(`Credenciales inválidas. ${message}`);
     }
 
     await this.resetFailedAttempts(user.id);
 
     await this.verifySession(user.id);
+    // new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 días
+    const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 2); // 2 horas
     const session = await prisma.session.create({
       data: {
         userId: user.id,
         token: generateToken(),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 días
+        expiresAt: newExpiresAt,
         userAgent,
         ipAddress,
       },
     });
+     const role = await prisma.role.findFirst({
+      where: { users: { some: { id: session.userId } } },
+    });
 
-    return { token: session.token, user: {
-      id: account.user.id,
-      name: account.user.name,
-      email: account.user.email,
-      role: account.user.roleId,
-    } };
+    return { 
+      token: session.token, 
+      user: account.user, 
+      newExpiresAt,
+      role,
+      views: await this.getViewsByRoleId(account.user.roleId || '') 
+    };
+  }
+
+  async destroyAllByUser(userId: string) {
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
   }
 
   async logout(userId: string, sessionId: string) {
@@ -72,7 +90,10 @@ export class AuthService {
     if (!session || session.userId !== userId) {
       throw new Error('No autorizado');
     }
-    await prisma.session.delete({ where: { id: sessionId } });
+    if (userId) {
+      // Elimina todas las sesiones del usuario
+      await this.destroyAllByUser(userId);
+    }
   }
 
   async forgotPassword(email: string) {
@@ -125,6 +146,8 @@ export class AuthService {
     const max = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5');
     const blockMins = parseInt(process.env.LOGIN_BLOCK_TIME || '15');
 
+    const attemptsLeft = Math.max(0, max - attempts);
+
     if (attempts >= max) {
           const lockedUntil = new Date(Date.now() + blockMins * 60000);
           await sendAccountLockedEmail(email, lockedUntil);
@@ -132,11 +155,13 @@ export class AuthService {
     }
     const blockedUntil = attempts >= max ? new Date(Date.now() + blockMins * 60 * 1000) : null;
     await prisma.user.update({ where: { id: userId }, data: { failedLoginAttempts: attempts, lockedUntil: blockedUntil } });
+    return { attemptsLeft };
   }
 
   async resetFailedAttempts(userId: string) {
     await prisma.user.update({ where: { id: userId }, data: { failedLoginAttempts: 0, lockedUntil: null } });
   }
+  
 
   async getUserSessions(userId: string) {
     return prisma.session.findMany({
@@ -194,10 +219,71 @@ export class AuthService {
     
     return {
       user: session.user,
+      expires: session.expiresAt,
+      token: session.token,
       role,
       //permissions,
       views,
     };
+  }
+  async verificationEmail(email: string){
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    if (user.emailVerified) {
+       throw new Error( 'El correo ya fue verificado');
+    }
+    const token = generateEmailToken(user.email);
+    await sendEmailVerification(email, token);
+    return { message: 'Correo de verificación reenviado' };
+  }
+
+  async  archiveUser(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        isArchived: true,
+      },
+    });
+
+    if (!user) {
+      throw new Error("Usuario no encontrado.");
+    }
+
+    if (user.isArchived) {
+      throw new Error("El usuario ya está archivado.");
+    }
+
+    const archivedEmail = `${user.email}.archived.${user.id}`;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        isDeleted: true,
+        isArchived: true,
+        email: archivedEmail,
+        image: null,
+        person: {
+          disconnect: true,
+        },
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        sessions: {
+          deleteMany: {},
+        },
+        resetTokens: {
+          deleteMany: {},
+        },
+      },
+    });
+
+    return { success: true, message: "Usuario archivado correctamente." };
   }
 }
 

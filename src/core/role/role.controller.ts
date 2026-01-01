@@ -9,7 +9,11 @@ export const createRole = async (req: Request, res: Response) => {
     const result = await roleService.create(data);
     res.status(201).json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
@@ -18,7 +22,11 @@ export const getRoles = async (_req: Request, res: Response) => {
     const roles = await roleService.getAll();
     res.json(roles);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
@@ -29,7 +37,11 @@ export const updateRole = async (req: Request, res: Response) => {
     const updated = await roleService.update(id, data);
     res.json(updated);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };
 
@@ -39,6 +51,10 @@ export const deleteRole = async (req: Request, res: Response) => {
     await roleService.remove(id);
     res.json({ message: 'Rol eliminado' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    if (error instanceof Error) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: 'An unknown error occurred' });
+    }
   }
 };

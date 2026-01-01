@@ -2,7 +2,7 @@
 import prisma from '@/config/database';
 import { hashPassword } from '@/utils/hash';
 import { createUserSchema, updateMeSchema } from './user.validation';
-import { buildPrismaFilters } from '@/utils/query-filter';
+
 
 class UserService {
     async createUser(data: any) {
@@ -10,18 +10,19 @@ class UserService {
         
         const existing = await prisma.user.findUnique({ where: { email: response.email } });
         if (existing) throw new Error('Email ya registrado');
-        const role = await prisma.role.findUnique({ where: { name: response.role } });
+        const role = await prisma.role.findUnique({ where: { code: response.role } });
         if (!role) throw new Error('Rol no válido');
 
         const hashedPassword = await hashPassword(data.password);
-
+        const documentType = await prisma.documentType.findUnique({ where: { code: response.isBusiness ? 'RUC' : 'DNI' } });
+        if (!documentType) throw new Error('Tipo de documento no válido')
         const user = await prisma.user.create({
                 data: {
                     name: response.firstName + ' ' + response.lastName,
                     email: response.email,
-                    emailVerified: false,
+                    emailVerified: true,
                     roleId: role.id,
-                    isActive: false,
+                    isActive: true,
                     accounts: {
                         create: {
                             accountId: response.email,
@@ -36,6 +37,9 @@ class UserService {
                             phone: response.phone,
                             address: response.address,
                             email: response.email,
+                            typeBP: response.typeBP || 'natural',
+                            typeDocId : documentType ? documentType.id : null,
+                            documentNumber: response.documentNumber || null,
                         },
                     },
                 },
@@ -46,30 +50,38 @@ class UserService {
 
     async listUsers() {
         return prisma.user.findMany({
-        include: {
-            person: true,
-            role: true,
-        },
+            include: {
+                person: true,
+                role: true,
+            },
         });
     }
     async countUsers(filters: any) {
-        const where = buildPrismaFilters(filters);
-        return prisma.user.count({ where });
+        return prisma.user.count({ where: filters });
     }
     async getUsers ( filters: any,skip: number, take: number) {
+        // Construir filtros para campos relacionados (role, person)
+
         const users = await prisma.user.findMany({
             where: filters,
             skip,
             take,
             include: {
-                role: true,
-                person: true,
+            role: true,
+            person: true,
             },
         });
         return users
     }
 
     async activateUser(userId: string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+        if (!user.emailVerified) {
+            throw new Error('El usuario no ha verificado su correo electrónico');
+        }
         return prisma.user.update({
         where: { id: userId },
         data: { isActive: true },
@@ -116,8 +128,11 @@ class UserService {
         });
     }
     
-    async getAllSessions() {
+    async getAllSessions(filters: any,skip: number, take: number) {
         return prisma.session.findMany({
+            where: filters,
+            skip,
+            take,
             include: {
                 user: {
                     select: {
@@ -131,26 +146,22 @@ class UserService {
             orderBy: { createdAt: 'desc' },
         });
     }
+
+    async countSessions(filters: any) {
+        return prisma.session.count({ where: filters });
+    }
+
     async deleteSession(sessionId: string, requester: any) {
         const session = await prisma.session.findUnique({ where: { id: sessionId } });
         if (!session) throw new Error('Sesión no encontrada');
-
         // Prevent deletion of the current session
-        if (session.id === requester.sessionId) {
+        if (session.id === requester) {
             throw new Error('No puedes eliminar tu propia sesión activa');
         }
-
-        if (!['admin', 'soporte'].includes(requester.role.name)) {
-            throw new Error('No autorizado para eliminar sesiones');
-        }
-
         return prisma.session.delete({ where: { id: sessionId } });
     }   
-    async deleteUserSessions(userId: string, sessionId: string) {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) throw new Error('Usuario no encontrado');
+    async deleteUserSessions( sessionId: string) {
         const allSessions = await prisma.session.findMany({
-            where: { userId },
         });
         const sessionsToDelete = allSessions.filter((s) => s.id !== sessionId);
         return prisma.session.deleteMany({

@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import {
   assignRoleViewPermission,
-  getRoleViewPermissions,
+  getAllRoleViewPermissions,
   removeRoleViewPermission,
   getPermissionsByRole,
   checkRolePermission,
@@ -18,7 +18,7 @@ router.use(auth);
 router.use(allowRoles('admin', 'soporte'));
 
 // CRUD
-router.get('/', getRoleViewPermissions);
+router.get('/', getAllRoleViewPermissions);
 router.post('/', assignRoleViewPermission);
 router.delete('/:id', removeRoleViewPermission);
 
