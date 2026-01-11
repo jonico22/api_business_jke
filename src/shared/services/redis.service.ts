@@ -1,103 +1,122 @@
-// src/shared/services/redis.service.ts
 import { createClient, RedisClientType } from 'redis';
 
 // 1. Configuración de variables de entorno (más limpio)
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-// Usamos un tipo para el cliente y la promesa de conexión
-let client: RedisClientType | undefined;
+// Configuración de reintentos y timeouts para Docker
+const client: RedisClientType = createClient({
+  url: process.env.REDIS_URL || 'redis://redis:6379',
+  socket: {
+    connectTimeout: 10000,
+    reconnectStrategy: (retries) => {
+      // Reintento exponencial: 50ms, 100ms... hasta 2 segundos
+      return Math.min(retries * 50, 2000);
+    }
+  }
+});
+
+// Estado interno
 let isReady = false;
 
-// 2. Función de Inicialización Asíncrona
-export async function initializeRedis() {
-  if (!REDIS_ENABLED) {
-    console.log('[Redis] Servicio deshabilitado por configuración.');
-    return;
-  }
+// Manejadores de eventos
+client.on('connect', () => console.log('⏳ Redis: Conectando...'));
+client.on('ready', () => {
+  isReady = true;
+  console.log('✅ Redis: Listo y conectado');
+});
+client.on('error', (err) => {
+  isReady = false;
+  console.error('❌ Redis: Error de cliente', err);
+});
+client.on('end', () => {
+  isReady = false;
+  console.warn('⚠️ Redis: Conexión cerrada');
+});
 
+/**
+ * Inicializa la conexión. Se debe llamar en el arranque de la API.
+ */
+export const connectRedis = async () => {
+  if (!REDIS_ENABLED) return;
   try {
-    client = createClient({ url: REDIS_URL });
-
-    // Manejo de errores en tiempo de ejecución
-    client.on('error', (err) => {
-      console.error('🚨 Redis error:', err);
-    });
-
-    // 💡 Conectar y esperar a que esté listo
-    await client.connect();
-    isReady = true;
-    console.log(`✅ [Redis] Conectado correctamente a ${REDIS_URL}`);
-  } catch (err) {
-    console.error(`❌ [Redis] Error de conexión a ${REDIS_URL}:`, err);
-    // Si falla la conexión, deshabilitamos el servicio para evitar fallos futuros
-    client = undefined;
-    isReady = false;
+    if (!client.isOpen) {
+      await client.connect();
+    }
+  } catch (error) {
+    console.error('❌ Redis: Error fatal en la conexión inicial:', error);
   }
-}
+};
 
-// 3. Objeto de Interfaz pública con seguridad de conexión
+/**
+ * Interfaz de ayuda para la aplicación
+ */
 export const redis = {
   enabled: REDIS_ENABLED,
-  isReady: () => isReady,
+  
+  /**
+   * Verifica si Redis está operativo en este momento
+   */
+  get status() {
+    return REDIS_ENABLED && isReady;
+  },
 
-  async get<T>(key: string): Promise<T | string | null> {
-    if (!REDIS_ENABLED || !client || !isReady) return null;
-    
-    const value = await client.get(key);
-    if (value === null) return null;
+  async get<T>(key: string): Promise<T | null> {
+    if (!this.status) return null;
 
-    // 💡 Deserializar de vuelta a un objeto
     try {
-      // Intentar parsear el JSON; si falla, devolvemos la cadena original.
+      const value = await client.get(key);
+      if (!value) return null;
+      
       return JSON.parse(value) as T;
     } catch (e) {
-      console.warn(`[Redis] Fallo al deserializar JSON para la clave: ${key}`);
-      return value; // Devuelve la cadena si no es JSON válido
+      // Si no es JSON, devolvemos el valor crudo como T (fallback)
+      const value = await client.get(key);
+      return value as unknown as T;
     }
   },
 
   async set(key: string, value: any, ttl = 60): Promise<void> {
-    if (!REDIS_ENABLED || !client || !isReady) return;
-    
-    // Serializar el valor a JSON
-    let serializedValue: string;
-    if (typeof value === 'object' && value !== null) {
-      serializedValue = JSON.stringify(value);
-    } else {
-      serializedValue = String(value);
+    if (!this.status) return;
+
+    try {
+      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+      await client.set(key, serialized, { EX: ttl });
+    } catch (error) {
+      console.error(`[Redis] Error guardando clave ${key}:`, error);
     }
-    
-    await client.set(key, serializedValue, { EX: ttl });
   },
 
   async del(key: string): Promise<void> {
-    if (!REDIS_ENABLED || !client || !isReady) return;
+    if (!this.status) return;
     await client.del(key);
   },
 
-  // 💡 Implementación de SCAN para evitar bloqueo de la instancia de Redis
   async deleteKeysByPrefix(prefix: string): Promise<void> {
-    if (!REDIS_ENABLED || !client || !isReady) return;
-    
+    if (!this.status) return;
+
     let cursor = 0;
-    let keysToDelete: string[] = [];
+    try {
+      let keysToDelete: string[] = [];
 
-    do {
-      // Usamos SCAN en lugar de KEYS
-      const scanResult = await client.scan(cursor.toString(), { 
-          MATCH: `${prefix}*`,
-          COUNT: 100 
-      });
+      do {
+        const scanResult = await client.scan(cursor.toString(), { 
+            MATCH: `${prefix}*`,
+            COUNT: 100 
+        });
 
-      keysToDelete = keysToDelete.concat(scanResult.keys);
-      cursor = parseInt(scanResult.cursor, 10);
+        keysToDelete = keysToDelete.concat(scanResult.keys);
+        cursor = parseInt(scanResult.cursor, 10);
 
-    } while (cursor !== 0);
+      } while (cursor !== 0);
 
-    if (keysToDelete.length > 0) {
-      await client.del(keysToDelete);
-      console.log(`[Redis] Eliminadas ${keysToDelete.length} claves con prefijo '${prefix}' usando SCAN.`);
+      if (keysToDelete.length > 0) {
+        await client.del(keysToDelete);
+        console.log(`[Redis] Eliminadas ${keysToDelete.length} claves con prefijo '${prefix}' usando SCAN.`);
+      }
+    } catch (error) {
+      console.error(`[Redis] Error limpiando prefijo ${prefix}:`, error);
     }
   }
 };
+
+export default client;

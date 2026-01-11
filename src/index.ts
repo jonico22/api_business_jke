@@ -1,38 +1,52 @@
+import 'newrelic';
+
 import express from 'express';
 import cors from 'cors';
 import routes from './routes';
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
-import { createDocumentTypes} from './utils/create-type-doc';
 import requestLogger from './middlewares/logger.middleware';
 import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
-import { initializeRedis } from '@/shared/services/redis.service';
+import { connectRedis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
+import { corsOptions } from '@/config/cors';
+import { getRateLimiter } from '@/config/rateLimit';
+import { envs } from '@/config/envs';
+import helmet from 'helmet';
+import hpp from 'hpp';
+
 
 async function initializeDataAndServices() {
-    // 1.1 Ejecuta la lógica asíncrona de creación de datos
     await createDefaultRoles();
     await createInitialAdmin();
-    await createDocumentTypes();
     logger.info('roles, administrador inicial');
 }
 
 async function main() {
-    // Ejecuta todas las inicializaciones asíncronas
     await initializeDataAndServices(); 
-    await initializeRedis();
+    await connectRedis();
     const port = process.env.PORT || 4000;
     const app = express();
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-    app.use(cors({
-      origin: process.env.FRONTEND_URL, // por ejemplo http://localhost:3001
-      credentials: true
-    }));
+
+    // 1. SEGURIDAD INICIAL: Helmet y CORS primero
+    app.use(helmet());
+    app.use(cors(corsOptions));
+
+    // 2. RATE LIMITER: Protege la API antes de gastar recursos procesando el JSON
+    if (envs.isProd) {
+      app.use('/api', getRateLimiter); 
+    }
     app.use(cookieParser());
     app.use(express.json());
+
+    // 4. PARAMETER POLLUTION: Limpiamos los query strings
+    app.use(hpp({
+      whitelist: ['user']
+    }));
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
     app.use(requestLogger);
     app.use('/api', routes);
     app.get('/', (_req, res) => res.send('API activa test probando'));

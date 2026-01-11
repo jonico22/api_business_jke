@@ -50,7 +50,7 @@ class RoleViewPermissionService {
       },
     });
 
-    const grouped = result.reduce((acc: any, curr) => {
+    const grouped = result.reduce((acc: any, curr: { view: { name: any; }; permission: any; }) => {
       const view = curr.view.name;
       if (!acc[view]) acc[view] = [];
       acc[view].push(curr.permission);
@@ -85,7 +85,7 @@ class RoleViewPermissionService {
       include: { view: true },
     });
 
-    const views = [...new Map(permissions.map(p => [p.view.id, p.view])).values()];
+    const views = [...new Map(permissions.map((p: { view: { id: any; }; }) => [p.view.id, p.view])).values()];
     cache.set(`views_by_role_${roleId}`, views);
     return views;
   }

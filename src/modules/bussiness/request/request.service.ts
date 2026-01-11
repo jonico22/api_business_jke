@@ -1,10 +1,7 @@
 import prisma from '@/config/database';
-import { RequestStatus } from '@prisma/client';
-import { createSociety} from '@/modules/customer/society/society.service';
 import { userService } from '@/core/user/user.service';
 import { roleService } from '@/core/role/role.service';
 import {subscriptionService} from '@/modules/bussiness/subscriptions/subscription.service';
-import { BranchOfficeService } from '@/modules/customer/branchOffice/branchoffice.service';
 import {subscriptionMovementService} from '@/modules/bussiness/subscriptionMovement/subscriptionMovement.service';
 import {paymentTransactionService} from '@/modules/bussiness/payment-transactions/paymentTransaction.service';
 import {createReceipt} from '@/modules/bussiness/receipt/receipt.service';
@@ -12,8 +9,43 @@ import { generateCodeUnique, generateNumericCodeUnique }  from '@/utils/generate
 import { generateRandomPassword } from '@/utils/hash';
 import {sendWelcomeEmail, sendRegistrationEmail} from '@/utils/mailer';
 import {addDays} from 'date-fns';
-import argon2 from 'argon2';
 
+const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
+
+const requestApiSaleGet = async (path:String) => {
+  const response = await fetch(`${API_SALES_URL}/${path}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error('Error al crear la solicitud en el servicio de ventas');
+  } 
+  return response.json();
+};
+
+const requestApiSalePost = async (path:String, body:any) => {
+  const response = await fetch(`${API_SALES_URL}/${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error('Error al crear la solicitud en el servicio de ventas');
+  } 
+  return response.json();
+};
+
+
+
+enum RequestStatus {
+  Pending = "pending",
+  Rejected = "rejected",
+  Verified = "verified"
+}
 
 enum Status {
   Pending = "pending",
@@ -22,18 +54,20 @@ enum Status {
 }
 
 const newSociety = async (data: any) => {
-  return await createSociety({
+  const response = await requestApiSalePost('societies', {
     code: `SOC-${generateCodeUnique()}`,
     name: data.businessName,
-  })
+  });
+  return response;
 }
 
 const branchOffice = async (societyId: string) => {
-  return await BranchOfficeService.create({
+  const response = await requestApiSalePost('branch-offices', {
     name: "Oficina Principal",
     isMain: true,
     societyId,
   });
+  return response;
 }
 
 const planService = async (data: any) => {
@@ -142,13 +176,12 @@ export const requestService = {
   updateStatusVerified: async (id: string, status: RequestStatus) => {
     const request = await requestService.findById(id);
     if (!request) throw new Error("Solicitud no encontrada");
-    if (Status.Verified !== RequestStatus.verified) {
+    if (request.status !== RequestStatus.Verified) {
       throw new Error("La solicitud no está en estado verificado");
     }
     const society = await newSociety(request);
     await branchOffice(society.id);
     const {user,password} = await newCreateUser(request,society.id);
-    console.log('usuario creado',user);
     await sendWelcomeEmail(request.email, request.firstName, request.lastName,request.email, password);
     const subscriptionMovement = await suscripcion(user.id, request.id);
     const payment = await paymentTransaction(subscriptionMovement.id);
