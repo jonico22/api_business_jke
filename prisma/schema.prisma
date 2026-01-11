@@ -80,6 +80,8 @@ model Role {
   updatedBy   String?
   users User[]
   RoleViewPermission RoleViewPermission[]
+  society     Society?   @relation(fields: [societyId], references: [id])
+  societyId   String?
 }
 
 model DocumentType {

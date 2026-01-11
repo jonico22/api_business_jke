@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
 
+// 1. Configuración de variables de entorno (más limpio)
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 
 // Configuración de reintentos y timeouts para Docker
