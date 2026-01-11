@@ -247,7 +247,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
     const cached = await redis.get(cacheKey);
     const role = req.role as string;
     if (cached) {
-      return successResponse(res, JSON.parse(cached), 'Sesiones cacheadas');
+      return successResponse(res, JSON.parse(cached as string), 'Sesiones cacheadas');
     }
    
     const [sessions, total] = await Promise.all([
@@ -295,13 +295,11 @@ export const getAllSessions = async (req: Request, res: Response) => {
 export const deleteSessionUser = async (req: Request, res: Response) => {
   try {
     const sessionId = req.params.id;
-    const requester = req;
+    const requesterSessionId = (req as any).sessionId;
     const role = req.role as string;
-    console.log('Eliminando sesión:', sessionId, 'por', requester.sessionId);
     if (!['admin', 'soporte'].includes(role)) {
-      return res.status(403).json({ message: 'No autorizado para eliminar sesiones' });
     }
-    const result = await userService.deleteSession(sessionId, requester.sessionId);
+    const result = await userService.deleteSession(sessionId, requesterSessionId);
     return successResponse(res, result, 'Sesión eliminada correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -369,7 +367,7 @@ export const filterUsers = async (req: Request, res: Response) => {
     const cacheKey = `users:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
-      return successResponse(res, JSON.parse(cached), 'Usuarios cacheados');
+      return successResponse(res, JSON.parse(cached as string), 'Usuarios cacheados');
     }
     const [users,total ] = await Promise.all([
       userService.getUsers(filtersRemovePageLimit, skip, take),

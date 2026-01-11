@@ -21,7 +21,7 @@ services:
   db:
     image: postgres:15
     ports:
-      - "5432:5432"
+      - "5433:5433"
     environment:
       - POSTGRES_USER=app_user
       - POSTGRES_PASSWORD=app_password
@@ -37,7 +37,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "6378:6378"
 
 volumes:
   postgres_data:

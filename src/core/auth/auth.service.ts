@@ -193,14 +193,14 @@ export class AuthService {
       where: { roleId },
       include: { permission: true },
     });
-    return permissions.map(p => ({ name: p.permission.name }));
+    return permissions.map((p: { permission: { name: any; }; }) => ({ name: p.permission.name }));
   }
    async getViewsByRoleId(roleId: string) {
     const views = await prisma.roleViewPermission.findMany({
       where: { roleId, permission: { name : 'read' } },
       include: { view: true,permission: true },
     });
-    return views.map(v => ({ name: v.view.name , permissions: v.permission ? { name: v.permission.name } : null }));
+    return views.map((v: { view: { name: any; }; permission: { name: any; }; }) => ({ name: v.view.name , permissions: v.permission ? { name: v.permission.name } : null }));
   }
 
   async getCurrentUser(sessionId: string) {

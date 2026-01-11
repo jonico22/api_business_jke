@@ -163,10 +163,10 @@ class UserService {
     async deleteUserSessions( sessionId: string) {
         const allSessions = await prisma.session.findMany({
         });
-        const sessionsToDelete = allSessions.filter((s) => s.id !== sessionId);
+        const sessionsToDelete = allSessions.filter((s: { id: string; }) => s.id !== sessionId);
         return prisma.session.deleteMany({
             where: {
-            id: { in: sessionsToDelete.map((s) => s.id) },
+            id: { in: sessionsToDelete.map((s: { id: any; }) => s.id) },
             },
         });
     }
