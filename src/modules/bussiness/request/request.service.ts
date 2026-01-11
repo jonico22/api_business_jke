@@ -39,15 +39,7 @@ const requestApiSalePost = async (path:String, body:any) => {
   return response.json();
 };
 
-
-
 enum RequestStatus {
-  Pending = "pending",
-  Rejected = "rejected",
-  Verified = "verified"
-}
-
-enum Status {
   Pending = "pending",
   Rejected = "rejected",
   Verified = "verified"
@@ -176,8 +168,8 @@ export const requestService = {
   updateStatusVerified: async (id: string, status: RequestStatus) => {
     const request = await requestService.findById(id);
     if (!request) throw new Error("Solicitud no encontrada");
-    if (request.status !== RequestStatus.Verified) {
-      throw new Error("La solicitud no está en estado verificado");
+    if (request.status !== RequestStatus.Pending) {
+      throw new Error("La solicitud no está en estado pendiente");
     }
     const society = await newSociety(request);
     await branchOffice(society.id);
