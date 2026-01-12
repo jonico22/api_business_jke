@@ -12,31 +12,49 @@ import {addDays} from 'date-fns';
 
 const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
 
-const requestApiSaleGet = async (path:String) => {
-  const response = await fetch(`${API_SALES_URL}/${path}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!response.ok) {
-    throw new Error('Error al crear la solicitud en el servicio de ventas');
-  } 
-  return response.json();
+const requestApiSaleGet = async (path: String) => {
+  try {
+    const url = `${API_SALES_URL}/${path}`;
+    console.log('GET request a:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error en requestApiSaleGet:', error);
+    throw new Error(`Error al conectar con el servicio de ventas: ${error.message}`);
+  }
 };
 
-const requestApiSalePost = async (path:String, body:any) => {
-  const response = await fetch(`${API_SALES_URL}/${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error('Error al crear la solicitud en el servicio de ventas');
-  } 
-  return response.json();
+const requestApiSalePost = async (path: String, body: any) => {
+  try {
+    const url = `${API_SALES_URL}/${path}`;
+    console.log('POST request a:', url);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  } catch (error) {
+    console.error('Error en requestApiSalePost:', error);
+    throw new Error(`Error al conectar con el servicio de ventas: ${error.message}`);
+  }
 };
 
 enum RequestStatus {
@@ -45,10 +63,11 @@ enum RequestStatus {
   Verified = "verified"
 }
 
-const newSociety = async (data: any) => {
+const newSociety = async (data: any,suscription:string,code:string) => {
   const response = await requestApiSalePost('societies', {
-    code: `SOC-${generateCodeUnique()}`,
+    code,
     name: data.businessName,
+    subscriptionId: suscription,
   });
   return response;
 }
@@ -71,13 +90,12 @@ const planService = async (data: any) => {
     where: { id: tariff.planId }
   });
 }
-const newCreateUser = async (data: any,society:string) => {  
+const newCreateUser = async (data: any) => {  
   const plan = await planService(data);
   const nameRole = `OWNER-${generateCodeUnique()}-${plan?.code}`;
   await roleService.create({
     code: nameRole,
     name: `titular`,
-    societyId: society,
   });
   const newPassword = generateRandomPassword();
   data.role = nameRole;
@@ -92,11 +110,12 @@ const newCreateUser = async (data: any,society:string) => {
   }
 };
 
-const suscripcion = async (userId: string, requestId: string) => {
+const suscripcion = async (userId: string, requestId: string,codeSociety:string) => {
   const data = await subscriptionService.create({
     userId,
     requestId,
     status: 'ACTIVE',
+    societyId: codeSociety,
     startDate: new Date(),
     endDate: addDays(new Date(), 30), // agregar 30 dias a la fecha actual
   });
@@ -149,12 +168,16 @@ export const requestService = {
     }
     sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
     return prisma.request.create({ data });
+   
   },
-  findAll: () => prisma.request.findMany({
-    include: { tariff: true },
-    orderBy: { createdAt: "desc" },
-  }),
-
+  findAll: async () =>{
+    await requestApiSaleGet('societies');
+    return prisma.request.findMany({
+      include: { tariff: true },
+      orderBy: { createdAt: "desc" },
+    })
+  },
+    
   findById: (id: string) =>
     prisma.request.findUnique({
       where: { id },
@@ -167,15 +190,16 @@ export const requestService = {
   ),
   updateStatusVerified: async (id: string, status: RequestStatus) => {
     const request = await requestService.findById(id);
+    const codeSociety = `SOC-${generateCodeUnique()}`;
     if (!request) throw new Error("Solicitud no encontrada");
     if (request.status !== RequestStatus.Pending) {
       throw new Error("La solicitud no está en estado pendiente");
     }
-    const society = await newSociety(request);
+    const {user,password} = await newCreateUser(request);
+    const subscriptionMovement = await suscripcion(user.id, request.id,codeSociety);
+    const society = await newSociety(request,subscriptionMovement.subscriptionId,codeSociety);
     await branchOffice(society.id);
-    const {user,password} = await newCreateUser(request,society.id);
     await sendWelcomeEmail(request.email, request.firstName, request.lastName,request.email, password);
-    const subscriptionMovement = await suscripcion(user.id, request.id);
     const payment = await paymentTransaction(subscriptionMovement.id);
     await createReceiptPdf(payment.id);
     await requestService.updateStatus(id, status);
