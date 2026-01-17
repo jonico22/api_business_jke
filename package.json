@@ -15,13 +15,14 @@
     "start": "node dist/index.js",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
-    "docker:dev": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
+    "docker:dev": "infisical run --env=dev --path=/api -- docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
     "docker:clean": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v --remove-orphans"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.844.0",
     "@aws-sdk/s3-request-presigner": "^3.844.0",
     "@getbrevo/brevo": "^3.0.1",
+    "@newrelic/winston-enricher": "^4.0.1",
     "@prisma/client": "^6.13.0",
     "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",

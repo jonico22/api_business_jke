@@ -1,7 +1,9 @@
 import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
+import nrWinstonEnricher from '@newrelic/winston-enricher';
 
+const nrEnricher = nrWinstonEnricher(winston);
 const logDir = path.join(__dirname, '../../logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir);
@@ -10,6 +12,9 @@ if (!fs.existsSync(logDir)) {
 export const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
+    nrEnricher(), // Agrega metadatos de New Relic
+    // produccion logs en json
+    process.env.NODE_ENV === 'production' ? winston.format.json() : winston.format.simple(),
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.printf(
       ({ level, message, timestamp }) => `${timestamp} [${level.toUpperCase()}]: ${message}`

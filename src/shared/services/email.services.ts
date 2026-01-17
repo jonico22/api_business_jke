@@ -8,7 +8,7 @@ interface EmailOptions {
 }
 
 export const sendEmail = async (options: EmailOptions) => {
-  const emailService = process.env.NODE_ENV === 'production' ? 'brevo' : 'gmail';
+  const emailService = process.env.BREVO_ACTIVE === 'true' ? 'brevo' : 'gmail';
 
   if (emailService === 'brevo') {
     await sendEmailBrevo(options);

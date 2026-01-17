@@ -8,9 +8,11 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "baseUrl": "./src",
+    "baseUrl": ".", // Cambiado de ./src a .
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["src/*"] // Apunta a src desde la raíz
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma"]
 }

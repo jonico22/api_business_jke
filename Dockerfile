@@ -1,40 +1,49 @@
 # --------------------------------------------------------
-# 1. ETAPA BASE (Compartida)
+# 1. ETAPA BASE
 # --------------------------------------------------------
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
 
+# Declaramos los ARG que Coolify envía (según tu log de error)
+ARG INFISICAL_CLIENT_ID
+ARG INFISICAL_CLIENT_SECRET
+ARG INFISICAL_ENV
+ARG INFISICAL_PROJECT_PATH
+ARG NODE_ENV
+
+RUN apk add --no-cache bash curl && \
+    curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash && \
+    apk add --no-cache infisical
+
 # --------------------------------------------------------
-# 2. ETAPA DEPS (Aquí es donde "vive" Desarrollo)
+# 2. ETAPA DEPS
 # --------------------------------------------------------
-# Instalar dependencias de compilación y openssl en UNA SOLA capa (RUN)
-# Usamos 'libc6-compat' que a veces es necesario en Alpine para Node
 FROM base AS deps
 RUN apk update && \
-    apk add --no-cache --virtual .build-deps python3 make g++ libc6-compat && \
-    apk add --no-cache openssl
+    apk add --no-cache python3 make g++ libc6-compat openssl
 
-# Copiar package.json y package-lock.json ANTES de npm install
 COPY package*.json ./ 
-
 RUN npm install
 
 # --------------------------------------------------------
-# 3. ETAPA BUILDER (Solo para compilar Producción)
+# 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
 COPY tsconfig.json ./
 COPY . .
+# Generamos Prisma con las variables necesarias
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build || (echo "--- ERROR DETECTADO EN EL BUILD ---" && npm run build --v && exit 1)
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER (Imagen Final de Producción)
+# 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
 FROM base AS runner
+# IMPORTANTE: Prisma necesita estas librerías en la imagen final
+RUN apk add --no-cache openssl libc6-compat
+
 ENV NODE_ENV=production
 
-# Copiamos solo lo necesario desde el Builder
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -42,6 +51,5 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# El comando por defecto es PROD
-CMD ["node", "dist/index.js"]
-#CMD ["npm", "run", "start:prod"]
+# Infisical usará las variables inyectadas por Coolify en el runtime
+CMD ["infisical", "run", "--", "node", "dist/index.js"]
