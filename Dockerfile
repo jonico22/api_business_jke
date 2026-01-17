@@ -32,7 +32,7 @@ FROM deps AS builder
 COPY . .
 # Generamos Prisma con las variables necesarias
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build || (echo "--- ERROR DETECTADO EN EL BUILD ---" && npm run build --v && exit 1)
 
 # --------------------------------------------------------
 # 4. ETAPA RUNNER (Producción)

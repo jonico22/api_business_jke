@@ -7,7 +7,7 @@
     "prisma:seed": "npx tsx prisma/seed.ts",
     "dev": "npm run dev:prisma && npm run prisma:seed && npm run dev:start",
     "migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed",
-    "build": "tsc && tsc-alias",
+    "build": "node --max-old-space-size=2048 ./node_modules/.bin/tsc && tsc-alias",
     "start:prod-app": "npm run migrate:deploy && node -r tsconfig-paths/register dist/index.js",
     "start:prod": " npm run start:prod-app",
     "start": "node dist/index.js",
