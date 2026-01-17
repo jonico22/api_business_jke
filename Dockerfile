@@ -1,11 +1,16 @@
 # --------------------------------------------------------
-# 1. ETAPA BASE (Compartida)
+# 1. ETAPA BASE
 # --------------------------------------------------------
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
 
-# Instalamos dependencias mínimas para poder descargar e instalar Infisical
-# En Alpine necesitamos bash y curl para el script de instalación
+# Declaramos los ARG que Coolify envía (según tu log de error)
+ARG INFISICAL_CLIENT_ID
+ARG INFISICAL_CLIENT_SECRET
+ARG INFISICAL_ENV
+ARG INFISICAL_PROJECT_PATH
+ARG NODE_ENV
+
 RUN apk add --no-cache bash curl && \
     curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash && \
     apk add --no-cache infisical
@@ -14,34 +19,30 @@ RUN apk add --no-cache bash curl && \
 # 2. ETAPA DEPS
 # --------------------------------------------------------
 FROM base AS deps
-# 'libc6-compat' y 'openssl' son críticos para Prisma en Alpine
 RUN apk update && \
-    apk add --no-cache --virtual .build-deps python3 make g++ libc6-compat && \
-    apk add --no-cache openssl
+    apk add --no-cache python3 make g++ libc6-compat openssl
 
 COPY package*.json ./ 
-
-RUN npm install && \
-    apk del .build-deps && \
-    rm -rf /var/cache/apk/*
+RUN npm install
 
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
 COPY . .
-# Importante: Prisma genera el cliente basado en el OS actual
+# Generamos Prisma con las variables necesarias
 RUN npx prisma generate
 RUN npm run build
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER (Imagen Final de Producción)
+# 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
 FROM base AS runner
-# Heredamos de 'base', por lo que ya tenemos el CLI de Infisical instalado
+# IMPORTANTE: Prisma necesita estas librerías en la imagen final
+RUN apk add --no-cache openssl libc6-compat
+
 ENV NODE_ENV=production
 
-# Copiamos solo lo necesario
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -49,9 +50,5 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# --------------------------------------------------------
-# EL CAMBIO CLAVE:
-# --------------------------------------------------------
-# Infisical leerá las variables de entorno de Coolify 
-# (CLIENT_ID y CLIENT_SECRET) para autenticarse e inyectar los secretos
+# Infisical usará las variables inyectadas por Coolify en el runtime
 CMD ["infisical", "run", "--", "node", "dist/index.js"]
