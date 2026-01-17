@@ -7,8 +7,10 @@
     "prisma:seed": "npx tsx prisma/seed.ts",
     "dev": "npm run dev:prisma && npm run prisma:seed && npm run dev:start",
     "migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed",
-    "build": "tsc && tsc-alias",
-    "start:prod-app": "npm run migrate:deploy node -r tsconfig-paths/register dist/index.js",
+    "build": "tsc --project tsconfig.json", 
+    "postbuild": "tsc-alias -p tsconfig.json",
+
+    "start:prod-app": "npm run migrate:deploy && node -r tsconfig-paths/register dist/index.js",
     "start:prod": " npm run start:prod-app",
     "start": "node dist/index.js",
     "migrate": "prisma migrate dev",

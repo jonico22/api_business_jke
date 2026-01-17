@@ -17,16 +17,13 @@ RUN apk update && \
 # Copiar package.json y package-lock.json ANTES de npm install
 COPY package*.json ./ 
 
-# Instalar y luego limpiar las herramientas de compilación
-RUN npm install && \
-    apk del .build-deps && \
-    rm -rf /var/cache/apk/* # <--- ¡SIN comillas invertidas!
+RUN npm install
 
 # --------------------------------------------------------
 # 3. ETAPA BUILDER (Solo para compilar Producción)
 # --------------------------------------------------------
 FROM deps AS builder
-# Aquí sí copiamos el código para compilarlo
+COPY tsconfig.json ./
 COPY . .
 RUN npx prisma generate
 RUN npm run build
