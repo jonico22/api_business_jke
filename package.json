@@ -13,7 +13,7 @@
     "start": "node dist/index.js",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
-    "docker:dev": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
+    "docker:dev": "infisical run --env=dev --path=/api -- docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
     "docker:clean": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v --remove-orphans"
   },
   "dependencies": {

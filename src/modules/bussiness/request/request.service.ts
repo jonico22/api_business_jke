@@ -30,7 +30,6 @@ const requestApiSaleGet = async (path: String) => {
     return response.json();
   } catch (error) {
     console.error('Error en requestApiSaleGet:', error);
-    throw new Error(`Error al conectar con el servicio de ventas: ${error.message}`);
   }
 };
 
@@ -53,7 +52,6 @@ const requestApiSalePost = async (path: String, body: any) => {
     return response.json();
   } catch (error) {
     console.error('Error en requestApiSalePost:', error);
-    throw new Error(`Error al conectar con el servicio de ventas: ${error.message}`);
   }
 };
 

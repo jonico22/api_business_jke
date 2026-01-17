@@ -2,13 +2,27 @@ services:
   api:
     build:
       context: .
-      target: runner 
+      target: runner
     ports:
-      - "4000:4000"
-    env_file:
-      - .env # Carga las variables de entorno para producción
-    command: npm run start:prod
-    # No se definen servicios 'db' ni 'redis' aquí, ya que se conectará a servicios externos.
+      - "${PORT:-4000}:4000" # Permite cambiar el puerto si es necesario
+    environment:
+      # Estos valores los proveerá Coolify o tu terminal local
+      - DATABASE_URL
+      - JWT_SECRET
+      # Puedes añadir aquí cualquier otra variable que tengas en Infisical
+      # --- LÍNEAS NUEVAS PARA NEW RELIC ---
+      - NEW_RELIC_APP_NAME
+      - NEW_RELIC_LICENSE_KEY
+      - NEW_RELIC_ENABLED=true
+      - NEW_RELIC_LOG_LEVEL
+      - NEW_RELIC_NO_CONFIG_FILE=true
+      - NEW_RELIC_ATTRIBUTES_INCLUDE="utils.prisma.*"
+      - INFISICAL_MACHINE_IDENTITY_CLIENT_ID=${INFISICAL_CLIENT_ID}
+      - INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
+      - INFISICAL_ENV=${INFISICAL_ENV} # <--- DINÁMICO
+      - INFISICAL_PROJECT_PATH=${INFISICAL_PROJECT_PATH:-/api}
+      - NODE_ENV=${NODE_ENV:-production}
+    restart: always
 
 # Nota: No se definen 'volumes' de persistencia para la base de datos local aquí,
 # ya que la base de datos y Redis serán servicios gestionados externamente.

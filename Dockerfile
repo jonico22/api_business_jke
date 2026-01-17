@@ -4,30 +4,33 @@
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
 
+# Instalamos dependencias mínimas para poder descargar e instalar Infisical
+# En Alpine necesitamos bash y curl para el script de instalación
+RUN apk add --no-cache bash curl && \
+    curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash && \
+    apk add --no-cache infisical
+
 # --------------------------------------------------------
-# 2. ETAPA DEPS (Aquí es donde "vive" Desarrollo)
+# 2. ETAPA DEPS
 # --------------------------------------------------------
-# Instalar dependencias de compilación y openssl en UNA SOLA capa (RUN)
-# Usamos 'libc6-compat' que a veces es necesario en Alpine para Node
 FROM base AS deps
+# 'libc6-compat' y 'openssl' son críticos para Prisma en Alpine
 RUN apk update && \
     apk add --no-cache --virtual .build-deps python3 make g++ libc6-compat && \
     apk add --no-cache openssl
 
-# Copiar package.json y package-lock.json ANTES de npm install
 COPY package*.json ./ 
 
-# Instalar y luego limpiar las herramientas de compilación
 RUN npm install && \
     apk del .build-deps && \
-    rm -rf /var/cache/apk/* # <--- ¡SIN comillas invertidas!
+    rm -rf /var/cache/apk/*
 
 # --------------------------------------------------------
-# 3. ETAPA BUILDER (Solo para compilar Producción)
+# 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
-# Aquí sí copiamos el código para compilarlo
 COPY . .
+# Importante: Prisma genera el cliente basado en el OS actual
 RUN npx prisma generate
 RUN npm run build
 
@@ -35,9 +38,10 @@ RUN npm run build
 # 4. ETAPA RUNNER (Imagen Final de Producción)
 # --------------------------------------------------------
 FROM base AS runner
+# Heredamos de 'base', por lo que ya tenemos el CLI de Infisical instalado
 ENV NODE_ENV=production
 
-# Copiamos solo lo necesario desde el Builder
+# Copiamos solo lo necesario
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -45,6 +49,9 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# El comando por defecto es PROD
-CMD ["node", "dist/index.js"]
-#CMD ["npm", "run", "start:prod"]
+# --------------------------------------------------------
+# EL CAMBIO CLAVE:
+# --------------------------------------------------------
+# Infisical leerá las variables de entorno de Coolify 
+# (CLIENT_ID y CLIENT_SECRET) para autenticarse e inyectar los secretos
+CMD ["infisical", "run", "--", "node", "dist/index.js"]
