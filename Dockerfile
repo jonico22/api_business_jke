@@ -61,16 +61,19 @@ FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
 ENV NODE_ENV=production
 
-# 1. Copiamos los módulos limpios de producción
+# 1. Base limpia con CLI de Prisma instalado
 COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 
-# 2. Copiamos el código compilado
+# 2. Código compilado
 COPY --from=builder /usr/src/app/dist ./dist
 
-# --- AGREGA ESTAS 2 LÍNEAS AQUÍ ---
-# Rescatamos el cliente de Prisma generado en la etapa builder
+# 3. CORRECCIÓN AQUÍ: Copia selectiva
+# Copiamos el motor binario (necesario)
 COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /usr/src/app/node_modules/@prisma ./node_modules/@prisma
+
+# Copiamos SOLO la carpeta del cliente generado, NO toda la carpeta @prisma
+COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
+
 # ----------------------------------
 
 COPY --from=builder /usr/src/app/package.json ./package.json
