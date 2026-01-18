@@ -28,25 +28,28 @@ RUN npm install
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
-# Copiamos el resto del código
 COPY . .
 
-# Checkpoint 1: Ver si los archivos llegaron bien
-RUN ls -la src && ls -la prisma
+# Paso crítico para Prisma en Alpine
+ENV PRISMA_CLI_QUERY_ENGINE_TYPE=binary
+ENV PRISMA_CLIENT_ENGINE_TYPE=binary
 
-# Generamos el cliente de Prisma
+# Generamos el cliente (Checkpoint 1)
 RUN npx prisma generate
 
-# Checkpoint 2: Ver si tsc existe y qué versión tiene
-RUN ./node_modules/.bin/tsc -v
+# Checkpoint 2: Verificamos si los tipos de Prisma se crearon
+RUN ls -la node_modules/.prisma/client
 
-# El "|| true" permite que el proceso continúe aunque tsc detecte errores
-RUN node --max-old-space-size=2048 ./node_modules/.bin/tsc; \
-    ./node_modules/.bin/tsc-alias
-# Si el comando de arriba falla, Coolify te dirá si fue tsc o tsc-alias
+# Ejecutamos el build con captura de errores forzada
+# Usamos "|| (node ...)" para que si falla, nos imprima los errores en el log
+RUN node --max-old-space-size=2048 ./node_modules/.bin/tsc --pretty > build_log.txt 2>&1 || \
+    (echo "--- ERROR DE TYPESCRIPT DETECTADO ---" && cat build_log.txt && exit 1)
 
-# Verificamos si la carpeta dist realmente se creó
-RUN ls -la dist || (echo "ERROR: La carpeta dist no se creó" && exit 1)
+# Si el tsc pasa, corremos el alias
+RUN ./node_modules/.bin/tsc-alias
+
+# Verificación final
+RUN ls -la dist
 # --------------------------------------------------------
 # 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
