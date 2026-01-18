@@ -41,10 +41,12 @@ RUN npx prisma generate
 RUN ./node_modules/.bin/tsc -v
 
 # El "|| true" permite que el proceso continúe aunque tsc detecte errores
-RUN node --max-old-space-size=2048 ./node_modules/.bin/tsc || true && \
+RUN node --max-old-space-size=2048 ./node_modules/.bin/tsc; \
     ./node_modules/.bin/tsc-alias
 # Si el comando de arriba falla, Coolify te dirá si fue tsc o tsc-alias
 
+# Verificamos si la carpeta dist realmente se creó
+RUN ls -la dist || (echo "ERROR: La carpeta dist no se creó" && exit 1)
 # --------------------------------------------------------
 # 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
