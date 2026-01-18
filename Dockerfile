@@ -24,7 +24,7 @@ RUN apk update && \
 
 COPY package*.json ./ 
 RUN npm install
-
+RUN ls -l ./node_modules/.bin/tsc && ./node_modules/.bin/tsc --version && npm run build
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
