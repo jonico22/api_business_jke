@@ -8,7 +8,7 @@ ARG INFISICAL_CLIENT_ID
 ARG INFISICAL_CLIENT_SECRET
 ARG INFISICAL_ENV
 ARG INFISICAL_PROJECT_PATH
-# OJO: Sobreescribimos NODE_ENV aquí para asegurar que el build tenga herramientas
+# Mantenemos development para que las etapas de instalación funcionen bien
 ENV NODE_ENV=development 
 
 RUN apk add --no-cache bash curl && \
@@ -16,15 +16,22 @@ RUN apk add --no-cache bash curl && \
     apk add --no-cache infisical
 
 # --------------------------------------------------------
-# 2. ETAPA DEPS
+# 2. ETAPA DEPS (Todo para compilar)
 # --------------------------------------------------------
 FROM base AS deps
 RUN apk update && apk add --no-cache python3 make g++ libc6-compat openssl
 COPY package*.json ./
 
-# !!! AQUÍ ESTABA EL ERROR 127 !!!
-# Forzamos la instalación de devDependencies (typescript, tsc-alias, types)
+# CORRECCION 1: Faltaba instalar las dependencias aquí
 RUN npm install --include=dev
+
+# --------------------------------------------------------
+# 2.5 ETAPA PROD-DEPS (Solo lo necesario para correr)
+# --------------------------------------------------------
+FROM base AS prod-deps
+COPY package*.json ./
+# Instalamos SOLO lo de producción
+RUN npm install --omit=dev
 
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
@@ -32,33 +39,34 @@ RUN npm install --include=dev
 FROM deps AS builder
 COPY . .
 
-# Variables para Prisma en Alpine
+# Variables para Prisma
 ENV PRISMA_CLI_QUERY_ENGINE_TYPE=binary
 ENV PRISMA_CLIENT_ENGINE_TYPE=binary
 
 RUN npx prisma generate
 
-# Verificación visual (opcional, para estar seguros)
-RUN ls -la node_modules/.bin/tsc || echo "TSC NO ESTA AQUI"
-
-# Ejecutamos el build
-# Usamos npx para que sea más robusto encontrando el comando
+# Usamos npx para asegurar que encuentre tsc
 RUN npx tsc || true
 RUN npx tsc-alias
 
-# Validación final
+# Validación
 RUN ls -la dist || (echo "CRITICO: No se generó dist" && exit 1)
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER (Producción)
+# 4. ETAPA RUNNER (Producción Final)
 # --------------------------------------------------------
 FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
-# Aquí sí volvemos a producción
+
+# Importante: Cambiamos a producción
 ENV NODE_ENV=production
 
+# CORRECCION 2: Copia limpia y sin duplicados
+# A) Copiamos modulos LIMPIOS desde prod-deps
+COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
+
+# B) Copiamos el código compilado desde builder
 COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
 COPY --from=builder /usr/src/app/prisma ./prisma
 
