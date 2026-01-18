@@ -30,4 +30,5 @@ services:
       - INFISICAL_PROJECT_PATH=${INFISICAL_PROJECT_PATH:-/api}
       - NODE_ENV=${NODE_ENV:-production}
       - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
+      - INFISICAL_API_URL=https://app.infisical.com
     restart: always
