@@ -8,7 +8,8 @@ ARG INFISICAL_CLIENT_ID
 ARG INFISICAL_CLIENT_SECRET
 ARG INFISICAL_ENV
 ARG INFISICAL_PROJECT_PATH
-ARG NODE_ENV
+# OJO: Sobreescribimos NODE_ENV aquí para asegurar que el build tenga herramientas
+ENV NODE_ENV=development 
 
 RUN apk add --no-cache bash curl && \
     curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.alpine.sh' | bash && \
@@ -20,33 +21,40 @@ RUN apk add --no-cache bash curl && \
 FROM base AS deps
 RUN apk update && apk add --no-cache python3 make g++ libc6-compat openssl
 COPY package*.json ./
-RUN npm install
+
+# !!! AQUÍ ESTABA EL ERROR 127 !!!
+# Forzamos la instalación de devDependencies (typescript, tsc-alias, types)
+RUN npm install --include=dev
 
 # --------------------------------------------------------
-# 3. ETAPA BUILDER (La magia ocurre aquí)
+# 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
 COPY . .
 
-# 1. Generamos Prisma (usando binarios para asegurar compatibilidad)
+# Variables para Prisma en Alpine
 ENV PRISMA_CLI_QUERY_ENGINE_TYPE=binary
 ENV PRISMA_CLIENT_ENGINE_TYPE=binary
+
 RUN npx prisma generate
 
-# 2. Compilamos IGNORANDO errores (El "|| true" es la clave)
-# Usamos ";" para que tsc-alias se ejecute SIEMPRE, haya error o no.
-RUN node --max-old-space-size=2048 ./node_modules/.bin/tsc || true; \
-    ./node_modules/.bin/tsc-alias
+# Verificación visual (opcional, para estar seguros)
+RUN ls -la node_modules/.bin/tsc || echo "TSC NO ESTA AQUI"
 
-# 3. Verificación de seguridad
-# Si dist está vacío, entonces sí fallamos. Si tiene archivos, seguimos.
+# Ejecutamos el build
+# Usamos npx para que sea más robusto encontrando el comando
+RUN npx tsc || true
+RUN npx tsc-alias
+
+# Validación final
 RUN ls -la dist || (echo "CRITICO: No se generó dist" && exit 1)
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER
+# 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
 FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
+# Aquí sí volvemos a producción
 ENV NODE_ENV=production
 
 COPY --from=builder /usr/src/app/dist ./dist
