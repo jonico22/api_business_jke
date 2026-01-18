@@ -23,15 +23,16 @@ RUN apk update && \
     apk add --no-cache python3 make g++ libc6-compat openssl
 
 COPY package*.json ./ 
-RUN npm install
-RUN ls -l ./node_modules/.bin/tsc && ./node_modules/.bin/tsc --version && npm run build
+
+
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
-COPY tsconfig.json ./
 COPY . .
 # Generamos Prisma con las variables necesarias
+RUN rm -rf node_modules/dist
+RUN npm install
 RUN npx prisma generate
 RUN npm run build || (ls -la src && ls -la prisma && exit 1)
 
