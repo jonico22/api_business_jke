@@ -3,19 +3,7 @@ import { createClient, RedisClientType } from 'redis';
 // 1. Configuración de variables de entorno (más limpio)
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const isTls = redisUrl.startsWith('rediss://');
 
-// Extraer host de la URL
-const getRedisHost = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname || 'localhost';
-  } catch {
-    return 'localhost';
-  }
-};
-
-const redisHost = getRedisHost(redisUrl) || 'localhost';
 // Configuración de reintentos y timeouts para Docker
 
 const client: RedisClientType = createClient({
@@ -23,11 +11,7 @@ const client: RedisClientType = createClient({
   socket: {
     connectTimeout: 10000,
     reconnectStrategy: (retries) => Math.min(retries * 50, 2000),
-    ...(isTls && {
-      tls: true,
-      host: redisHost,
-      rejectUnauthorized: false,
-    }),
+    family: 4,
   },
 });
 
