@@ -34,7 +34,7 @@ COPY package*.json ./
 # Instalamos SOLO lo de producción
 RUN npm install --omit=dev
 # 2. ¡IMPORTANTE! Re-instalamos prisma CLI para poder ejecutar migraciones
-RUN npm install prisma
+RUN npm install prisma tsx
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
@@ -61,26 +61,20 @@ FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
 ENV NODE_ENV=production
 
-# 1. Base limpia con CLI de Prisma instalado
+# 1. Copiamos node_modules (ahora con tsx y prisma)
 COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 
-# 2. Código compilado
+# 2. Código y Motores de Prisma
 COPY --from=builder /usr/src/app/dist ./dist
-
-# 3. CORRECCIÓN AQUÍ: Copia selectiva
-# Copiamos el motor binario (necesario)
 COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
-
-# Copiamos SOLO la carpeta del cliente generado, NO toda la carpeta @prisma
 COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# ----------------------------------
-
+# 3. IMPORTANTE: Copiamos los archivos de configuración para los PATHS y el SEED
 COPY --from=builder /usr/src/app/package.json ./package.json
 COPY --from=builder /usr/src/app/prisma ./prisma
-
+COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
 EXPOSE 4000
 
 # Tu comando CMD con el login (o el que te funcionó)
 CMD export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id=$INFISICAL_CLIENT_ID --client-secret=$INFISICAL_CLIENT_SECRET --domain=${INFISICAL_API_URL:-https://app.infisical.com} --silent --plain) && \
-    infisical run --token=$INFISICAL_TOKEN --projectId=$INFISICAL_PROJECT_ID --env=$INFISICAL_ENV --path=$INFISICAL_PROJECT_PATH -- sh -c "npx prisma db push && node dist/index.js"
+    infisical run --token=$INFISICAL_TOKEN --projectId=$INFISICAL_PROJECT_ID --env=$INFISICAL_ENV --path=$INFISICAL_PROJECT_PATH -- npm run start:prod-app

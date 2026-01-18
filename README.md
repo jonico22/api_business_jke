@@ -117,3 +117,6 @@ Limpiar Volúmenes	Eliminar los datos persistentes de la DB (¡usar con precauci
 ```bash
 docker compose down -v
 ```
+
+importante para cambiar cuando este estable
+"migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed"
