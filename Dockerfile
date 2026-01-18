@@ -78,6 +78,6 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# CMD ACTUALIZADO: Migración automática + Inicio
+# Tu comando CMD con el login (o el que te funcionó)
 CMD export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id=$INFISICAL_CLIENT_ID --client-secret=$INFISICAL_CLIENT_SECRET --domain=${INFISICAL_API_URL:-https://app.infisical.com} --silent --plain) && \
-    infisical run --token=$INFISICAL_TOKEN --projectId=$INFISICAL_PROJECT_ID -- sh -c "npx prisma migrate deploy && node dist/index.js"
+    infisical run --token=$INFISICAL_TOKEN --projectId=$INFISICAL_PROJECT_ID --env=$INFISICAL_ENV --path=$INFISICAL_PROJECT_PATH -- sh -c "npx prisma migrate deploy && node dist/index.js"
