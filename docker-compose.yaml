@@ -32,3 +32,10 @@ services:
       - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
       - INFISICAL_API_URL=${INFISICAL_API_URL:-https://app.infisical.com}
     restart: always
+    networks:
+      - coolify
+
+# 2. ESTO DEFINE LA RED (Fuera de services)
+networks:
+  coolify:
+    external: true
