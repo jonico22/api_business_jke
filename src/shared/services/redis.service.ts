@@ -2,17 +2,33 @@ import { createClient, RedisClientType } from 'redis';
 
 // 1. Configuración de variables de entorno (más limpio)
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const isTls = redisUrl.startsWith('rediss://');
 
+// Extraer host de la URL
+const getRedisHost = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname || 'localhost';
+  } catch {
+    return 'localhost';
+  }
+};
+
+const redisHost = getRedisHost(redisUrl) || 'localhost';
 // Configuración de reintentos y timeouts para Docker
+
 const client: RedisClientType = createClient({
-  url: process.env.REDIS_URL || 'redis://redis:6379',
+  url: redisUrl,
   socket: {
     connectTimeout: 10000,
-    reconnectStrategy: (retries) => {
-      // Reintento exponencial: 50ms, 100ms... hasta 2 segundos
-      return Math.min(retries * 50, 2000);
-    }
-  }
+    reconnectStrategy: (retries) => Math.min(retries * 50, 2000),
+    ...(isTls && {
+      tls: true,
+      host: redisHost,
+      rejectUnauthorized: false,
+    }),
+  },
 });
 
 // Estado interno
@@ -64,14 +80,17 @@ export const redis = {
     if (!this.status) return null;
 
     try {
-      const value = await client.get(key);
-      if (!value) return null;
+      const rawValue = await client.get(key);
+      if (typeof rawValue !== 'string') return null;
       
-      return JSON.parse(value) as T;
-    } catch (e) {
-      // Si no es JSON, devolvemos el valor crudo como T (fallback)
-      const value = await client.get(key);
-      return value as unknown as T;
+      try {
+        return JSON.parse(rawValue) as T;
+      } catch {
+        return (rawValue as unknown) as T;
+      }
+    } catch (error) {
+      console.error(`[Redis] Error getting key ${key}:`, error);
+      return null;
     }
   },
 
