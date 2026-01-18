@@ -33,7 +33,7 @@ COPY tsconfig.json ./
 COPY . .
 # Generamos Prisma con las variables necesarias
 RUN npx prisma generate
-RUN npm run build || (echo "--- ERROR DETECTADO EN EL BUILD ---" && npm run build --v && exit 1)
+RUN npm run build || (ls -la src && ls -la prisma && exit 1)
 
 # --------------------------------------------------------
 # 4. ETAPA RUNNER (Producción)
