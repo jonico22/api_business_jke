@@ -4,7 +4,6 @@
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
 
-# Declaramos los ARG que Coolify envía (según tu log de error)
 ARG INFISICAL_CLIENT_ID
 ARG INFISICAL_CLIENT_SECRET
 ARG INFISICAL_ENV
@@ -16,33 +15,40 @@ RUN apk add --no-cache bash curl && \
     apk add --no-cache infisical
 
 # --------------------------------------------------------
-# 2. ETAPA DEPS
+# 2. ETAPA DEPS (Instalación limpia de dependencias)
 # --------------------------------------------------------
 FROM base AS deps
-RUN apk update && \
-    apk add --no-cache python3 make g++ libc6-compat openssl
+RUN apk update && apk add --no-cache python3 make g++ libc6-compat openssl
 
-COPY package*.json ./ 
-
+COPY package*.json ./
+# Instalamos aquí para que esta capa se guarde en caché y no se repita
+RUN npm install
 
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
+# Copiamos el resto del código
 COPY . .
-# Generamos Prisma con las variables necesarias
-RUN rm -rf node_modules/dist
-RUN npm install
+
+# Checkpoint 1: Ver si los archivos llegaron bien
+RUN ls -la src && ls -la prisma
+
+# Generamos el cliente de Prisma
 RUN npx prisma generate
-RUN npm run build || (ls -la src && ls -la prisma && exit 1)
+
+# Checkpoint 2: Ver si tsc existe y qué versión tiene
+RUN ./node_modules/.bin/tsc -v
+
+# Ejecutamos el build. He separado tsc de tsc-alias para ver cuál falla
+RUN ./node_modules/.bin/tsc && ./node_modules/.bin/tsc-alias
+# Si el comando de arriba falla, Coolify te dirá si fue tsc o tsc-alias
 
 # --------------------------------------------------------
 # 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
 FROM base AS runner
-# IMPORTANTE: Prisma necesita estas librerías en la imagen final
 RUN apk add --no-cache openssl libc6-compat
-
 ENV NODE_ENV=production
 
 COPY --from=builder /usr/src/app/dist ./dist
@@ -52,5 +58,4 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# Infisical usará las variables inyectadas por Coolify en el runtime
 CMD ["infisical", "run", "--", "node", "dist/index.js"]
