@@ -73,5 +73,5 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-CMD infisical login --method=universal-auth --client-id $INFISICAL_CLIENT_ID --client-secret $INFISICAL_CLIENT_SECRET --silent && \
+CMD infisical login --method=universal-auth --client-id $INFISICAL_CLIENT_ID --client-secret $INFISICAL_CLIENT_SECRET --domain https://app.infisical.com --silent && \
     infisical run --projectId $INFISICAL_PROJECT_ID -- node dist/index.js
