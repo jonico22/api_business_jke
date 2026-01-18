@@ -54,25 +54,29 @@ RUN npx tsc-alias
 RUN ls -la dist || (echo "CRITICO: No se generó dist" && exit 1)
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER (Producción Final)
+# 4. ETAPA RUNNER (Producción)
 # --------------------------------------------------------
 FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
-
-# Importante: Cambiamos a producción
 ENV NODE_ENV=production
 
-# CORRECCION 2: Copia limpia y sin duplicados
-# A) Copiamos modulos LIMPIOS desde prod-deps
+# 1. Copiamos los módulos limpios de producción
 COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
 
-# B) Copiamos el código compilado desde builder
+# 2. Copiamos el código compilado
 COPY --from=builder /usr/src/app/dist ./dist
+
+# --- AGREGA ESTAS 2 LÍNEAS AQUÍ ---
+# Rescatamos el cliente de Prisma generado en la etapa builder
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /usr/src/app/node_modules/@prisma ./node_modules/@prisma
+# ----------------------------------
+
 COPY --from=builder /usr/src/app/package.json ./package.json
 COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-# Reemplaza el CMD final por esto:
+# Tu comando CMD con el login (o el que te funcionó)
 CMD export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id=$INFISICAL_CLIENT_ID --client-secret=$INFISICAL_CLIENT_SECRET --domain=${INFISICAL_API_URL:-https://app.infisical.com} --silent --plain) && \
     infisical run --token=$INFISICAL_TOKEN --projectId=$INFISICAL_PROJECT_ID -- node dist/index.js
