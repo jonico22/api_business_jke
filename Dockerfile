@@ -4,6 +4,7 @@
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
 
+# Variables de Infisical
 ARG INFISICAL_CLIENT_ID
 ARG INFISICAL_CLIENT_SECRET
 ARG INFISICAL_ENV
@@ -15,37 +16,35 @@ RUN apk add --no-cache bash curl && \
     apk add --no-cache infisical
 
 # --------------------------------------------------------
-# 2. ETAPA DEPS (Instalación limpia de dependencias)
+# 2. ETAPA DEPS (Instalación aislada)
 # --------------------------------------------------------
 FROM base AS deps
+# Instalamos librerías nativas para Prisma y Argon2
 RUN apk update && apk add --no-cache python3 make g++ libc6-compat openssl
 
+# COPIAMOS SOLO package.json para instalar limpio
 COPY package*.json ./
-# Instalamos aquí para que esta capa se guarde en caché y no se repita
+# Instalamos desde cero en Linux (esto ignora lo que tengas en Windows)
 RUN npm install
 
 # --------------------------------------------------------
 # 3. ETAPA BUILDER
 # --------------------------------------------------------
 FROM deps AS builder
-# Copiamos el resto del código
+# Ahora copiamos el código (el .dockerignore evitará que entre tu node_modules de Windows)
 COPY . .
 
-# Checkpoint 1: Ver si los archivos llegaron bien
-RUN ls -la src && ls -la prisma
+# Checkpoint: ¿Están los binarios?
+RUN ls -l ./node_modules/.bin/tsc || (echo "ERROR: No se encuentra TSC" && exit 1)
 
-# Generamos el cliente de Prisma
+# Generamos Prisma
 RUN npx prisma generate
 
-# Checkpoint 2: Ver si tsc existe y qué versión tiene
-RUN ./node_modules/.bin/tsc -v
-
-# Ejecutamos el build. He separado tsc de tsc-alias para ver cuál falla
-RUN ./node_modules/.bin/tsc && ./node_modules/.bin/tsc-alias
-# Si el comando de arriba falla, Coolify te dirá si fue tsc o tsc-alias
+# Ejecutamos el build usando el comando de tu package.json
+RUN npm run build
 
 # --------------------------------------------------------
-# 4. ETAPA RUNNER (Producción)
+# 4. ETAPA RUNNER
 # --------------------------------------------------------
 FROM base AS runner
 RUN apk add --no-cache openssl libc6-compat
@@ -58,4 +57,5 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
+# El script de inicio ya tiene el && que corregiste
 CMD ["infisical", "run", "--", "node", "dist/index.js"]
