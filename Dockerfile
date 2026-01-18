@@ -8,6 +8,7 @@ ARG INFISICAL_CLIENT_ID
 ARG INFISICAL_CLIENT_SECRET
 ARG INFISICAL_ENV
 ARG INFISICAL_PROJECT_PATH
+ARG INFISICAL_PROJECT_ID
 # Mantenemos development para que las etapas de instalación funcionen bien
 ENV NODE_ENV=development 
 
@@ -72,4 +73,4 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 
 EXPOSE 4000
 
-CMD ["infisical", "run", "--", "node", "dist/index.js"]
+CMD infisical run --projectId $INFISICAL_PROJECT_ID -- node dist/index.js
