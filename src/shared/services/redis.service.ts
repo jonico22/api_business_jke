@@ -73,6 +73,17 @@ export const redis = {
     return REDIS_ENABLED && isReady;
   },
 
+  async ping(): Promise<boolean> {
+    if (!this.status) return false;
+    try {
+      await client.ping();
+      return true;
+    } catch (error) {
+      console.error('[Redis] Ping failed:', error);
+      return false;
+    }
+  },
+
   async get<T>(key: string): Promise<T | null> {
     if (!this.status) return null;
 
