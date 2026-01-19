@@ -120,3 +120,7 @@ docker compose down -v
 
 importante para cambiar cuando este estable
 "migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed"
+
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+docker network rm coolify
+docker network create coolify

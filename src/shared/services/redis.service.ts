@@ -14,18 +14,34 @@ const getRedisHost = (url: string): string => {
 };
 
 const redisHost = getRedisHost(redisUrl);
+const useTls = redisUrl.startsWith('rediss');
 
 // Configuración de reintentos y timeouts para Docker
+const socketConfig = useTls
+  ? {
+      connectTimeout: 10000,
+      keepAlive: 5000, 
+    
+      // 3. Estrategia de reconexión robusta
+      reconnectStrategy: (retries) => {
+        const delay = Math.min(retries * 100, 3000);
+        console.warn(`⚠️ Redis: Intentando reconectar en ${delay}ms... (Intento ${retries})`);
+        return delay;
+      },
+      tls: true as const,
+      host: redisHost,
+      rejectUnauthorized: false
+    }
+  : {
+      connectTimeout: 10000,
+      reconnectStrategy: (retries: number) => Math.min(retries * 50, 2000),
+      tls: false as const,
+      host: redisHost
+};
 
 const client: RedisClientType = createClient({
   url: redisUrl,
-  socket: {
-    connectTimeout: 10000,
-    reconnectStrategy: (retries) => Math.min(retries * 50, 2000),
-    tls: true,
-    host: redisHost,
-    rejectUnauthorized: false
-  },
+  socket: socketConfig
 });
 
 // Estado interno
@@ -38,8 +54,12 @@ client.on('ready', () => {
   console.log('✅ Redis: Listo y conectado');
 });
 client.on('error', (err) => {
-  isReady = false;
-  console.error('❌ Redis: Error de cliente', err);
+  // Si es un error de socket cerrado, es un warning, no un error crítico
+  if (err.message.includes('Socket closed unexpectedly')) {
+    console.warn('ℹ️ Redis: Conexión cerrada por el servidor. Reconectando automáticamente...');
+  } else {
+    console.error('❌ Redis: Error de cliente', err);
+  }
 });
 client.on('end', () => {
   isReady = false;
