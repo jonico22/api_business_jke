@@ -13,7 +13,7 @@ import { errorHandler } from '@/middlewares/error.middleware';
 import { connectRedis, redis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
 import { corsOptions } from '@/config/cors';
-import { getRateLimiter } from '@/config/rateLimit';
+import { apiLimiter } from '@/config/rateLimit';
 import { envs } from '@/config/envs';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -36,9 +36,9 @@ async function main() {
     app.use(cors(corsOptions));
 
     // 2. RATE LIMITER: Protege la API antes de gastar recursos procesando el JSON
-    if (envs.isProd) {
-      app.use('/api', getRateLimiter); 
-    }
+
+    app.use('/api', apiLimiter); 
+    
     app.use(cookieParser());
     app.use(express.json());
 
