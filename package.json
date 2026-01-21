@@ -63,7 +63,6 @@
     "@types/redis": "^4.0.10",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "@types/winston": "^2.4.4",
     "dotenv": "^16.5.0",
     "install": "^0.13.0",
     "npm": "^11.7.0",

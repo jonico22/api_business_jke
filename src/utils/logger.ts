@@ -1,22 +1,29 @@
-import * as winston from 'winston';
-import fs from 'fs';
 import path from 'path';
-import nrWinstonEnricher from '@newrelic/winston-enricher';
+import fs from 'fs';
 
-const nrEnricher = nrWinstonEnricher();
+// 1. Truco definitivo: Declaramos 'require' para que TS no llore, 
+//    pero usamos el require nativo de Node.js que siempre funciona.
+declare function require(name: string): any;
+
+const winston = require('winston');
+const nrWinstonEnricher = require('@newrelic/winston-enricher');
+
+const nrEnricher = nrWinstonEnricher(winston);
+
+// Ajusta esta ruta si es necesario (ej: subir 2 niveles)
 const logDir = path.join(__dirname, '../../logs');
 
 if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir);
+  fs.mkdirSync(logDir, { recursive: true });
 }
 
+// 2. Creamos el logger usando la instancia cargada con require
 export const logger = winston.createLogger({
   level: 'info',
-  // 💡 CAMBIO CLAVE: Quitamos el printf global para que no rompa el JSON
   format: winston.format.combine(
-    nrEnricher, 
+    nrEnricher(), 
     winston.format.timestamp(),
-    winston.format.json() // Esto asegura que New Relic reciba un objeto legible
+    winston.format.json()
   ),
   transports: [
     new winston.transports.File({ filename: path.join(logDir, 'error.log'), level: 'error' }),
@@ -24,13 +31,13 @@ export const logger = winston.createLogger({
   ],
 });
 
-// 💡 PARA LOCAL: Aquí es donde aplicamos el formato bonito (printf) solo para ti
+// 3. Configuración para consola en desarrollo
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize(),
       winston.format.printf(
-        ({ level, message, timestamp }) => `${timestamp} [${level}]: ${message}`
+        (info: any) => `${info.timestamp} [${info.level}]: ${info.message}`
       )
     )
   }));
