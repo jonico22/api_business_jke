@@ -7,39 +7,39 @@ const prisma = new PrismaClient();
 
 async function main() {
   const env = process.env.NODE_ENV || 'development';
-  console.log(`🌱 Iniciando seeding en modo: [${env.toUpperCase()}]`);
+  console.log(`🌱 [SEED] Iniciando en modo: ${env.toUpperCase()}`);
 
+  // Buscamos el archivo según el entorno
   const fileName = env === 'production' ? 'seed.prod.sql' : 'seed.sql';
-  const filePath = path.join(__dirname, fileName);
+  const filePath = path.join(process.cwd(), 'prisma', fileName);
 
   if (!fs.existsSync(filePath)) {
-    console.warn(`⚠️ Archivo ${fileName} no encontrado.`);
+    console.warn(`⚠️ [SEED] Archivo ${fileName} no encontrado en ${filePath}. Saltando seed...`);
     return;
   }
 
-  // 1. Leer y limpiar el archivo SQL
   const fullSql = fs.readFileSync(filePath, 'utf8');
-  
-  // 2. Dividir por punto y coma, filtrar líneas vacías o comentarios
-  const sqlStatements = fullSql
-    .split(';')
-    .map(statement => statement.trim())
-    .filter(statement => statement.length > 0);
 
-  // 3. Ejecutar en una transacción para que sea "todo o nada"
+  // Regex más segura para separar sentencias SQL (ignora puntos y coma dentro de comillas simples)
+  const sqlStatements = fullSql
+    .split(/;(?=(?:[^']*'[^']*')*[^']*$)/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
   try {
-    await prisma.$transaction(async (tx: any) => {
-      console.log(`🚀 Ejecutando ${sqlStatements.length} sentencias desde ${fileName}...`);
-      
+    await prisma.$transaction(async (tx) => {
+      console.log(`🚀 [SEED] Ejecutando ${sqlStatements.length} sentencias...`);
       for (const sql of sqlStatements) {
         await tx.$executeRawUnsafe(sql);
       }
     });
-    console.log('✅ Seeding completado con éxito.');
+    console.log('✅ [SEED] Completado con éxito.');
   } catch (error) {
-    console.error('❌ Error crítico durante el seeding:');
+    console.error('❌ [SEED] Error crítico:');
     console.error(error);
-    process.exit(1);
+    // En producción, a veces es mejor no matar el proceso si el seed falla 
+    // porque los datos ya podrían estar ahí. 
+    // process.exit(1); 
   } finally {
     await prisma.$disconnect();
   }

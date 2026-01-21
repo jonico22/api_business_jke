@@ -10,14 +10,14 @@ import { logger } from './utils/logger';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from '@/middlewares/error.middleware';
-import { connectRedis } from '@/shared/services/redis.service';
+import { connectRedis, redis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
 import { corsOptions } from '@/config/cors';
-import { getRateLimiter } from '@/config/rateLimit';
+import { apiLimiter } from '@/config/rateLimit';
 import { envs } from '@/config/envs';
 import helmet from 'helmet';
 import hpp from 'hpp';
-
+import prisma from '@/config/database';
 
 async function initializeDataAndServices() {
     await createDefaultRoles();
@@ -36,9 +36,9 @@ async function main() {
     app.use(cors(corsOptions));
 
     // 2. RATE LIMITER: Protege la API antes de gastar recursos procesando el JSON
-    if (envs.isProd) {
-      app.use('/api', getRateLimiter); 
-    }
+
+    app.use('/api', apiLimiter); 
+    
     app.use(cookieParser());
     app.use(express.json());
 
@@ -46,6 +46,31 @@ async function main() {
     app.use(hpp({
       whitelist: ['user']
     }));
+    app.get('/health', async (req, res) => {
+    try {
+    // 1. Verificar Base de Datos (Prisma)
+    await prisma.$queryRaw`SELECT 1`;
+
+    // 2. Verificar Redis
+    // Si usas el cliente que configuramos:
+    const redisHealthy = await redis.ping();
+    res.status(200).json({
+          status: 'ok',
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString(),
+          services: {
+            database: 'connected',
+            redis: redisHealthy ? 'connected' : 'disconnected'
+          }
+        });
+      } catch (error) {
+        res.status(503).json({
+          status: 'error',
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
     app.use(requestLogger);
     app.use('/api', routes);

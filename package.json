@@ -5,8 +5,8 @@
     "dev:start": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register --poll src/index.ts",
     "dev:prisma": "npx prisma generate && npx prisma migrate dev --name init",
     "prisma:seed": "npx tsx prisma/seed.ts",
-    "dev": "npm run dev:prisma && npm run prisma:seed && npm run dev:start",
-    "migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed",
+    "dev": " npm run dev:prisma && npm run prisma:seed && npm run dev:start",
+    "migrate:deploy": "npx prisma db push && npm run prisma:seed",
     "build": "node --max-old-space-size=2048 ./node_modules/.bin/tsc && tsc-alias",
     "start:prod-app": "npm run migrate:deploy && node -r tsconfig-paths/register dist/index.js",
     "start:prod": " npm run start:prod-app",
@@ -70,6 +70,7 @@
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "wait-port": "^1.1.0"
   }
 }

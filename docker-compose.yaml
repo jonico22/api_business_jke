@@ -13,7 +13,6 @@ services:
     ports:
       - '${PORT:-4000}:4000'
     environment:
-      # Estas se inyectan en tiempo de ejecución
       - DATABASE_URL
       - JWT_SECRET
       - NEW_RELIC_APP_NAME
@@ -21,9 +20,22 @@ services:
       - NEW_RELIC_ENABLED=true
       - NEW_RELIC_NO_CONFIG_FILE=true
       - NEW_RELIC_PRISMA_ENABLED=true
-      - INFISICAL_MACHINE_IDENTITY_CLIENT_ID=${INFISICAL_CLIENT_ID}
-      - INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
+      
+      # Por ESTO (Nombres estándar):
+      - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
+      - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET}
+      # -----------------------
+
       - INFISICAL_ENV=${INFISICAL_ENV}
       - INFISICAL_PROJECT_PATH=${INFISICAL_PROJECT_PATH:-/api}
       - NODE_ENV=${NODE_ENV:-production}
+      - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
+      - INFISICAL_API_URL=${INFISICAL_API_URL:-https://app.infisical.com}
     restart: always
+    networks:
+      - coolify
+
+# 2. ESTO DEFINE LA RED (Fuera de services)
+networks:
+  coolify:
+    external: true
