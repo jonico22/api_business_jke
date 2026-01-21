@@ -34,3 +34,5 @@ Thumbs.db
 postgres/
 postgres/
 redis/
+
+.infisical.json
