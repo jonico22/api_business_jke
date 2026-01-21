@@ -1,4 +1,4 @@
-import winston from 'winston';
+import * as winston from 'winston';
 import fs from 'fs';
 import path from 'path';
 import nrWinstonEnricher from '@newrelic/winston-enricher';
