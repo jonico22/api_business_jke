@@ -60,7 +60,7 @@ export const sendRegistrationEmail = async (to: string, firstName: string, lastN
   sendEmail({
     to,
     subject: 'Confirmación de registro',
-    htmlContent: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${process.env.FRONTEND_URL}/verify-request?req=${request}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
+    htmlContent: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${process.env.FRONTEND_URL}/verify-account?token=${request}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
   });
 };
 

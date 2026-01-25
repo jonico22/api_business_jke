@@ -6,10 +6,10 @@ import * as path from 'path';
 // Asegúrate de que las rutas a los archivos .ttf sean correctas
 const fonts = {
   Roboto: {
-    normal: path.join(process.cwd(), 'fonts/Roboto-Regular.ttf'),
-    bold: path.join(process.cwd(), 'fonts/Roboto-Medium.ttf'),
-    italics: path.join(process.cwd(), 'fonts/Roboto-Italic.ttf'),
-    bolditalics: path.join(process.cwd(), 'fonts/Roboto-MediumItalic.ttf'),
+    normal: path.join(process.cwd(), 'src/fonts/Roboto-Regular.ttf'),
+    bold: path.join(process.cwd(), 'src/fonts/Roboto-Bold.ttf'),
+    italics: path.join(process.cwd(), 'src/fonts/Roboto-Italic.ttf'),
+    bolditalics: path.join(process.cwd(), 'src/fonts/Roboto-BoldItalic.ttf'),
   },
   // Si usas otros idiomas o símbolos, podrías necesitar otras fuentes
 };

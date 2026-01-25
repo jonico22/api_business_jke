@@ -73,41 +73,36 @@ ON CONFLICT (id) DO NOTHING;
 
 --promociones
 INSERT INTO public."Promotion"
-(id, code, "name", description, "discountType", "discountValue"
-, "durationUnit", "durationValue", "isSingleUse", "startDate", "endDate", "maxUsages"
-, "currentUsages", "isActive", "createdAt", "updatedAt", "createdBy", "updatedBy")
+(id,code,"name",description,"discountType","discountValue","durationUnit","durationValue","isSingleUse","startDate","endDate","maxUsages","currentUsages","isActive","createdAt","updatedAt","createdBy","updatedBy")
 SELECT *
 FROM (
-    select 'b9b8ca8b-8a3e-4069-93b9-9041cef1921c', 'DEMO'
-, 'Trial', 'Free trial 30 days', 'FIXED'::public."DiscountType", 0.00
-, 'DAY'::public."DurationUnit", 60, false
-, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '3 months', 1, 0
-, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL, NULL
+    select 'b9b8ca8b-8a3e-4069-93b9-9041cef1921c','BETA','PUBLIC PREVIEW','','FIXED'::public."DiscountType",0.0,'DAY'::public."DurationUnit",60,false,'2026-01-21 03:17:25.152'::timestamp without time zone,'2026-04-21 03:17:25.152'::timestamp without time zone,1,0,true,'2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,NULL,NULL
 ) t
 ON CONFLICT (id) DO NOTHING;
 
-
-
 --Plan
 INSERT INTO public."Plan"
-(id, "name", price, "maxUsers", "isActive", "serviceId", "frequencyId", "currencyId", "createdAt", "updatedAt",
- "isDeleted", code, description)
+(id,code,"name",description,price,"maxUsers","isActive","serviceId","frequencyId","currencyId","createdAt","updatedAt","isDeleted","isEnabled","createdBy","updatedBy",shortdescription)
 SELECT *
 FROM (
-    select 'e899d6f6-74e2-4bc7-a15d-5b7379af207d', 'Plan de prueba', 34.00, 2, TRUE 
-, 'a8237c4d-ae4e-4fc1-b1dd-6cd04c3bc8d9', '221c1d15-04c9-4159-9ed1-8c6b2ad18e47', '221c1d15-04c9-4159-9ed1-8c6b2ad18e47'
-, CURRENT_TIMESTAMP,CURRENT_TIMESTAMP, false
-,  'TEST', 'LOREM IPSON LOREM IPSON LOREM IPSON LOREM IPSON LOREM IPSON LOREM IPSON LOREM IPSON LOREM IPSON'
+    select 'a4382899-8829-4dc1-8826-571fa81202ba','PL-00002','STANDARD',NULL,0.0,0,true,'a8237c4d-ae4e-4fc1-b1dd-6cd04c3bc8d9','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,false,false,NULL,NULL,'Muy pronto tendremos las especificaciones'
+    UNION ALL
+    SELECT '8efd8b70-7599-4a51-a897-74a42aaa3e09','PL-00003','PLUS',NULL,0.0,0,true,'a8237c4d-ae4e-4fc1-b1dd-6cd04c3bc8d9','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,false,false,NULL,NULL,'Estamos trabjando en ofrecer cada vez mejores servicios'
+    UNION ALL
+    SELECT 'e899d6f6-74e2-4bc7-a15d-5b7379af207d','STARTER','STARTER','Módulo de registro de pedidos, ventas y extraccón de reporte.',34.0,2,true,'a8237c4d-ae4e-4fc1-b1dd-6cd04c3bc8d9','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','221c1d15-04c9-4159-9ed1-8c6b2ad18e47','2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,false,true,NULL,NULL,'Licencia para los módulos principales.'
 ) t
 ON CONFLICT (id) DO NOTHING;
 
 
 --Tarifas
 INSERT INTO public."Tariff"
-(id, "planId", "promotionId", "totalCost", description, "createdAt", "updatedAt", "isActive")
+(id,"planId","promotionId","totalCost",description,"createdAt","updatedAt","isActive")
 SELECT *
 FROM (
-    select '97b54361-03da-492d-ad39-db92b8a4abc6', 'e899d6f6-74e2-4bc7-a15d-5b7379af207d'
-, 'b9b8ca8b-8a3e-4069-93b9-9041cef1921c', 0, 'Paquete trial por 60 días', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true
+    select '97b54361-03da-492d-ad39-db92b8a4abc6','e899d6f6-74e2-4bc7-a15d-5b7379af207d','b9b8ca8b-8a3e-4069-93b9-9041cef1921c',0.0,'','2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,true
+    union all
+    select '5fe3e6d0-4e42-4fd8-9940-107821536760','a4382899-8829-4dc1-8826-571fa81202ba',NULL,0.0,NULL,'2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,true
+    union all 
+    select 'f5ab4fad-b726-4bfd-9e46-d4d15e05341c','8efd8b70-7599-4a51-a897-74a42aaa3e09',NULL,0.0,NULL,'2026-01-21 03:17:25.152'::timestamp without time zone,'2026-01-21 03:17:25.152'::timestamp without time zone,true
 ) t
 ON CONFLICT (id) DO NOTHING;
