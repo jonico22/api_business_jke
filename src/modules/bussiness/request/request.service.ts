@@ -9,6 +9,7 @@ import { generateCodeUnique, generateNumericCodeUnique }  from '@/utils/generate
 import { generateRandomPassword } from '@/utils/hash';
 import {sendWelcomeEmail, sendRegistrationEmail} from '@/utils/mailer';
 import {addDays} from 'date-fns';
+import { remove } from 'winston';
 
 const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
 
@@ -151,13 +152,24 @@ const createReceiptPdf = async (transactionId: string) => {
   return receipt;
 }
 
-
-
 export const requestService = {
   async create (data: any) {
     const verifyPhoneBussiness = await prisma.bussinessPartner.findFirst({
       where: { email: data.email }
     });
+    const verifyTarrif = await prisma.tariff.findFirst({
+      where: { 
+        plan: {
+          code: data.namePlan
+        }
+      },
+      include: { plan: true },
+    });
+    if (!verifyTarrif) {
+      return Promise.reject(new Error('El plan seleccionado no existe'));
+    }
+    
+    data.tariffId = verifyTarrif.id;
     if (data.email === verifyPhoneBussiness?.email) {
        return Promise.reject(new Error('El correo electronico ya está en uso'));
     }
@@ -165,6 +177,7 @@ export const requestService = {
       data.code = `REQ-${generateCodeUnique()}`;
     }
     sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
+    delete data.namePlan;
     return prisma.request.create({ data });
    
   },
@@ -184,10 +197,10 @@ export const requestService = {
   update: (id: string, data: any) =>
     prisma.request.update({ where: { id }, data }),
   updateStatus: (id: string, status: RequestStatus) =>
-    prisma.request.update({ where: { id }, data: { status } }
+    prisma.request.update({ where: { code: id }, data: { status } }
   ),
   updateStatusVerified: async (id: string, status: RequestStatus) => {
-    const request = await requestService.findById(id);
+    const request = await prisma.request.findUnique({ where: { code: id} });
     const codeSociety = `SOC-${generateCodeUnique()}`;
     if (!request) throw new Error("Solicitud no encontrada");
     if (request.status !== RequestStatus.Pending) {

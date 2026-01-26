@@ -21,7 +21,7 @@ interface EmailOptions {
 export const sendEmailGmail = async ({ to, subject, htmlContent }: EmailOptions ): Promise<void> => {
     try {
         const info = await transporter.sendMail({
-            from: `"JKE Soporte" <${process.env.BREVO_SENDER_EMAIL}>`,
+            from: `"JKE Soporte" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             html: htmlContent,

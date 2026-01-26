@@ -251,6 +251,7 @@ model Plan {
   code               String             @unique @default("DEFAULT_CODE")
   name               String
   description        String?
+  shortdescription  String?
   price              Float
   maxUsers           Int
   isActive           Boolean            @default(true)

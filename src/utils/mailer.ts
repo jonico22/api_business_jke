@@ -1,5 +1,9 @@
 import { sendEmail } from "@/shared/services/email.services";
 
+// Helper para obtener variables de entorno de forma segura
+const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
+const getAdminEmail = () => process.env.ADMIN_EMAIL || '';
+
 export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
   sendEmail({
     to,
@@ -21,9 +25,8 @@ export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Prom
 };
 
 export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date): Promise<void> => {
-  
   sendEmail({
-    to: process.env.ADMIN_EMAIL || '',
+    to: getAdminEmail(),
     subject: 'Usuario bloqueado por intentos fallidos',
     htmlContent: `
       <p>El usuario <strong>${userEmail}</strong> ha sido bloqueado por superar los intentos fallidos de inicio de sesión.</p>
@@ -33,14 +36,13 @@ export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date)
 };
 
 export const sendResetEmail = async (to: string, token: string): Promise<void> => {
-  
   sendEmail({
     to,
     subject: 'Restablecimiento de contraseña',
     htmlContent: `
       <p>Recibimos una solicitud para restablecer tu contraseña.</p>
       <p>Haz clic en el siguiente enlace para restablecerla:</p>
-      <a href="${process.env.FRONTEND_URL}/reset-password?token=${token}">Restablecer contraseña</a>
+      <a href="${getFrontendUrl()}/reset-password?token=${token}">Restablecer contraseña</a>
       <p>Si no solicitaste este cambio, ignora este mensaje.</p>
     `,
   });
@@ -60,10 +62,9 @@ export const sendRegistrationEmail = async (to: string, firstName: string, lastN
   sendEmail({
     to,
     subject: 'Confirmación de registro',
-    htmlContent: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${process.env.FRONTEND_URL}/verify-request?req=${request}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
+    htmlContent: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${getFrontendUrl()}/verify-account?token=${request}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
   });
 };
-
 
 export const sendEmailVerification = async (to: string, token: string): Promise<void> => { 
   sendEmail({
@@ -71,7 +72,7 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
     subject: 'Verificación de correo electrónico',
     htmlContent: `
       <p>Por favor, verifica tu correo electrónico haciendo clic en el siguiente enlace:</p>
-      <a href="${process.env.FRONTEND_URL}/verify-email?token=${token}">Verificar correo electrónico</a>
+      <a href="${getFrontendUrl()}/verify-email?token=${token}">Verificar correo electrónico</a>
       <p>Si no solicitaste esta verificación, ignora este mensaje.</p>
     `,
   });

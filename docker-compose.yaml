@@ -20,6 +20,11 @@ services:
       - NEW_RELIC_ENABLED=true
       - NEW_RELIC_NO_CONFIG_FILE=true
       - NEW_RELIC_PRISMA_ENABLED=true
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
       
       # Por ESTO (Nombres estándar):
       - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID}
