@@ -1,4 +1,5 @@
 import { sendEmail } from "@/shared/services/email.services";
+import { EmailTemplateService } from "@/shared/services/emailTemplateService";
 
 // Helper para obtener variables de entorno de forma segura
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -59,10 +60,16 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
 
 // crear un validaciond de datos y correo electronico cuando envia un solicitud de registro firstName,lastName,businessName,email,phone , enviar un correo de confirmacion de registro
 export const sendRegistrationEmail = async (to: string, firstName: string, lastName: string, request: string): Promise<void> => {
+  const html = await EmailTemplateService.getTemplate('register-verify', {
+  first_name: firstName,
+  last_name: lastName,
+  verify_link: `${getFrontendUrl()}/verify-account?token=${request}`
+});
+  
   sendEmail({
     to,
     subject: 'Confirmación de registro',
-    htmlContent: `<p>Hola ${firstName} ${lastName},</p><p>Gracias por registrarte. Por favor, <a href="${getFrontendUrl()}/verify-account?token=${request}">Verificar correo electrónico</a> para completar el proceso de registro.</p>`,
+    htmlContent: html,
   });
 };
 
@@ -80,27 +87,41 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
 
 // envia un correo electronico enviando los accesos de la cuenta como usuario y constraseña , adicional un mensaje de bienvenida
 export const sendWelcomeEmail = async (to: string, firstName: string, lastName: string, username: string, password: string): Promise<void> => {
+  const html = await EmailTemplateService.getTemplate('welcome-email', {
+    first_name: firstName,
+    last_name: lastName,
+    username: username,
+    password: password,
+    login_url: `${getFrontendUrl()}/login`
+  });
   sendEmail({
     to,
     subject: 'Bienvenido a nuestra plataforma',
-    htmlContent: `
-      <p>Hola ${firstName} ${lastName},</p>
-      <p>Tu cuenta ha sido creada exitosamente. Aquí están tus credenciales de acceso:</p>
-      <ul>
-        <li>Usuario: <strong>${username}</strong></li>
-        <li>Contraseña: <strong>${password}</strong></li>
-      </ul>
-      <p>Por favor, cambia tu contraseña después de iniciar sesión por primera vez.</p>
-      <p>¡Bienvenido a bordo!</p>
-    `,
+    htmlContent: html,
   });
 }
 
+const formatter = new Intl.NumberFormat('es-PE', { // 'es-PE' para Perú, 'es-ES' para España, etc.
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 // crear un servicio de correo para enviar el pago de la suscripcion y ajuntar el recibo en formato pdf
 export const sendSubscriptionPaymentEmail = async (to: string, amount: number, currency: string, receiptUrl: string): Promise<void> => {
+
+  const formattedAmount = formatter.format(amount);
+
+  const html = await EmailTemplateService.getTemplate('subscription-receipt', {
+    amount: formattedAmount,
+    currency: currency,
+    receipt_url: receiptUrl,
+    date: new Date().toLocaleDateString('es-ES', { 
+      year: 'numeric', month: 'long', day: 'numeric' 
+    })
+  });
+
   sendEmail({
     to,
     subject: 'Pago de suscripción recibido',
-    htmlContent: `<p>Hemos recibido tu pago de suscripción por un monto de <strong>${amount} ${currency}</strong>.</p><p>Adjuntamos el recibo de tu pago para tus registros.</p><p><a href="${receiptUrl}">Ver recibo</a></p>`,
+    htmlContent: html,
   });
 }
