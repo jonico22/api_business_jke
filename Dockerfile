@@ -75,7 +75,7 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
 
 # 👇 AÑADE ESTA LÍNEA (Copia las fuentes desde el código original)
-COPY --from=build /usr/src/app/src/fonts ./src/fonts
+COPY --from=builder /usr/src/app/src/fonts ./src/fonts
 EXPOSE 4000
 
 # Tu comando CMD con el login (o el que te funcionó)
