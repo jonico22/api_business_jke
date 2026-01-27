@@ -32,6 +32,7 @@ async function main() {
     const app = express();
 
     // 1. SEGURIDAD INICIAL: Helmet y CORS primero
+    app.set('trust proxy', 1);
     app.use(helmet());
     app.use(cors(corsOptions));
 

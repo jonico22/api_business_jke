@@ -73,6 +73,9 @@ COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@pri
 COPY --from=builder /usr/src/app/package.json ./package.json
 COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
+
+# 👇 AÑADE ESTA LÍNEA (Copia las fuentes desde el código original)
+COPY --from=build /app/src/fonts ./src/fonts
 EXPOSE 4000
 
 # Tu comando CMD con el login (o el que te funcionó)
