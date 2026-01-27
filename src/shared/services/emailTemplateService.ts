@@ -1,5 +1,5 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import Redis from "ioredis";
+import { redis } from "@/shared/services/redis.service";
 
 // Configuración del Cliente R2
 const r2Client = new S3Client({
@@ -11,42 +11,37 @@ const r2Client = new S3Client({
   },
 });
 
-// Configuración de Redis
-const redis = new Redis(process.env.REDIS_URL!);
 
 export class EmailTemplateService {
-  private static CACHE_TTL = 3600; // 1 hora de persistencia en caché
+  private static CACHE_TTL = 3600;
 
-  /**
-   * Obtiene y procesa una plantilla de correo
-   */
   static async getTemplate(templateName: string, variables: Record<string, string>): Promise<string> {
     const cacheKey = `email_template:${templateName}`;
 
-    // 1. Intentar obtener desde Redis
-    let html = await redis.get(cacheKey);
+    // 1. Usamos tu método redis.get (que ya maneja JSON.parse internamente)
+    let html = await redis.get<string>(cacheKey);
 
-    // 2. Si es un "Cache Miss", descargar de Cloudflare R2
     if (!html) {
+      console.log(`[R2] Descargando plantilla: ${templateName}`);
       html = await this.fetchFromR2(templateName);
-      // Guardar en Redis para futuras peticiones
-      await redis.set(cacheKey, html, "EX", this.CACHE_TTL);
+      
+      // 2. Usamos tu método redis.set
+      await redis.set(cacheKey, html, this.CACHE_TTL);
     }
 
-    // 3. Inyectar variables dinámicas
-    return this.replacePlaceholders(html, variables);
+    return this.replacePlaceholders(html!, variables);
   }
 
   private static async fetchFromR2(name: string): Promise<string> {
     const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME_EMAIL,
+      Bucket: process.env.R2_BUCKET_NAME,
       Key: `templates/${name}.html`,
     });
 
     const response = await r2Client.send(command);
     const content = await response.Body?.transformToString();
 
-    if (!content) throw new Error(`Plantilla ${name} no encontrada en R2.`);
+    if (!content) throw new Error(`Plantilla ${name} no encontrada.`);
     return content;
   }
 
