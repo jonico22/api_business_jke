@@ -29,7 +29,6 @@
     "express": "^4.22.1",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
-    "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.0",
     "multer": "^2.0.1",
     "newrelic": "^13.9.0",
