@@ -60,17 +60,23 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
 
 // crear un validaciond de datos y correo electronico cuando envia un solicitud de registro firstName,lastName,businessName,email,phone , enviar un correo de confirmacion de registro
 export const sendRegistrationEmail = async (to: string, firstName: string, lastName: string, request: string): Promise<void> => {
-  const html = await EmailTemplateService.getTemplate('register-verify', {
-  first_name: firstName,
-  last_name: lastName,
-  verify_link: `${getFrontendUrl()}/verify-account?token=${request}`
-});
+  try {
+    const html = await EmailTemplateService.getTemplate('register-verify', {
+    first_name: firstName,
+    last_name: lastName,
+    verify_link: `${getFrontendUrl()}/verify-account?token=${request}`
+    });
+    
+    await sendEmail({
+      to,
+      subject: 'Confirmación de registro',
+      htmlContent: html,
+    });
+  } catch (error) {
+    console.error('❌ Error en sendRegistrationEmail:', error);
+    throw error; // Re-lanzamos para que el controlador sepa que falló
+  }
   
-  sendEmail({
-    to,
-    subject: 'Confirmación de registro',
-    htmlContent: html,
-  });
 };
 
 export const sendEmailVerification = async (to: string, token: string): Promise<void> => { 
@@ -87,18 +93,25 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
 
 // envia un correo electronico enviando los accesos de la cuenta como usuario y constraseña , adicional un mensaje de bienvenida
 export const sendWelcomeEmail = async (to: string, firstName: string, lastName: string, username: string, password: string): Promise<void> => {
-  const html = await EmailTemplateService.getTemplate('welcome-email', {
-    first_name: firstName,
-    last_name: lastName,
-    username: username,
-    password: password,
-    login_url: `${getFrontendUrl()}/login`
-  });
-  sendEmail({
-    to,
-    subject: 'Bienvenido a nuestra plataforma',
-    htmlContent: html,
-  });
+  
+  try{
+      const html = await EmailTemplateService.getTemplate('welcome-email', {
+          first_name: firstName,
+          last_name: lastName,
+          username: username,
+          password: password,
+          login_url: `${getFrontendUrl()}/login`
+        });
+      await sendEmail({
+        to,
+        subject: 'Bienvenido a nuestra plataforma',
+        htmlContent: html,
+      });
+  } catch (error) {
+    console.error('❌ Error en sendWelcomeEmail:', error);
+    throw error; // Re-lanzamos para que el controlador sepa que falló
+  }
+  
 }
 
 const formatter = new Intl.NumberFormat('es-PE', { // 'es-PE' para Perú, 'es-ES' para España, etc.
@@ -108,7 +121,8 @@ const formatter = new Intl.NumberFormat('es-PE', { // 'es-PE' para Perú, 'es-ES
 // crear un servicio de correo para enviar el pago de la suscripcion y ajuntar el recibo en formato pdf
 export const sendSubscriptionPaymentEmail = async (to: string, amount: number, currency: string, receiptUrl: string): Promise<void> => {
 
-  const formattedAmount = formatter.format(amount);
+  try{
+const formattedAmount = formatter.format(amount);
 
   const html = await EmailTemplateService.getTemplate('subscription-receipt', {
     amount: formattedAmount,
@@ -119,9 +133,14 @@ export const sendSubscriptionPaymentEmail = async (to: string, amount: number, c
     })
   });
 
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Pago de suscripción recibido',
     htmlContent: html,
   });
+  } catch (error) {
+    console.error('❌ Error en sendSubscriptionPaymentEmail:', error);
+    throw error; // Re-lanzamos para que el controlador sepa que falló
+  }
+  
 }
