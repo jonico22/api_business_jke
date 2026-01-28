@@ -32,18 +32,27 @@ export class EmailTemplateService {
     return this.replacePlaceholders(html!, variables);
   }
 
-  private static async fetchFromR2(name: string): Promise<string> {
+ private static async fetchFromR2(name: string): Promise<string> {
+  const bucketName = process.env.R2_BUCKET_NAME_EMAIL;
+
+  // Validación manual antes de llamar al SDK
+  if (!bucketName) {
+    throw new Error("❌ Error Crítico: R2_BUCKET_NAME_EMAIL no está definido en las variables de entorno.");
+  }
+  console.log(`[R2] Intentando descargar 'templates/${name}.html' del bucket: '${bucketName}'`);
+  try {
     const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+      Bucket: bucketName, // Ahora estamos seguros de que no es undefined
       Key: `templates/${name}.html`,
     });
 
     const response = await r2Client.send(command);
-    const content = await response.Body?.transformToString();
-
-    if (!content) throw new Error(`Plantilla ${name} no encontrada.`);
-    return content;
+    return await response.Body?.transformToString() || "";
+  } catch (err) {
+    console.error(`[R2] Error al obtener objeto:`, err);
+    throw err;
   }
+}
 
   private static replacePlaceholders(html: string, vars: Record<string, string>): string {
     let output = html;
