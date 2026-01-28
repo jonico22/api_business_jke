@@ -21,6 +21,14 @@ services:
       - EMAIL_PASS=${EMAIL_PASS}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
+      - API_SALES_URL=${API_SALES_URL:-http://localhost:5000}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_BUCKET_NAME_EMAIL=${R2_BUCKET_NAME_EMAIL}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_ENDPOINT=${R2_ENDPOINT}
       # Puedes añadir aquí cualquier otra variable que tengas en Infisical
       # --- LÍNEAS NUEVAS PARA NEW RELIC ---
       - NEW_RELIC_APP_NAME

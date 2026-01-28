@@ -95,7 +95,7 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
 export const sendWelcomeEmail = async (to: string, firstName: string, lastName: string, username: string, password: string): Promise<void> => {
   
   try{
-      const html = await EmailTemplateService.getTemplate('welcome-email', {
+      const html = await EmailTemplateService.getTemplate('welcome', {
           first_name: firstName,
           last_name: lastName,
           username: username,
