@@ -30,15 +30,31 @@ export class AuthService {
         accountId: email,
         providerId: 'credentials',
       },
-      include: {
-        user: true,
-      },
+      select: {
+        id: true,
+        password: true,
+        user: { // Aquí seleccionas los campos de la relación
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            emailVerified: true,
+            isActive: true,
+            failedLoginAttempts: true,
+            lockedUntil: true,
+            role: { // Traemos el rol directamente desde aquí
+              select: {
+                code: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
     });
     if (!account || !account.password) {
       throw new Error( 'Credenciales incorrectas');
-    }
-    console.log('account',account);
-    console.log('account user',password);    
+    }  
     const user = account.user;
     if (!user.emailVerified) throw new Error('Debes verificar tu correo electrónico');
     if (!user.isActive) throw new Error('Cuenta inactiva');
@@ -65,17 +81,22 @@ export class AuthService {
         userAgent,
         ipAddress,
       },
-    });
-     const role = await prisma.role.findFirst({
-      where: { users: { some: { id: session.userId } } },
+      select: {
+        id: true,
+        token: true,
+        expiresAt: true,
+        userId: true,
+        // No devolvemos userId ni ipAddress si no son necesarios
+      }
     });
 
     return { 
       token: session.token, 
       user: account.user, 
       newExpiresAt,
-      role,
-      views: await this.getViewsByRoleId(account.user.roleId || '') 
+      role : user.role,
+      session
+      //views: await this.getViewsByRoleId(account.user.roleId || '') 
     };
   }
 
@@ -215,15 +236,13 @@ export class AuthService {
       where: { users: { some: { id: session.userId } } },
     });
     //const permissions = await this.getPermissionsByRoleId(role?.id || '');
-    const views = await this.getViewsByRoleId(role?.id || '');
+    //const views = await this.getViewsByRoleId(role?.id || '');
     
     return {
       user: session.user,
       expires: session.expiresAt,
       token: session.token,
       role,
-      //permissions,
-      views,
     };
   }
   async verificationEmail(email: string){
