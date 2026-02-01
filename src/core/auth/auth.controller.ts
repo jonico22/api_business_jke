@@ -16,25 +16,46 @@ declare global {
     }
   }
 }
+// Definimos si estamos en producción una sola vez
+const isProduction = process.env.NODE_ENV === 'production';
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    // 1. Validación de esquema
+    console.log("Cuerpo recibido:", req.body);
+    const validation = loginSchema.safeParse(req.body);
+    if (!validation.success) {
+      return errorResponse(res, 'Datos de entrada inválidos', 400, validation.error.format());
+    }
+
+    const { email, password } = validation.data;
     const userAgent = req.headers['user-agent'] || 'unknown';
-    const ipAddress = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+    
+    // 2. Obtención de IP (priorizando proxies confiables)
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
+                      req.socket.remoteAddress || 
+                      'unknown';
+
+    // 3. Lógica de negocio
     const result = await authService.login(email, password, userAgent, ipAddress);
+
+    // 4. Configuración de la Cookie
     res.cookie("session-token", result.token, {
       httpOnly: true,
-      secure: false ,
-      sameSite: "lax",
+      secure: isProduction, 
+      sameSite: isProduction ? "none" : "lax", 
       path: "/",
       expires: result.newExpiresAt,
     });
 
     return successResponse(res, result, 'Login exitoso');
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return errorResponse(res, 'Error al iniciar sesión', 401, errorMessage);
+
+  } catch (error: any) {
+    // Diferenciar errores de autenticación (401) de errores de servidor (500)
+    const status = error.status || 401; 
+    const message = error.message || 'Error al iniciar sesión';
+    
+    return errorResponse(res, message, status, isProduction ? undefined : error.stack);
   }
 };
 export const logout = async (req: Request, res: Response) => {
@@ -48,10 +69,8 @@ export const logout = async (req: Request, res: Response) => {
        // Limpia la cookie
     res.clearCookie("session-token", {
       httpOnly: true,
-      secure: false ,
-      sameSite: "lax",
-      //secure: process.env.NODE_ENV === "production",
-      //sameSite: "none",
+      secure: isProduction, 
+      sameSite: isProduction ? "none" : "lax",
       path: "/",
     });
     res.json({ message: 'Sesión cerrada correctamente' });
@@ -129,25 +148,37 @@ export const resetUserPassword = async (req: Request, res: Response) => {
   }
 }
 
+
 export const getCurrentUser = async (req: Request, res: Response) => {
+  console.log('GetCurrentUser variable',isProduction);
   try {
     const sessionId = req.sessionId;
+
     if (!sessionId) {
       return res.status(401).json({ error: 'No autorizado: sessionId faltante' });
     }
+
     const result = await authService.getCurrentUser(sessionId);
+
+    // Configuración dinámica de la cookie
     res.cookie("session-token", result.token, {
       httpOnly: true,
-      secure: false ,
-      sameSite: "lax",
+      // En producción DEBE ser true (requiere HTTPS)
+      secure: isProduction, 
+      // 'none' permite enviar cookies entre dominios distintos (ej: api.com y app.com)
+      // pero solo funciona si 'secure' es true. En dev usamos 'lax'.
+      sameSite: isProduction ? "none" : "lax", 
       path: "/",
       expires: result.expires,
     });
-     return successResponse(res, result, 'datos del usuario exitoso');
+
+    return successResponse(res, result, 'Datos del usuario obtenidos con éxito');
   } catch (error) {
+    console.error('[GetCurrentUser Error]:', error);
     return res.status(500).json({ error: 'Error al recuperar usuario' });
   }
 };
+
 
 export const refreshSession = async (req: Request, res: Response) => {
   try {
