@@ -8,7 +8,8 @@ declare global {
       user: any;
       role: string;
       sessionId?: string;
-      session?: { id: string; [key: string]: any };
+      session?: { id: string;[key: string]: any };
+      societyId?: string;
     }
   }
 }
@@ -27,10 +28,10 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
     // 2. Búsqueda en base de datos
     const session = await prisma.session.findUnique({
       where: { token },
-      include: { 
-        user: { 
-          include: { role: true } 
-        } 
+      include: {
+        user: {
+          include: { role: true }
+        }
       },
     });
 
@@ -41,9 +42,10 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     // 4. Inyección de datos en el objeto Request
     req.user = session.user;
-    req.role = session.user.role.code; 
+    req.role = session.user.role.code;
     req.sessionId = session.id;
     req.session = session;
+    req.societyId = session.user.role.societyId;
 
     next();
   } catch (error) {

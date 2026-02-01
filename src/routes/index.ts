@@ -23,6 +23,9 @@ import subscriptionMovementRoutes from '@/modules/bussiness/subscriptionMovement
 import tariffRoutes from '@/modules/bussiness/tariff/tariff.routes';
 import files from '@/modules/bussiness/files/file.routes';
 
+// Módulo de ventas
+import categoryRoutes from '@/modules/sales/category/category.routes';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -49,6 +52,9 @@ router.use('/files', files);
 router.use('/receipt-types', receiptType);
 router.use('/subscription-movements', subscriptionMovementRoutes);
 router.use('/tariffs', tariffRoutes);
+
+//modulo de ventas
+router.use('/sales/categories', categoryRoutes);
 
 export default router;
 
