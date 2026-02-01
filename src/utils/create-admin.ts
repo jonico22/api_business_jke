@@ -6,13 +6,49 @@ export const createInitialAdmin = async () => {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin1234!';
 
-  const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (existing) return;
+  const existing = await prisma.user.findUnique({
+    where: { email: adminEmail },
+    include: { accounts: true, role: true }
+  });
 
   const adminRole = await prisma.role.findUnique({ where: { code: 'ADMIN' } });
   if (!adminRole) throw new Error('Rol admin no existe. Ejecuta createDefaultRoles primero.');
 
   const hashed = await argon2.hash(adminPassword);
+
+  if (existing) {
+    // Actualizar usuario existente
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        emailVerified: true,
+        isActive: true,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        roleId: adminRole.id,
+      }
+    });
+
+    // Actualizar o crear account
+    if (existing.accounts.length > 0) {
+      await prisma.account.update({
+        where: { id: existing.accounts[0].id },
+        data: { password: hashed }
+      });
+    } else {
+      await prisma.account.create({
+        data: {
+          accountId: adminEmail,
+          providerId: 'credentials',
+          password: hashed,
+          userId: existing.id
+        }
+      });
+    }
+
+    console.log('✅ Usuario administrador actualizado:', adminEmail);
+    return;
+  }
 
   await prisma.user.create({
     data: {
@@ -40,5 +76,5 @@ export const createInitialAdmin = async () => {
     },
   });
 
-  console.log('👤 Usuario administrador creado:', adminEmail);
+  console.log('✅ Usuario administrador creado:', adminEmail);
 };

@@ -24,6 +24,7 @@ services:
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
       - API_SALES_URL=${API_SALES_URL:-http://localhost:5000}
       # Por ESTO (Nombres estándar):
@@ -42,6 +43,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - INFISICAL_PROJECT_ID=${INFISICAL_PROJECT_ID}
       - INFISICAL_API_URL=${INFISICAL_API_URL:-https://app.infisical.com}
+      - TZ=America/Lima
     restart: always
     networks:
       - coolify
