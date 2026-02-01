@@ -193,7 +193,7 @@ export const refreshSession = async (req: Request, res: Response) => {
     }
 
     setSessionCookie(res, renewed.token, renewed.expiresAt);
-    return res.json({ ok: true });
+    return res.json({ token: renewed.token, expiresAt: renewed.expiresAt });
   } catch (error) {
     return res.status(500).json({ error: "Error al renovar sesión" });
   }
