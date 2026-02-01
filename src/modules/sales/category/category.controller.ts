@@ -30,6 +30,20 @@ export const getAllCategories = async (req: Request, res: Response) => {
 };
 
 /**
+ * Obtener categorías para select/dropdown
+ * GET /api/sales/categories/select
+ */
+export const getCategoriesForSelect = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        const categories = await requestApiSaleGet(`categories/select?societyCode=${societyId}`);
+        return successResponse(res, categories, 'Categorías para select obtenidas exitosamente');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener categorías para select', 500, error.message);
+    }
+};
+
+/**
  * Obtener una categoría por ID
  * GET /api/sales/categories/:id
  */

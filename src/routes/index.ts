@@ -25,6 +25,7 @@ import files from '@/modules/bussiness/files/file.routes';
 
 // Módulo de ventas
 import categoryRoutes from '@/modules/sales/category/category.routes';
+import productRoutes from '@/modules/sales/product/product.routes';
 
 const router = Router();
 
@@ -55,6 +56,7 @@ router.use('/tariffs', tariffRoutes);
 
 //modulo de ventas
 router.use('/sales/categories', categoryRoutes);
+router.use('/sales/products', productRoutes);
 
 export default router;
 

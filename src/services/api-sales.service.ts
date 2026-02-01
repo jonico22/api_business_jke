@@ -139,7 +139,6 @@ export const requestApiSaleDelete = async (path: string, body?: any) => {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`[API SALE ERROR] ${response.status} ${response.statusText}`, errorBody);
             try {
                 const errorJson = JSON.parse(errorBody);
                 throw new Error(errorJson.message || `HTTP ${response.status}: ${response.statusText}`);

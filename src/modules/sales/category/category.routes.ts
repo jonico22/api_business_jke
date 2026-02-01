@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
     getAllCategories,
+    getCategoriesForSelect,
     getCategoryById,
     createCategory,
     updateCategory,
@@ -15,10 +16,13 @@ const router = Router();
  * Todas las rutas requieren autenticación
  */
 
-// GET /api/categories - Obtener todas las categorías
+// GET /api/sales/categories - Obtener todas las categorías
 router.get('/', auth, getAllCategories);
 
-// GET /api/categories/:id - Obtener una categoría por ID
+// GET /api/sales/categories/select - Obtener categorías para select/dropdown
+router.get('/select', auth, getCategoriesForSelect);
+
+// GET /api/sales/categories/:id - Obtener una categoría por ID
 router.get('/:id', auth, getCategoryById);
 
 // POST /api/categories - Crear una nueva categoría
