@@ -234,10 +234,7 @@ export class AuthService {
     if (!session || !session.user || !session.user.isActive) throw new Error( 'Sesión inválida');
     const role = await prisma.role.findFirst({
       where: { users: { some: { id: session.userId } } },
-    });
-    //const permissions = await this.getPermissionsByRoleId(role?.id || '');
-    //const views = await this.getViewsByRoleId(role?.id || '');
-    
+    });    
     return {
       user: session.user,
       expires: session.expiresAt,
