@@ -17,6 +17,7 @@ services:
       - REDIS_HOST=redis # O la variable que uses para Redis
       - JWT_SECRET
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
+      - FRONTEND_APP_URL=${FRONTEND_APP_URL:-http://localhost:5173}
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
