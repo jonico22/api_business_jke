@@ -38,15 +38,13 @@ export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date)
 };
 
 export const sendResetEmail = async (to: string, token: string): Promise<void> => {
+  const html = await EmailTemplateService.getTemplate('reset-password', {
+    reset_link: `${getFrontendAppUrl()}/auth/reset-password?token=${token}`
+  });
   sendEmail({
     to,
     subject: 'Restablecimiento de contraseña',
-    htmlContent: `
-      <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-      <p>Haz clic en el siguiente enlace para restablecerla:</p>
-      <a href="${getFrontendAppUrl()}/auth/reset-password?token=${token}">Restablecer contraseña</a>
-      <p>Si no solicitaste este cambio, ignora este mensaje.</p>
-    `,
+    htmlContent: html,
   });
 
 }
