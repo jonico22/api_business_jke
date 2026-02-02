@@ -4,6 +4,7 @@ import { EmailTemplateService } from "@/shared/services/emailTemplateService";
 // Helper para obtener variables de entorno de forma segura
 const getFrontendUrl = () => process.env.FRONTEND_URL || 'http://localhost:3000';
 const getAdminEmail = () => process.env.ADMIN_EMAIL || '';
+const getFrontendAppUrl = () => process.env.FRONTEND_APP_URL || 'http://localhost:5173';
 
 export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
   sendEmail({
@@ -17,7 +18,7 @@ export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Prom
   sendEmail({
     to,
     subject: 'Cuenta bloqueada por seguridad',
-    htmlContent:  `
+    htmlContent: `
       <p>Tu cuenta ha sido bloqueada temporalmente debido a múltiples intentos fallidos de inicio de sesión.</p>
       <p>Podrás volver a intentarlo después de las <strong>${unlockTime.toLocaleTimeString()}</strong>.</p>
       <p>Si no reconoces esta actividad, contacta al soporte inmediatamente.</p>
@@ -43,7 +44,7 @@ export const sendResetEmail = async (to: string, token: string): Promise<void> =
     htmlContent: `
       <p>Recibimos una solicitud para restablecer tu contraseña.</p>
       <p>Haz clic en el siguiente enlace para restablecerla:</p>
-      <a href="${getFrontendUrl()}/reset-password?token=${token}">Restablecer contraseña</a>
+      <a href="${getFrontendAppUrl()}/auth/reset-password?token=${token}">Restablecer contraseña</a>
       <p>Si no solicitaste este cambio, ignora este mensaje.</p>
     `,
   });
@@ -62,11 +63,11 @@ export const sendResetByAdminEmail = async (to: string, newPassword: string): Pr
 export const sendRegistrationEmail = async (to: string, firstName: string, lastName: string, request: string): Promise<void> => {
   try {
     const html = await EmailTemplateService.getTemplate('register-verify', {
-    first_name: firstName,
-    last_name: lastName,
-    verify_link: `${getFrontendUrl()}/verify-account?token=${request}`
+      first_name: firstName,
+      last_name: lastName,
+      verify_link: `${getFrontendUrl()}/verify-account?token=${request}`
     });
-    
+
     await sendEmail({
       to,
       subject: 'Confirmación de registro',
@@ -76,10 +77,10 @@ export const sendRegistrationEmail = async (to: string, firstName: string, lastN
     console.error('❌ Error en sendRegistrationEmail:', error);
     throw error; // Re-lanzamos para que el controlador sepa que falló
   }
-  
+
 };
 
-export const sendEmailVerification = async (to: string, token: string): Promise<void> => { 
+export const sendEmailVerification = async (to: string, token: string): Promise<void> => {
   sendEmail({
     to,
     subject: 'Verificación de correo electrónico',
@@ -93,25 +94,25 @@ export const sendEmailVerification = async (to: string, token: string): Promise<
 
 // envia un correo electronico enviando los accesos de la cuenta como usuario y constraseña , adicional un mensaje de bienvenida
 export const sendWelcomeEmail = async (to: string, firstName: string, lastName: string, username: string, password: string): Promise<void> => {
-  
-  try{
-      const html = await EmailTemplateService.getTemplate('welcome', {
-          first_name: firstName,
-          last_name: lastName,
-          username: username,
-          password: password,
-          login_url: `${getFrontendUrl()}/login`
-        });
-      await sendEmail({
-        to,
-        subject: 'Bienvenido a nuestra plataforma',
-        htmlContent: html,
-      });
+
+  try {
+    const html = await EmailTemplateService.getTemplate('welcome', {
+      first_name: firstName,
+      last_name: lastName,
+      username: username,
+      password: password,
+      login_url: `${getFrontendUrl()}/login`
+    });
+    await sendEmail({
+      to,
+      subject: 'Bienvenido a nuestra plataforma',
+      htmlContent: html,
+    });
   } catch (error) {
     console.error('❌ Error en sendWelcomeEmail:', error);
     throw error; // Re-lanzamos para que el controlador sepa que falló
   }
-  
+
 }
 
 const formatter = new Intl.NumberFormat('es-PE', { // 'es-PE' para Perú, 'es-ES' para España, etc.
@@ -121,26 +122,26 @@ const formatter = new Intl.NumberFormat('es-PE', { // 'es-PE' para Perú, 'es-ES
 // crear un servicio de correo para enviar el pago de la suscripcion y ajuntar el recibo en formato pdf
 export const sendSubscriptionPaymentEmail = async (to: string, amount: number, currency: string, receiptUrl: string): Promise<void> => {
 
-  try{
-const formattedAmount = formatter.format(amount);
+  try {
+    const formattedAmount = formatter.format(amount);
 
-  const html = await EmailTemplateService.getTemplate('subscription-receipt', {
-    amount: formattedAmount,
-    currency: currency,
-    receipt_url: receiptUrl,
-    date: new Date().toLocaleDateString('es-ES', { 
-      year: 'numeric', month: 'long', day: 'numeric' 
-    })
-  });
+    const html = await EmailTemplateService.getTemplate('subscription-receipt', {
+      amount: formattedAmount,
+      currency: currency,
+      receipt_url: receiptUrl,
+      date: new Date().toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      })
+    });
 
-  await sendEmail({
-    to,
-    subject: 'Pago de suscripción recibido',
-    htmlContent: html,
-  });
+    await sendEmail({
+      to,
+      subject: 'Pago de suscripción recibido',
+      htmlContent: html,
+    });
   } catch (error) {
     console.error('❌ Error en sendSubscriptionPaymentEmail:', error);
     throw error; // Re-lanzamos para que el controlador sepa que falló
   }
-  
+
 }
