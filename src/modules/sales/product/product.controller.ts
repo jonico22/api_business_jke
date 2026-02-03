@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import prisma from '@/config/database';
 import {
     requestApiSaleGet,
     requestApiSalePost,
@@ -39,6 +40,78 @@ export const getProductsForSelect = async (req: Request, res: Response) => {
         return successResponse(res, products, 'Productos para select obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener productos para select', 500, error.message);
+    }
+};
+
+/**
+ * Obtener productos creados por usuarios
+ * GET /api/sales/products/created-by-users
+ */
+export const getCreatedByUsers = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        // 1. Obtener datos de la API de ventas
+        const products = await requestApiSaleGet(`products/created-by-users?societyId=${societyId}`);
+
+        // 2. Extraer IDs de usuarios únicos
+        const userIds = [...new Set(products)];
+
+        // 3. Consultar nombres de usuarios en Prisma
+        if (userIds.length > 0) {
+            const users = await prisma.user.findMany({
+                where: {
+                    id: { in: userIds as string[] }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            });
+
+            // 4. Devolver solo la lista de usuarios
+            return successResponse(res, users, 'Usuarios que han creado productos obtenidos exitosamente');
+        }
+
+        return successResponse(res, [], 'No se encontraron usuarios que hayan creado productos');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener usuarios creadores', 500, error.message);
+    }
+};
+
+/**
+ * Obtener productos actualizados por usuarios
+ * GET /api/sales/products/updated-by-users
+ */
+export const getUpdatedByUsers = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        // 1. Obtener datos de la API de ventas
+        const products = await requestApiSaleGet(`products/updated-by-users?societyId=${societyId}`);
+
+        // 2. Extraer IDs de usuarios únicos (updatedBy)
+        const userIds = [...new Set(products)];
+
+        // 3. Consultar nombres de usuarios en Prisma
+        if (userIds.length > 0) {
+            const users = await prisma.user.findMany({
+                where: {
+                    id: { in: userIds as string[] }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            });
+
+            // 4. Devolver solo la lista de usuarios
+            return successResponse(res, users, 'Usuarios que han actualizado productos obtenidos exitosamente');
+        }
+
+        return successResponse(res, [], 'No se encontraron usuarios que hayan actualizado productos');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener usuarios', 500, error.message);
     }
 };
 

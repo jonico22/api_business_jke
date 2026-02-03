@@ -5,7 +5,9 @@ import {
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getUpdatedByUsers,
+    getCreatedByUsers
 } from './product.controller';
 import auth from '@/middlewares/auth.middleware';
 
@@ -21,6 +23,12 @@ router.get('/', auth, getAllProducts);
 
 // GET /api/sales/products/select - Obtener productos para select/dropdown
 router.get('/select', auth, getProductsForSelect);
+
+// GET /api/sales/products/created-by-users - Obtener usuarios que han creado productos
+router.get('/created-by-users', auth, getCreatedByUsers);
+
+// GET /api/sales/products/updated-by-users - Obtener usuarios que han actualizado productos
+router.get('/updated-by-users', auth, getUpdatedByUsers);
 
 // GET /api/sales/products/:id - Obtener un producto por ID
 router.get('/:id', auth, getProductById);

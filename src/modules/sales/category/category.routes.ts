@@ -1,11 +1,14 @@
+
 import { Router } from 'express';
 import {
     getAllCategories,
     getCategoriesForSelect,
+    getUpdatedByUsers,
     getCategoryById,
     createCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    getCreatedByUsers
 } from './category.controller';
 import auth from '@/middlewares/auth.middleware';
 
@@ -21,6 +24,12 @@ router.get('/', auth, getAllCategories);
 
 // GET /api/sales/categories/select - Obtener categorías para select/dropdown
 router.get('/select', auth, getCategoriesForSelect);
+
+// GET /api/sales/categories/created-by-users - Obtener usuarios que han creado categorías
+router.get('/created-by-users', auth, getCreatedByUsers);
+
+// GET /api/sales/categories/updated-by-users - Obtener usuarios que han actualizado categoríasuarios
+router.get('/updated-by-users', auth, getUpdatedByUsers);
 
 // GET /api/sales/categories/:id - Obtener una categoría por ID
 router.get('/:id', auth, getCategoryById);

@@ -99,7 +99,7 @@ export const sendWelcomeEmail = async (to: string, firstName: string, lastName: 
       last_name: lastName,
       username: username,
       password: password,
-      login_url: `${getFrontendUrl()}/login`
+      login_url: `${getFrontendAppUrl()}`
     });
     await sendEmail({
       to,
