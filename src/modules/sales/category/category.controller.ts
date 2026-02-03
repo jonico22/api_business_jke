@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import prisma from '@/config/database';
 import {
     requestApiSaleGet,
     requestApiSalePost,
@@ -40,6 +41,80 @@ export const getCategoriesForSelect = async (req: Request, res: Response) => {
         return successResponse(res, categories, 'Categorías para select obtenidas exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener categorías para select', 500, error.message);
+    }
+};
+
+
+
+/**
+ * Obtener categorías creadas por usuarios
+ * GET /api/sales/categories/created-by-users
+ */
+export const getCreatedByUsers = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        // 1. Obtener datos de la API de ventas
+        const categories = await requestApiSaleGet(`categories/created-by-users?societyId=${societyId}`);
+
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings).
+        const userIds = [...new Set(categories)];
+
+        // 3. Consultar nombres de usuarios en Prisma
+        if (userIds.length > 0) {
+            const users = await prisma.user.findMany({
+                where: {
+                    id: { in: userIds as string[] }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            });
+
+            // 4. Devolver solo la lista de usuarios
+            return successResponse(res, users, 'Usuarios que han creado categorías obtenidos exitosamente');
+        }
+
+        return successResponse(res, [], 'No se encontraron usuarios que hayan creado categorías');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener usuarios creadores', 500, error.message);
+    }
+};
+
+/**
+ * Obtener categorías actualizadas por usuarios
+ * GET /api/sales/categories/updated-by-users
+ */
+export const getUpdatedByUsers = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        // 1. Obtener datos de la API de ventas
+        const categories = await requestApiSaleGet(`categories/updated-by-users?societyId=${societyId}`);
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings), no objetos.
+        const userIds = [...new Set(categories)];
+        // 3. Consultar nombres de usuarios en Prisma
+        if (userIds.length > 0) {
+            const users = await prisma.user.findMany({
+                where: {
+                    id: { in: userIds as string[] }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            });
+
+            // 4. Devolver solo la lista de usuarios
+            return successResponse(res, users, 'Usuarios que han actualizado categorías obtenidos exitosamente');
+        }
+
+        return successResponse(res, [], 'No se encontraron usuarios que hayan actualizado categorías');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener usuarios', 500, error.message);
     }
 };
 
