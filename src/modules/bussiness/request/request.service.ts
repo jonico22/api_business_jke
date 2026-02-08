@@ -22,18 +22,14 @@ const newSociety = async (data: any, suscription: string, code: string) => {
     code,
     name: data.businessName,
     subscriptionId: suscription,
+    businessName: data.businessName,
+    ruc: data.ruc || "",
+    tradeName: data.businessName,
   });
+  console.log('response newSociety', response);
   return response;
 }
 
-const branchOffice = async (societyId: string) => {
-  const response = await requestApiSalePost('branch-offices', {
-    name: "Oficina Principal",
-    isMain: true,
-    societyId,
-  });
-  return response;
-}
 
 const planService = async (data: any) => {
   const tariff = await prisma.tariff.findUnique({
@@ -56,8 +52,9 @@ const newCreateUser = async (data: any, codeSociety: string) => {
   data.role = nameRole;
   data.password = data.password || newPassword;
   data.typeBP = data.isBusiness ? "empresa" : "natural";
-  data.documentNumber = data.documentNumber || "";
+  data.documentNumber = data.ruc || "";
   data.name = data.firstName + ' ' + (data.lastName || '');
+  data.phone = data.phone || "";
   const user = await userService.createUser(data)
   return {
     user,
@@ -163,8 +160,7 @@ export const requestService = {
     }
     const { user, password } = await newCreateUser(request, codeSociety);
     const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety);
-    const society = await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
-    await branchOffice(society.id);
+    await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
     await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
     const payment = await paymentTransaction(subscriptionMovement.id);
     await createReceiptPdf(payment.id);

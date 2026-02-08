@@ -30,8 +30,8 @@ router.get('/created-by-users', auth, getCreatedByUsers);
 // GET /api/sales/societies/updated-by-users - Obtener usuarios que han actualizado sociedades
 router.get('/updated-by-users', auth, getUpdatedByUsers);
 
-// GET /api/sales/societies/:id - Obtener una sociedad por ID
-router.get('/:id', auth, getSocietyById);
+// GET /api/sales/societies/current - Obtener la sociedad actual del usuario
+router.get('/current', auth, getSocietyById);
 
 // POST /api/sales/societies - Crear una nueva sociedad
 router.post('/', auth, createSociety);

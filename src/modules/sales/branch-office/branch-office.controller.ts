@@ -15,11 +15,11 @@ import { createBranchOfficeSchema, updateBranchOfficeSchema, branchOfficeIdSchem
  */
 export const getAllBranchOffices = async (req: Request, res: Response) => {
     try {
-        const societyId = req.societyId || '1';
+        const societyId = req.societyId || '1'; // Fallback temporal a 1 como tenías
 
         const queryParams = new URLSearchParams({
             societyCode: societyId.toString(),
-            ...(req.query as any)
+            ...(req.query as any) // Pasa page, limit, search, etc.
         }).toString();
 
         const branchOffices = await requestApiSaleGet(`branch-offices?${queryParams}`);
@@ -53,7 +53,8 @@ export const getCreatedByUsers = async (req: Request, res: Response) => {
         // 1. Obtener datos de la API de ventas
         const branchOffices = await requestApiSaleGet(`branch-offices/created-by-users?societyId=${societyId}`);
 
-        // 2. Extraer IDs de usuarios únicos
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings).
         const userIds = [...new Set(branchOffices)];
 
         // 3. Consultar nombres de usuarios en Prisma
@@ -89,7 +90,8 @@ export const getUpdatedByUsers = async (req: Request, res: Response) => {
         // 1. Obtener datos de la API de ventas
         const branchOffices = await requestApiSaleGet(`branch-offices/updated-by-users?societyId=${societyId}`);
 
-        // 2. Extraer IDs de usuarios únicos (updatedBy)
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings), no objetos.
         const userIds = [...new Set(branchOffices)];
 
         // 3. Consultar nombres de usuarios en Prisma

@@ -55,7 +55,8 @@ export const getCreatedByUsers = async (req: Request, res: Response) => {
         // 1. Obtener datos de la API de ventas
         const clients = await requestApiSaleGet(`bussinesspartners/created-by-users?societyId=${societyId}&type=CUSTOMER`);
 
-        // 2. Extraer IDs de usuarios únicos
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings).
         const userIds = [...new Set(clients)];
 
         // 3. Consultar nombres de usuarios en Prisma
@@ -91,7 +92,8 @@ export const getUpdatedByUsers = async (req: Request, res: Response) => {
         // 1. Obtener datos de la API de ventas
         const clients = await requestApiSaleGet(`bussinesspartners/updated-by-users?societyId=${societyId}&type=CUSTOMER`);
 
-        // 2. Extraer IDs de usuarios únicos (updatedBy)
+        // 2. Extraer IDs de usuarios únicos.
+        // La API devuelve un array de IDs (strings), no objetos.
         const userIds = [...new Set(clients)];
 
         // 3. Consultar nombres de usuarios en Prisma

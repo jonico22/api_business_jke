@@ -116,18 +116,17 @@ export const getUpdatedByUsers = async (req: Request, res: Response) => {
 };
 
 /**
- * Obtener una sociedad por ID
- * GET /api/sales/societies/:id
+ * Obtener la sociedad actual del usuario
+ * GET /api/sales/societies/current
  */
 export const getSocietyById = async (req: Request, res: Response) => {
     try {
-        const validation = societyIdSchema.safeParse(req.params);
-        if (!validation.success) {
-            return errorResponse(res, 'ID inválido', 400, validation.error.format());
+        const societyId = req.societyId;
+        if (!societyId) {
+            return errorResponse(res, 'No se pudo determinar la sociedad del usuario', 400);
         }
 
-        const { id } = validation.data;
-        const society = await requestApiSaleGet(`societies/${id}`);
+        const society = await requestApiSaleGet(`societies/${societyId}`);
         return successResponse(res, society, 'Sociedad obtenida exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener sociedad', 500, error.message);
