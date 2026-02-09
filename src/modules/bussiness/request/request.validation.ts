@@ -19,6 +19,7 @@ export const createRequestSchema = z.object({
   tariffId: z.string().optional(),
   isBusiness: z.boolean().optional().default(false),
   documentNumber: z.string().optional(),
+  ruc: z.string().optional(),
 });
 
 

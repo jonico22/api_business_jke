@@ -121,7 +121,6 @@ export const requestService = {
     if (!verifyTarrif) {
       return Promise.reject(new Error('El plan seleccionado no existe'));
     }
-
     data.tariffId = verifyTarrif.id;
     if (data.email === verifyPhoneBussiness?.email) {
       return Promise.reject(new Error('El correo electronico ya está en uso'));
@@ -129,8 +128,12 @@ export const requestService = {
     if (!data.code) {
       data.code = `REQ-${generateCodeUnique()}`;
     }
+    if (data.ruc) {
+      data.documentNumber = data.ruc;
+    }
     sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
     delete data.namePlan;
+    delete data.ruc;
     return prisma.request.create({ data });
 
   },
