@@ -125,8 +125,7 @@ export const getSocietyById = async (req: Request, res: Response) => {
         if (!societyId) {
             return errorResponse(res, 'No se pudo determinar la sociedad del usuario', 400);
         }
-
-        const society = await requestApiSaleGet(`societies/${societyId}`);
+        const society = await requestApiSaleGet(`societies/current?societyCode=${societyId}`);
         return successResponse(res, society, 'Sociedad obtenida exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener sociedad', 500, error.message);
