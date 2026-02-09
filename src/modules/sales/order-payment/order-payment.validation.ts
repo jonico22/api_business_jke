@@ -1,18 +1,26 @@
 import { z } from 'zod';
+import { PaymentMethodOrder, PaymentStatus } from './order-payment.enums';
 
 /**
  * Schema para crear un pago de orden
- * Los campos societyId, createdBy se inyectan automáticamente desde la sesión
  */
 export const createOrderPaymentSchema = z.object({
-    orderId: z.string().uuid('ID de orden inválido'),
-    paymentMethodId: z.string().uuid('ID de método de pago inválido').optional(), // Opcional si es efectivo por defecto, depende de reglas
-    paymentMethod: z.string().optional(), // Alternativa si se envía código en vez de ID
-    amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
+    orderId: z.string().uuid('ID de orden inválido').optional(), // user requested optional
+    societyId: z.string().uuid('ID de sociedad inválido'),
+
+    // Financials
+    amount: z.number().positive('El monto debe ser positivo'),
+    currencyId: z.string(), // using uuid validation as safe default
+    exchangeRate: z.number().positive().default(1.0),
+
     paymentDate: z.string().datetime().optional(),
+    paymentMethod: z.nativeEnum(PaymentMethodOrder),
+
+    // Status & Evidence
+    status: z.nativeEnum(PaymentStatus).optional(),
+    imageId: z.string().uuid('ID de imagen inválido').optional(),
     referenceCode: z.string().optional(),
     notes: z.string().optional(),
-    status: z.string().optional(),
 });
 
 /**
@@ -20,13 +28,16 @@ export const createOrderPaymentSchema = z.object({
  */
 export const updateOrderPaymentSchema = z.object({
     orderId: z.string().uuid().optional(),
-    paymentMethodId: z.string().uuid().optional(),
-    paymentMethod: z.string().optional(),
-    amount: z.number().min(0.01).optional(),
+    societyId: z.string().uuid().optional(),
+    amount: z.number().positive().optional(),
+    currencyId: z.string().uuid().optional(),
+    exchangeRate: z.number().positive().optional(),
     paymentDate: z.string().datetime().optional(),
+    paymentMethod: z.nativeEnum(PaymentMethodOrder).optional(),
+    status: z.nativeEnum(PaymentStatus).optional(),
+    imageId: z.string().uuid().optional(),
     referenceCode: z.string().optional(),
     notes: z.string().optional(),
-    status: z.string().optional(),
 });
 
 /**

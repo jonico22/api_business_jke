@@ -18,6 +18,7 @@ enum RequestStatus {
 }
 
 const newSociety = async (data: any, suscription: string, code: string) => {
+  console.log('data', data);
   const response = await requestApiSalePost('societies', {
     code,
     name: data.businessName,
@@ -26,7 +27,6 @@ const newSociety = async (data: any, suscription: string, code: string) => {
     ruc: data.ruc || "",
     tradeName: data.businessName,
   });
-  console.log('response newSociety', response);
   return response;
 }
 
@@ -152,20 +152,26 @@ export const requestService = {
     prisma.request.update({ where: { code: id }, data: { status } }
     ),
   updateStatusVerified: async (id: string, status: RequestStatus) => {
-    const request = await prisma.request.findUnique({ where: { code: id } });
-    const codeSociety = `SOC-${generateCodeUnique()}`;
-    if (!request) throw new Error("Solicitud no encontrada");
-    if (request.status !== RequestStatus.Pending) {
-      throw new Error("La solicitud no está en estado pendiente");
+    try {
+      const request = await prisma.request.findUnique({ where: { code: id } });
+      const codeSociety = `SOC-${generateCodeUnique()}`;
+      if (!request) throw new Error("Solicitud no encontrada");
+      if (request.status !== RequestStatus.Pending) {
+        throw new Error("La solicitud no está en estado pendiente");
+      }
+      const { user, password } = await newCreateUser(request, codeSociety);
+      const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety);
+      await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
+      await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
+      const payment = await paymentTransaction(subscriptionMovement.id);
+      await createReceiptPdf(payment.id);
+      await requestService.updateStatus(id, status);
+      return request;
+    } catch (error) {
+      console.log(error);
+      return Promise.reject(new Error('Error al actualizar el estado de la solicitud'));
     }
-    const { user, password } = await newCreateUser(request, codeSociety);
-    const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety);
-    await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
-    await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
-    const payment = await paymentTransaction(subscriptionMovement.id);
-    await createReceiptPdf(payment.id);
-    await requestService.updateStatus(id, status);
-    return request;
+
   },
   remove: (id: string) => prisma.request.delete({ where: { id } }),
 };

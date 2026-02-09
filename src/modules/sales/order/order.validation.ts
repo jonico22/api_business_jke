@@ -3,7 +3,7 @@ import { z } from 'zod';
 const orderItemSchema = z.object({
     productId: z.string().uuid(),
     quantity: z.number().min(0.01),
-    price: z.number().min(0),
+    unitPrice: z.number().min(0),
     discount: z.number().min(0).default(0),
     tax: z.number().min(0).default(0),
     total: z.number().min(0),
@@ -16,13 +16,16 @@ const orderItemSchema = z.object({
 export const createOrderSchema = z.object({
     date: z.string().datetime().optional(), // Fecha de la orden
     deliveryDate: z.string().datetime().optional(), // Fecha de entrega
-    customerId: z.string().uuid('ID de cliente inválido'),
+    partnerId: z.string().uuid('ID de cliente inválido'),
     branchOfficeId: z.string().uuid('ID de sucursal inválido').optional(), // Sucursal de venta
-    currencyId: z.string().uuid('ID de moneda inválido'),
-    items: z.array(orderItemSchema).min(1, 'Debe incluir al menos un ítem'),
+    societyId: z.string().uuid('ID de sociedad inválido'),
+    branchId: z.string().uuid('ID de sucursal inválido'),
+    currencyId: z.string(),
+    orderItems: z.array(orderItemSchema).min(1, 'Debe incluir al menos un ítem'),
     subtotal: z.number().min(0),
     taxAmount: z.number().min(0),
-    total: z.number().min(0),
+    comment: z.string().optional(),
+    discount: z.number().min(0).default(0),
     notes: z.string().optional(),
     status: z.string().optional(), // PENDING, APPROVED, etc.
 });
@@ -42,6 +45,8 @@ export const updateOrderSchema = z.object({
     total: z.number().optional(),
     notes: z.string().optional(),
     status: z.string().optional(),
+    cancellationReason: z.string().optional(),
+    comment: z.string().optional(),
 });
 
 /**

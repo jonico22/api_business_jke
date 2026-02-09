@@ -39,6 +39,7 @@ export const getClientsForSelect = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
         const clients = await requestApiSaleGet(`bussinesspartners/select?societyCode=${societyId}&type=CUSTOMER`);
+        console.log('clients', clients);
         return successResponse(res, clients, 'Clientes para select obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener clientes para select', 500, error.message);
