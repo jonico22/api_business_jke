@@ -18,22 +18,18 @@ enum RequestStatus {
 }
 
 const newSociety = async (data: any, suscription: string, code: string) => {
+  console.log('data', data);
   const response = await requestApiSalePost('societies', {
     code,
     name: data.businessName,
     subscriptionId: suscription,
+    businessName: data.businessName,
+    ruc: data.ruc || "",
+    tradeName: data.businessName,
   });
   return response;
 }
 
-const branchOffice = async (societyId: string) => {
-  const response = await requestApiSalePost('branch-offices', {
-    name: "Oficina Principal",
-    isMain: true,
-    societyId,
-  });
-  return response;
-}
 
 const planService = async (data: any) => {
   const tariff = await prisma.tariff.findUnique({
@@ -56,8 +52,9 @@ const newCreateUser = async (data: any, codeSociety: string) => {
   data.role = nameRole;
   data.password = data.password || newPassword;
   data.typeBP = data.isBusiness ? "empresa" : "natural";
-  data.documentNumber = data.documentNumber || "";
+  data.documentNumber = data.ruc || "";
   data.name = data.firstName + ' ' + (data.lastName || '');
+  data.phone = data.phone || "";
   const user = await userService.createUser(data)
   return {
     user,
@@ -124,7 +121,6 @@ export const requestService = {
     if (!verifyTarrif) {
       return Promise.reject(new Error('El plan seleccionado no existe'));
     }
-
     data.tariffId = verifyTarrif.id;
     if (data.email === verifyPhoneBussiness?.email) {
       return Promise.reject(new Error('El correo electronico ya está en uso'));
@@ -132,8 +128,12 @@ export const requestService = {
     if (!data.code) {
       data.code = `REQ-${generateCodeUnique()}`;
     }
+    if (data.ruc) {
+      data.documentNumber = data.ruc;
+    }
     sendRegistrationEmail(data.email, data.firstName, data.lastName, data.code);
     delete data.namePlan;
+    delete data.ruc;
     return prisma.request.create({ data });
 
   },
@@ -155,21 +155,26 @@ export const requestService = {
     prisma.request.update({ where: { code: id }, data: { status } }
     ),
   updateStatusVerified: async (id: string, status: RequestStatus) => {
-    const request = await prisma.request.findUnique({ where: { code: id } });
-    const codeSociety = `SOC-${generateCodeUnique()}`;
-    if (!request) throw new Error("Solicitud no encontrada");
-    if (request.status !== RequestStatus.Pending) {
-      throw new Error("La solicitud no está en estado pendiente");
+    try {
+      const request = await prisma.request.findUnique({ where: { code: id } });
+      const codeSociety = `SOC-${generateCodeUnique()}`;
+      if (!request) throw new Error("Solicitud no encontrada");
+      if (request.status !== RequestStatus.Pending) {
+        throw new Error("La solicitud no está en estado pendiente");
+      }
+      const { user, password } = await newCreateUser(request, codeSociety);
+      const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety);
+      await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
+      await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
+      const payment = await paymentTransaction(subscriptionMovement.id);
+      await createReceiptPdf(payment.id);
+      await requestService.updateStatus(id, status);
+      return request;
+    } catch (error) {
+      console.log(error);
+      return Promise.reject(new Error('Error al actualizar el estado de la solicitud'));
     }
-    const { user, password } = await newCreateUser(request, codeSociety);
-    const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety);
-    const society = await newSociety(request, subscriptionMovement.subscriptionId, codeSociety);
-    await branchOffice(society.id);
-    await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
-    const payment = await paymentTransaction(subscriptionMovement.id);
-    await createReceiptPdf(payment.id);
-    await requestService.updateStatus(id, status);
-    return request;
+
   },
   remove: (id: string) => prisma.request.delete({ where: { id } }),
 };

@@ -23,9 +23,16 @@ import subscriptionMovementRoutes from '@/modules/bussiness/subscriptionMovement
 import tariffRoutes from '@/modules/bussiness/tariff/tariff.routes';
 import files from '@/modules/bussiness/files/file.routes';
 
-// Módulo de ventas
+//modulo de ventas
 import categoryRoutes from '@/modules/sales/category/category.routes';
 import productRoutes from '@/modules/sales/product/product.routes';
+import clientRoutes from '@/modules/sales/client/client.routes';
+import branchOfficeRoutes from '@/modules/sales/branch-office/branch-office.routes';
+import salesCurrencyRoutes from '@/modules/sales/currency/currency.routes';
+import societyRoutes from '@/modules/sales/society/society.routes';
+import orderRoutes from '@/modules/sales/order/order.routes';
+import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
+import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
 
 const router = Router();
 
@@ -57,6 +64,13 @@ router.use('/tariffs', tariffRoutes);
 //modulo de ventas
 router.use('/sales/categories', categoryRoutes);
 router.use('/sales/products', productRoutes);
+router.use('/sales/clients', clientRoutes);
+router.use('/sales/branch-offices', branchOfficeRoutes);
+router.use('/sales/currencies', salesCurrencyRoutes);
+router.use('/sales/societies', societyRoutes);
+router.use('/sales/orders', orderRoutes);
+router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-payments', orderPaymentRoutes);
 
 export default router;
 
