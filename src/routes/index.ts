@@ -33,8 +33,17 @@ import societyRoutes from '@/modules/sales/society/society.routes';
 import orderRoutes from '@/modules/sales/order/order.routes';
 import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
 import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
+import notificationRoutes from '@/modules/core/notification/notification.routes';
+import { setupRateLimiter } from '@/config/rateLimit';
 
 const router = Router();
+const limiter = setupRateLimiter();
+
+// 1. Notificaciones: Maneja su propio Rate Limit + Caché
+router.use('/notifications', notificationRoutes);
+
+// 2. Global Rate Limiter para el resto de rutas
+router.use(limiter);
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -70,7 +79,8 @@ router.use('/sales/currencies', salesCurrencyRoutes);
 router.use('/sales/societies', societyRoutes);
 router.use('/sales/orders', orderRoutes);
 router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-payments', orderPaymentRoutes);
+// router.use('/notifications', notificationRoutes); // Moved up
 
 export default router;
-

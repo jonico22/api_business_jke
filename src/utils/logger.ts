@@ -32,7 +32,15 @@ export const logger = winston.createLogger({
   ],
 });
 
-logger.exitOnError = false;
+// logger.exitOnError = false; // Allow Winston to handle exit gracefully
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console());
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple(),
+      winston.format.printf(
+        ({ level, message, timestamp }) => `${timestamp} [${level}]: ${message}`
+      )
+    ),
+  }));
 }
