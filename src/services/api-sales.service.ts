@@ -2,6 +2,10 @@
  * Servicio para comunicación con la API de Ventas/Sales
  */
 
+import http from 'http';
+import https from 'https';
+import { URL } from 'url';
+
 const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
 
 /**
@@ -39,33 +43,101 @@ export const requestApiSaleGet = async (path: string) => {
 };
 
 /**
+ * Realiza una petición POST con FormData usando http/https nativo
+ * Necesario porque fetch no maneja correctamente los streams de form-data
+ */
+const requestApiSalePostFormData = async (path: string, formData: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const fullUrl = `${API_SALES_URL}/${path}`;
+        const parsedUrl = new URL(fullUrl);
+        const isHttps = parsedUrl.protocol === 'https:';
+        const httpModule = isHttps ? https : http;
+
+        const options = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (isHttps ? 443 : 80),
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: 'POST',
+            headers: formData.getHeaders()
+        };
+
+        console.log('[FormData Upload] Enviando a:', fullUrl);
+        console.log('[FormData Upload] Headers:', options.headers);
+
+        const req = httpModule.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                console.log('[FormData Upload] Status:', res.statusCode);
+                console.log('[FormData Upload] Response:', data);
+
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (e) {
+                        resolve(data);
+                    }
+                } else {
+                    try {
+                        const errorJson = JSON.parse(data);
+                        reject(new Error(errorJson.message || `HTTP ${res.statusCode}: ${res.statusMessage}`));
+                    } catch (e) {
+                        reject(new Error(`HTTP ${res.statusCode}: ${data || res.statusMessage}`));
+                    }
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            console.error('[FormData Upload] Error:', error);
+            reject(error);
+        });
+
+        // Pipe el FormData stream al request
+        formData.pipe(req);
+    });
+};
+
+/**
  * Realiza una petición POST a la API de ventas
  * @param path - Ruta del endpoint (sin la base URL)
- * @param body - Cuerpo de la petición
+ * @param body - Cuerpo de la petición (puede ser JSON o FormData)
+ * @param options - Opciones adicionales como headers
  * @returns Promise con la respuesta JSON
  */
-export const requestApiSalePost = async (path: string, body: any) => {
+export const requestApiSalePost = async (path: string, body: any, options?: { headers?: Record<string, string> }) => {
     try {
+        // Si body es FormData del paquete form-data, usar función especializada
+        if (body && typeof body === 'object' && body.constructor.name === 'FormData') {
+            console.log('[API SALE] Detectado FormData, usando streaming nativo');
+            return await requestApiSalePostFormData(path, body);
+        }
+
+        // Para JSON normal, usar fetch
         const url = `${API_SALES_URL}/${path}`;
         console.log('POST request a:', url);
 
-        const response = await fetch(url, {
+        const requestOptions: RequestInit = {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
+            headers: options?.headers || {
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body),
-        });
+            body: body ? JSON.stringify(body) : undefined
+        };
+
+        const response = await fetch(url, requestOptions);
 
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`[API SALE ERROR] ${response.status} ${response.statusText}`, errorBody);
             try {
-                // Intenta parsear si es JSON para un mensaje más limpio
                 const errorJson = JSON.parse(errorBody);
                 throw new Error(errorJson.message || `HTTP ${response.status}: ${response.statusText}`);
             } catch (e) {
-                // Si no es JSON, usa el texto plano o el status
                 throw new Error(`HTTP ${response.status}: ${errorBody || response.statusText}`);
             }
         }

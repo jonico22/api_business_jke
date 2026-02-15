@@ -28,3 +28,12 @@ export const updateCategorySchema = z.object({
 export const categoryIdSchema = z.object({
     id: z.string().uuid('ID inválido'),
 });
+
+/**
+ * Schema para validar cada fila del CSV de carga masiva
+ */
+export const bulkCategoryRowSchema = z.object({
+    NombreCategoria: z.string().min(1, 'El nombre de categoría es requerido'),
+    CodigoCategoria: z.string().min(1, 'El código de categoría es requerido'),
+    Descripcion: z.string().optional().default('')
+});

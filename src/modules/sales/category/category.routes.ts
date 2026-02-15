@@ -1,4 +1,5 @@
 
+
 import { Router } from 'express';
 import {
     getAllCategories,
@@ -8,9 +9,12 @@ import {
     createCategory,
     updateCategory,
     deleteCategory,
-    getCreatedByUsers
+    getCreatedByUsers,
+    bulkUploadCategories
 } from './category.controller';
 import auth from '@/middlewares/auth.middleware';
+import { upload } from '@/middlewares/upload.middleware';
+import { validateCSVFile } from '@/middlewares/csv-upload.middleware';
 
 const router = Router();
 
@@ -30,6 +34,9 @@ router.get('/created-by-users', auth, getCreatedByUsers);
 
 // GET /api/sales/categories/updated-by-users - Obtener usuarios que han actualizado categoríasuarios
 router.get('/updated-by-users', auth, getUpdatedByUsers);
+
+// POST /api/sales/categories/bulk-upload - Carga masiva de categorías desde CSV
+router.post('/bulk-upload', auth, upload.single('file'), validateCSVFile, bulkUploadCategories);
 
 // GET /api/sales/categories/:id - Obtener una categoría por ID
 router.get('/:id', auth, getCategoryById);

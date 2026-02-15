@@ -16,7 +16,6 @@ import { errorHandler } from '@/middlewares/error.middleware';
 import { connectRedis, redis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
 import { corsOptions } from '@/config/cors';
-import { setupRateLimiter } from '@/config/rateLimit';
 import helmet from 'helmet'; // Added import for helmet
 import hpp from 'hpp'; // Added import for hpp
 import http from 'http'; // Added import for http
@@ -49,7 +48,7 @@ async function main() {
   // app.use('/api', setupRateLimiter());
 
   app.use(cookieParser());
-  app.use(express.json());
+  // express.json() moved to routes/index.ts to avoid interfering with file uploads
 
   // 4. PARAMETER POLLUTION: Limpiamos los query strings
   app.use(hpp({
