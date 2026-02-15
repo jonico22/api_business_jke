@@ -53,6 +53,7 @@ router.use(limiter);
 
 //modulo de ventas
 // File upload routes registered BEFORE express.json()
+router.use('/sales/products', productRoutes);
 router.use('/sales/categories', categoryRoutes);
 router.use('/files', files);
 
@@ -83,7 +84,7 @@ router.use('/receipt-types', receiptType);
 router.use('/subscription-movements', subscriptionMovementRoutes);
 router.use('/tariffs', tariffRoutes);
 // All other routes that need JSON parsing
-router.use('/sales/products', productRoutes);
+
 router.use('/sales/clients', clientRoutes);
 router.use('/sales/branch-offices', branchOfficeRoutes);
 router.use('/sales/currencies', salesCurrencyRoutes);

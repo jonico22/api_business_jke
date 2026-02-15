@@ -16,6 +16,10 @@ export const createProductSchema = z.object({
     categoryId: z.string({ required_error: 'La categoría es requerida' }),
     imageId: z.string().optional(),
     isActive: z.boolean().default(true),
+    barcode: z.string().optional(),
+    brand: z.string().optional(),
+    color: z.string().optional(),
+    colorCode: z.string().optional(),
 });
 
 /**
@@ -33,6 +37,10 @@ export const updateProductSchema = z.object({
     imageId: z.string().optional(),
     isActive: z.boolean().optional(),
     code: z.string().min(1).optional(),
+    barcode: z.string().optional(),
+    brand: z.string().optional(),
+    color: z.string().optional(),
+    colorCode: z.string().optional(),
 });
 
 /**

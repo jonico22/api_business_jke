@@ -41,11 +41,15 @@ router.post('/bulk-upload', auth, upload.single('file'), validateCSVFile, bulkUp
 // GET /api/sales/categories/:id - Obtener una categoría por ID
 router.get('/:id', auth, getCategoryById);
 
+import express from 'express';
+
+// ... imports
+
 // POST /api/categories - Crear una nueva categoría
-router.post('/', auth, createCategory);
+router.post('/', auth, express.json(), createCategory);
 
 // PUT /api/categories/:id - Actualizar una categoría
-router.put('/:id', auth, updateCategory);
+router.put('/:id', auth, express.json(), updateCategory);
 
 // DELETE /api/categories/:id - Eliminar una categoría
 router.delete('/:id', auth, deleteCategory);
