@@ -125,7 +125,14 @@ export const initSocketHub = async (httpServer: any) => {
                     // 2. Emitir a la Campana (usamos businessId para el room, asumiendo que el frontend se conecta con el mismo ID que enviamos)
                     // OJO: Si el frontend se conecta con societyId, debemos emitir a business_societyId
                     // Si el payload trae societyId, enviamos a ese.
+
+                    // Emite a AMBOS rooms para asegurar que llegue ya sea por UUID o por Society code
                     io.to(`business_${payload.businessId}`).emit("ui_notification", notifDB);
+
+                    if (targetSocietyId && targetSocietyId !== payload.businessId) {
+                        logger.info(`[SocketHub] Emitiendo también a room secundario: business_${targetSocietyId}`);
+                        io.to(`business_${targetSocietyId}`).emit("ui_notification", notifDB);
+                    }
 
                 } catch (err: any) {
                     logger.error(`[SocketHub] Error critico procesando NOTIFY: ${err.message}`, err);

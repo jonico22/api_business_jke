@@ -89,6 +89,11 @@ router.use('/sales/clients', clientRoutes);
 router.use('/sales/branch-offices', branchOfficeRoutes);
 router.use('/sales/currencies', salesCurrencyRoutes);
 router.use('/sales/societies', societyRoutes);
+import reportRoutes from '@/modules/sales/order/report/report.routes';
+
+// ... other imports
+
+router.use('/sales/orders/reports', reportRoutes); // Report route MUST be before generic order routes
 router.use('/sales/orders', orderRoutes);
 router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-items', orderItemRoutes);
