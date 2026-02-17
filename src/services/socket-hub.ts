@@ -59,6 +59,15 @@ export const initSocketHub = async (httpServer: any) => {
         pingTimeout: 5000
     });
 
+    // Middleware para logs de depuración de conexiones
+    io.use((socket, next) => {
+        logger.info(`[SocketHub] Incoming connection attempt: ${socket.id}`);
+        logger.info(`[SocketHub] Transport: ${socket.conn.transport.name}`);
+        logger.info(`[SocketHub] Query: ${JSON.stringify(socket.handshake.query)}`);
+        logger.info(`[SocketHub] Headers: ${JSON.stringify(socket.handshake.headers)}`);
+        next();
+    });
+
     io.on("connection", (socket: Socket) => {
         const { businessId } = socket.handshake.query;
         if (businessId) {
