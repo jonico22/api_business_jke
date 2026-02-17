@@ -43,6 +43,11 @@ export const initSocketHub = async (httpServer: any) => {
     const subClient = redisClient.duplicate(); // Para adaptador interno de Socket.io
     const listenerClient = redisClient.duplicate(); // Para escuchar eventos personalizados de Ventas
 
+    // Manejadores de error para evitar caídas de la app
+    pubClient.on('error', (err) => logger.error('[SocketHub] Redis PubClient Error:', err));
+    subClient.on('error', (err) => logger.error('[SocketHub] Redis SubClient Error:', err));
+    listenerClient.on('error', (err) => logger.error('[SocketHub] Redis ListenerClient Error:', err));
+
     await Promise.all([pubClient.connect(), subClient.connect(), listenerClient.connect()]);
 
     // --- INICIALIZAR SOCKET.IO ---
