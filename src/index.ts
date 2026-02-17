@@ -5,7 +5,7 @@ process.env.TZ = process.env.TZ || 'America/Lima';
 
 import express from 'express';
 import cors from 'cors';
-import routes from './routes';
+// import routes from './routes'; // Moved to dynamic import
 import { createDefaultRoles } from './utils/create-roles';
 import { createInitialAdmin } from './utils/create-admin';
 import requestLogger from './middlewares/logger.middleware';
@@ -16,35 +16,39 @@ import { errorHandler } from '@/middlewares/error.middleware';
 import { connectRedis, redis } from '@/shared/services/redis.service';
 import cookieParser from 'cookie-parser';
 import { corsOptions } from '@/config/cors';
-import { apiLimiter } from '@/config/rateLimit';
-import { envs } from '@/config/envs';
-import helmet from 'helmet';
-import hpp from 'hpp';
+import helmet from 'helmet'; // Added import for helmet
+import hpp from 'hpp'; // Added import for hpp
+import http from 'http'; // Added import for http
 import prisma from '@/config/database';
+import { initSocketHub } from '@/services/socket-hub';
 
+// Helper function to initialize data and services
 async function initializeDataAndServices() {
   await createDefaultRoles();
   await createInitialAdmin();
-  logger.info('roles, administrador inicial');
 }
 
 async function main() {
   await initializeDataAndServices();
   await connectRedis();
+
   const port = process.env.PORT || 4000;
   const app = express();
+  const server = http.createServer(app);
+  await initSocketHub(server);
+
+  app.use(requestLogger);
 
   // 1. SEGURIDAD INICIAL: Helmet y CORS primero
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors(corsOptions));
 
-  // 2. RATE LIMITER: Protege la API antes de gastar recursos procesando el JSON
-
-  app.use('/api', apiLimiter);
+  // 2. RATE LIMITER: Se mueve a routes/index.ts para manejo granular (skip cache)
+  // app.use('/api', setupRateLimiter());
 
   app.use(cookieParser());
-  app.use(express.json());
+  // express.json() moved to routes/index.ts to avoid interfering with file uploads
 
   // 4. PARAMETER POLLUTION: Limpiamos los query strings
   app.use(hpp({
@@ -76,7 +80,10 @@ async function main() {
     }
   });
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use(requestLogger);
+  // app.use(requestLogger); // Moved up
+  // Importar rutas dinámicamente DESPUÉS de conectar a Redis
+  // Esto previene que el RateLimiter intente conectar antes de tiempo
+  const routes = (await import('./routes')).default;
   app.use('/api', routes);
   app.get('/', (_req, res) => res.send('API activa test probando'));
   app.use((req, res) => {
@@ -89,8 +96,8 @@ async function main() {
   app.use(errorHandler);
   //app.listen(port, () => console.log(`🚀 Servidor en el http://localhost:${port}`));
   // 5. Escuchar explícitamente en 0.0.0.0
-  app.listen(Number(port), '0.0.0.0', () => {
-    console.log(`🚀 Servidor listo y escuchando en puerto ${port}`);
+  server.listen(Number(port), '0.0.0.0', () => {
+    logger.info(`🚀 Servidor listo y escuchando en puerto ${port}`);
   });
 }
 
@@ -100,10 +107,3 @@ main().catch((err) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason) => {
-  logger.error(`UNHANDLED REJECTION: ${reason}`);
-});
-process.on('uncaughtException', (err) => {
-  logger.error(`UNCAUGHT EXCEPTION: ${err.message}\n${err.stack}`);
-  process.exit(1);
-});

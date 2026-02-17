@@ -24,7 +24,7 @@ const newSociety = async (data: any, suscription: string, code: string) => {
     name: data.businessName,
     subscriptionId: suscription,
     businessName: data.businessName,
-    ruc: data.ruc || "",
+    ruc: data.documentNumber || "",
     tradeName: data.businessName,
   });
   return response;
@@ -52,7 +52,7 @@ const newCreateUser = async (data: any, codeSociety: string) => {
   data.role = nameRole;
   data.password = data.password || newPassword;
   data.typeBP = data.isBusiness ? "empresa" : "natural";
-  data.documentNumber = data.ruc || "";
+  data.documentNumber = data.documentNumber || "";
   data.name = data.firstName + ' ' + (data.lastName || '');
   data.phone = data.phone || "";
   const user = await userService.createUser(data)

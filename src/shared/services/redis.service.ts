@@ -1,4 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
+import { logger } from '@/utils/logger';
 
 // 1. Configuración de variables de entorno (más limpio)
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
@@ -19,25 +20,25 @@ const useTls = redisUrl.startsWith('rediss');
 // Configuración de reintentos y timeouts para Docker
 const socketConfig = useTls
   ? {
-      connectTimeout: 10000,
-      keepAlive: 5000, 
-    
-      // 3. Estrategia de reconexión robusta
-      reconnectStrategy: (retries) => {
-        const delay = Math.min(retries * 100, 3000);
-        console.warn(`⚠️ Redis: Intentando reconectar en ${delay}ms... (Intento ${retries})`);
-        return delay;
-      },
-      tls: true as const,
-      host: redisHost,
-      rejectUnauthorized: false
-    }
+    connectTimeout: 10000,
+    keepAlive: 5000,
+
+    // 3. Estrategia de reconexión robusta
+    reconnectStrategy: (retries: number) => {
+      const delay = Math.min(retries * 100, 3000);
+      logger.warn(`⚠️ Redis: Intentando reconectar en ${delay}ms... (Intento ${retries})`);
+      return delay;
+    },
+    tls: true as const,
+    host: redisHost,
+    rejectUnauthorized: false
+  }
   : {
-      connectTimeout: 10000,
-      reconnectStrategy: (retries: number) => Math.min(retries * 50, 2000),
-      tls: false as const,
-      host: redisHost
-};
+    connectTimeout: 10000,
+    reconnectStrategy: (retries: number) => Math.min(retries * 50, 2000),
+    tls: false as const,
+    host: redisHost
+  };
 
 const client: RedisClientType = createClient({
   url: redisUrl,
@@ -48,22 +49,22 @@ const client: RedisClientType = createClient({
 let isReady = false;
 
 // Manejadores de eventos
-client.on('connect', () => console.log('⏳ Redis: Conectando...'));
+client.on('connect', () => logger.info('⏳ Redis: Conectando...'));
 client.on('ready', () => {
   isReady = true;
-  console.log('✅ Redis: Listo y conectado');
+  logger.info('✅ Redis: Listo y conectado');
 });
 client.on('error', (err) => {
   // Si es un error de socket cerrado, es un warning, no un error crítico
   if (err.message.includes('Socket closed unexpectedly')) {
-    console.warn('ℹ️ Redis: Conexión cerrada por el servidor. Reconectando automáticamente...');
+    logger.warn('ℹ️ Redis: Conexión cerrada por el servidor. Reconectando automáticamente...');
   } else {
-    console.error('❌ Redis: Error de cliente', err);
+    logger.error('❌ Redis: Error de cliente', err);
   }
 });
 client.on('end', () => {
   isReady = false;
-  console.warn('⚠️ Redis: Conexión cerrada');
+  logger.warn('⚠️ Redis: Conexión cerrada');
 });
 
 /**
@@ -76,7 +77,7 @@ export const connectRedis = async () => {
       await client.connect();
     }
   } catch (error) {
-    console.error('❌ Redis: Error fatal en la conexión inicial:', error);
+    logger.error('❌ Redis: Error fatal en la conexión inicial:', error);
   }
 };
 
@@ -85,7 +86,7 @@ export const connectRedis = async () => {
  */
 export const redis = {
   enabled: REDIS_ENABLED,
-  
+
   /**
    * Verifica si Redis está operativo en este momento
    */
@@ -99,7 +100,7 @@ export const redis = {
       await client.ping();
       return true;
     } catch (error) {
-      console.error('[Redis] Ping failed:', error);
+      logger.error('[Redis] Ping failed:', error);
       return false;
     }
   },
@@ -110,14 +111,14 @@ export const redis = {
     try {
       const rawValue = await client.get(key);
       if (typeof rawValue !== 'string') return null;
-      
+
       try {
         return JSON.parse(rawValue) as T;
       } catch {
         return (rawValue as unknown) as T;
       }
     } catch (error) {
-      console.error(`[Redis] Error getting key ${key}:`, error);
+      logger.error(`[Redis] Error getting key ${key}:`, error);
       return null;
     }
   },
@@ -129,7 +130,7 @@ export const redis = {
       const serialized = typeof value === 'string' ? value : JSON.stringify(value);
       await client.set(key, serialized, { EX: ttl });
     } catch (error) {
-      console.error(`[Redis] Error guardando clave ${key}:`, error);
+      logger.error(`[Redis] Error guardando clave ${key}:`, error);
     }
   },
 
@@ -146,22 +147,22 @@ export const redis = {
       let keysToDelete: string[] = [];
 
       do {
-        const scanResult = await client.scan(cursor.toString(), { 
-            MATCH: `${prefix}*`,
-            COUNT: 100 
+        const scanResult = await client.scan(cursor.toString(), {
+          MATCH: `${prefix}*`,
+          COUNT: 100
         });
 
         keysToDelete = keysToDelete.concat(scanResult.keys);
-        cursor = parseInt(scanResult.cursor, 10);
+        cursor = Number(scanResult.cursor);
 
       } while (cursor !== 0);
 
       if (keysToDelete.length > 0) {
         await client.del(keysToDelete);
-        console.log(`[Redis] Eliminadas ${keysToDelete.length} claves con prefijo '${prefix}' usando SCAN.`);
+        logger.info(`[Redis] Eliminadas ${keysToDelete.length} claves con prefijo '${prefix}' usando SCAN.`);
       }
     } catch (error) {
-      console.error(`[Redis] Error limpiando prefijo ${prefix}:`, error);
+      logger.error(`[Redis] Error limpiando prefijo ${prefix}:`, error);
     }
   }
 };

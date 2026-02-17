@@ -31,14 +31,15 @@ export const logger = winston.createLogger({
   ],
 });
 
-// 3. Configuración para consola en desarrollo
+// logger.exitOnError = false; // Allow Winston to handle exit gracefully
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize(),
+      winston.format.simple(),
       winston.format.printf(
-        (info: any) => `${info.timestamp} [${info.level}]: ${info.message}`
+        ({ level, message, timestamp }) => `${timestamp} [${level}]: ${message}`
       )
-    )
+    ),
   }));
 }

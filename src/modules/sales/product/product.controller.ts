@@ -216,3 +216,50 @@ export const deleteProduct = async (req: Request, res: Response) => {
         return errorResponse(res, 'Error al eliminar producto', 500, error.message);
     }
 };
+
+/**
+ * Carga masiva de productos desde CSV
+ * POST /api/sales/products/bulk-upload
+ */
+export const bulkUploadProducts = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return errorResponse(res, 'No se proporcionó ningún archivo', 400);
+        }
+
+        const { validateCSVColumns } = await import('@/utils/csv-parser.util');
+
+        // Convertir buffer a string para validación local
+        const csvContent = req.file.buffer.toString('utf-8');
+
+        // Validar columnas requeridas localmente (validación previa)
+        // Basado en products_template.csv
+        const requiredColumns = ['NombreProducto', 'CodigoInterno', 'CodigoCategoria', 'PrecioVenta', 'PrecioCosto', 'StockInicial', 'StockMinimo'];
+        try {
+            validateCSVColumns(csvContent, requiredColumns);
+        } catch (error: any) {
+            return errorResponse(res, 'Estructura CSV inválida', 400, error.message);
+        }
+
+        // Preparar FormData para enviar a la API de ventas
+        const FormData = (await import('form-data')).default;
+        const formData = new FormData();
+
+        // Agregar archivo
+        formData.append('file', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+
+        // Enviar a la API de ventas (que procesará el CSV internamente)
+        // La función requestApiSalePost detectará FormData y usará streaming nativo
+        // Pasamos societyId y createdBy como query params o metadata si la API lo requiere, 
+        // pero siguiendo el patrón de categories, lo enviamos en la URL para que el backend de sales lo reciba
+        const result = await requestApiSalePost(`products/bulk-upload?societyCode=${req.societyId}&createdBy=${req.user?.id}`, formData);
+
+        return successResponse(res, result, 'Carga masiva procesada exitosamente', 201);
+
+    } catch (error: any) {
+        return errorResponse(res, 'Error al procesar archivo CSV', 500, error.message);
+    }
+};
