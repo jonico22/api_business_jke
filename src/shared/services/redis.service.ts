@@ -71,7 +71,11 @@ client.on('end', () => {
  * Inicializa la conexión. Se debe llamar en el arranque de la API.
  */
 export const connectRedis = async () => {
-  if (!REDIS_ENABLED) return;
+  logger.info(`[Redis] Inicializando... ENABLED=${REDIS_ENABLED}, URL=${redisUrl.replace(/:[^:]*@/, ':****@')}`); // Ocultar contraseña
+  if (!REDIS_ENABLED) {
+    logger.warn('[Redis] Deshabilitado por configuración (REDIS_ENABLED != true)');
+    return;
+  }
   try {
     if (!client.isOpen) {
       await client.connect();

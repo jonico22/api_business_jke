@@ -21,7 +21,7 @@ if (!fs.existsSync(logDir)) {
 export const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
-    nrEnricher(), 
+    nrEnricher(),
     winston.format.timestamp(),
     winston.format.json()
   ),
@@ -32,14 +32,18 @@ export const logger = winston.createLogger({
 });
 
 // logger.exitOnError = false; // Allow Winston to handle exit gracefully
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple(),
-      winston.format.printf(
-        ({ level, message, timestamp }) => `${timestamp} [${level}]: ${message}`
+// Habilitar logs en consola SIEMPRE (necesario para Docker/Coolify/Render)
+logger.add(new winston.transports.Console({
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    process.env.NODE_ENV === 'production'
+      ? winston.format.json() // En prod, JSON para mejor parsing
+      : winston.format.combine( // En dev, colores y texto simple
+        winston.format.colorize(),
+        winston.format.simple(),
+        winston.format.printf(
+          ({ level, message, timestamp }) => `${timestamp} [${level}]: ${message}`
+        )
       )
-    ),
-  }));
-}
+  ),
+}));
