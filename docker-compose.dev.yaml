@@ -15,6 +15,7 @@ services:
       # Al poner solo el nombre, Docker busca la variable en tu terminal (inyectada por Infisical)
       - DATABASE_URL=postgresql://app_user:app_password@db:5432/my_app_db
       - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
       - REDIS_HOST=redis # O la variable que uses para Redis
       - JWT_SECRET
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
