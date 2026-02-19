@@ -8,7 +8,10 @@ import {
     deleteProduct,
     getUpdatedByUsers,
     getCreatedByUsers,
-    bulkUploadProducts
+    bulkUploadProducts,
+    getBestSellers,
+    getBrands,
+    getColors
 } from './product.controller';
 import auth from '@/middlewares/auth.middleware';
 import { upload } from '@/middlewares/upload.middleware';
@@ -32,6 +35,15 @@ router.get('/created-by-users', auth, getCreatedByUsers);
 
 // GET /api/sales/products/updated-by-users - Obtener usuarios que han actualizado productos
 router.get('/updated-by-users', auth, getUpdatedByUsers);
+
+// GET /api/sales/products/best-sellers - Productos más vendidos
+router.get('/best-sellers', auth, getBestSellers);
+
+// GET /api/sales/products/brands - Listado de marcas
+router.get('/brands', auth, getBrands);
+
+// GET /api/sales/products/colors - Listado de colores
+router.get('/colors', auth, getColors);
 
 // GET /api/sales/products/:id - Obtener un producto por ID
 router.get('/:id', auth, getProductById);

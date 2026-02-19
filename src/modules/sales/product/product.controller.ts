@@ -263,3 +263,63 @@ export const bulkUploadProducts = async (req: Request, res: Response) => {
         return errorResponse(res, 'Error al procesar archivo CSV', 500, error.message);
     }
 };
+
+/**
+ * Obtener productos más vendidos
+ * GET /api/sales/products/best-sellers
+ */
+export const getBestSellers = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+
+        const queryParams = new URLSearchParams({
+            societyId: societyId.toString(),
+            ...(req.query as any)
+        }).toString();
+
+        const products = await requestApiSaleGet(`products/best-sellers?${queryParams}`);
+        return successResponse(res, products, 'Productos más vendidos obtenidos exitosamente');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener productos más vendidos', 500, error.message);
+    }
+};
+
+/**
+ * Obtener listado de marcas
+ * GET /api/sales/products/brands
+ */
+export const getBrands = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+
+        const queryParams = new URLSearchParams({
+            societyId: societyId.toString(),
+            ...(req.query as any)
+        }).toString();
+
+        const brands = await requestApiSaleGet(`products/brands?${queryParams}`);
+        return successResponse(res, brands, 'Marcas obtenidas exitosamente');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener marcas', 500, error.message);
+    }
+};
+
+/**
+ * Obtener listado de colores
+ * GET /api/sales/products/colors
+ */
+export const getColors = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+
+        const queryParams = new URLSearchParams({
+            societyId: societyId.toString(),
+            ...(req.query as any)
+        }).toString();
+
+        const colors = await requestApiSaleGet(`products/colors?${queryParams}`);
+        return successResponse(res, colors, 'Colores obtenidos exitosamente');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener colores', 500, error.message);
+    }
+};

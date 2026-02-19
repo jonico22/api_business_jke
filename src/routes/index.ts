@@ -34,6 +34,8 @@ import societyRoutes from '@/modules/sales/society/society.routes';
 import orderRoutes from '@/modules/sales/order/order.routes';
 import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
 import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
+import favoriteRoutes from '@/modules/sales/favorite/favorite.routes';
+import salesDashboardRoutes from '@/modules/sales/dashboard/sales-dashboard.routes';
 import notificationRoutes from '@/modules/core/notification/notification.routes';
 import { setupRateLimiter } from '@/config/rateLimit';
 
@@ -97,7 +99,10 @@ router.use('/sales/orders/reports', reportRoutes); // Report route MUST be befor
 router.use('/sales/orders', orderRoutes);
 router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-payments', orderPaymentRoutes);
+router.use('/sales/favorites', favoriteRoutes);
+router.use('/sales/dashboard', salesDashboardRoutes);
 // router.use('/notifications', notificationRoutes); // Moved up
 
 export default router;

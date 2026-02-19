@@ -13,7 +13,7 @@ const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
  * @param path - Ruta del endpoint (sin la base URL)
  * @returns Promise con la respuesta JSON
  */
-export const requestApiSaleGet = async (path: string) => {
+export const requestApiSaleGet = async (path: string, options?: { headers?: Record<string, string> }) => {
     try {
         const url = `${API_SALES_URL}/${path}`;
         console.log('GET request a:', url);
@@ -22,6 +22,7 @@ export const requestApiSaleGet = async (path: string) => {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                ...(options?.headers || {})
             },
         });
 
