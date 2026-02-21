@@ -124,8 +124,9 @@ export const requestApiSalePost = async (path: string, body: any, options?: { he
 
         const requestOptions: RequestInit = {
             method: 'POST',
-            headers: options?.headers || {
-                'Content-Type': 'application/json'
+            headers: {
+                'Content-Type': 'application/json',
+                ...options?.headers
             },
             body: body ? JSON.stringify(body) : undefined
         };

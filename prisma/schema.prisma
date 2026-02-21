@@ -16,6 +16,7 @@ model User {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   isActive            Boolean              @default(false)
+  mustChangePassword  Boolean              @default(false)
   roleId              String
   role                Role                 @relation(fields: [roleId], references: [id])
   accounts            Account[]

@@ -18,7 +18,6 @@ enum RequestStatus {
 }
 
 const newSociety = async (data: any, suscription: string, code: string) => {
-  console.log('data', data);
   const response = await requestApiSalePost('societies', {
     code,
     name: data.businessName,
