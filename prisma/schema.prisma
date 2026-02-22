@@ -115,6 +115,7 @@ model BussinessPartner {
   phone          String
   telephone      String?
   address        String?
+  sexo           String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -523,13 +524,14 @@ model ReasoneForRejection {
 }
 
 model File {
-  id         String   @id @default(uuid())
+  id         String       @id @default(uuid())
   name       String
   path       String
-  mimeType   String
-  size       Int
-  key        String   @unique
-  uploadedAt DateTime @default(now())
+  mimeType   String?
+  size       Int?
+  key        String?      @unique
+  provider   FileProvider @default(R2)
+  uploadedAt DateTime     @default(now())
 
   // Relaciones
   uploadedById String?
@@ -618,4 +620,10 @@ model UbigeoPeru {
   longitude     Decimal? @db.Decimal(9, 6)
 
   @@map("UbigeoPeru")
+}
+
+enum FileProvider {
+  R2
+  S3
+  EXTERNAL
 }

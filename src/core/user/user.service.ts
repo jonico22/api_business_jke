@@ -41,6 +41,7 @@ class UserService {
                         typeBP: response.typeBP || 'natural',
                         typeDocId: documentType ? documentType.id : null,
                         documentNumber: response.documentNumber || null,
+                        sexo: response.sexo || null,
                     },
                 },
             },
@@ -105,6 +106,7 @@ class UserService {
                 lastName: response.lastName,
                 phone: response.phone,
                 address: response.address,
+                sexo: response.sexo,
             },
         });
     }
@@ -112,7 +114,18 @@ class UserService {
     async getProfile(userId: string) {
         return prisma.user.findUnique({
             where: { id: userId },
-            include: { role: true, person: true },
+            include: {
+                role: true,
+                person: {
+                    include: {
+                        documentType: true,
+                    },
+                },
+                sessions: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                }
+            },
         });
     }
     async unlockUser(userId: string) {

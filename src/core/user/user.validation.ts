@@ -12,6 +12,7 @@ export const createUserSchema = z.object({
   typeBP: z.enum(['natural', 'empresa']).optional(),
   isBusiness: z.boolean().optional().default(false),
   documentNumber: z.string().optional(),
+  sexo: z.string().optional(),
 });
 
 export const updateMeSchema = z.object({
@@ -19,4 +20,5 @@ export const updateMeSchema = z.object({
   lastName: z.string().min(2),
   phone: z.string().optional(),
   address: z.string().optional(),
+  sexo: z.string().optional(),
 });
