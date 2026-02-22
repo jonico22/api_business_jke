@@ -2,32 +2,14 @@
 import { Request, Response } from 'express';
 import { userService } from './user.service';
 import { createUserSchema, updateMeSchema } from './user.validation';
-import { buildPrismaFilters,buildPagination } from '@/utils/query-filter';
+import { buildPrismaFilters, buildPagination } from '@/utils/query-filter';
 import { successResponse, errorResponse } from '@/utils/response';
 
-import { generateEmailToken,verifyEmailToken } from '@/utils/token-email';
+import { generateEmailToken, verifyEmailToken } from '@/utils/token-email';
 import { sendEmailVerification } from '@/utils/mailer';
 
 import { redis } from '@/shared/services/redis.service';
 
-// Extend Express Request interface to include 'user'
-declare global {
-  namespace Express {
-    interface UserRole {
-      name: string;
-      [key: string]: any;
-    }
-    interface User {
-      id: string;
-      role: UserRole;
-      [key: string]: any; 
-    }
-    interface Request {
-      user: User;
-      role: String
-    }
-  }
-}
 
 /**
  * @swagger
@@ -65,9 +47,9 @@ export const createUser = async (req: Request, res: Response) => {
     const data = createUserSchema.parse(req.body);
     const result: Awaited<ReturnType<typeof userService.createUser>> = await userService.createUser(data);
 
-    return successResponse(res, result,'Usuario creado correctamente');
+    return successResponse(res, result, 'Usuario creado correctamente');
   } catch (error) {
-   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al crear usuario', 500, errorMessage);
   }
 };
@@ -87,7 +69,7 @@ export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
     const user = await userService.getProfile(userId);
-    return successResponse(res, user,'Perfil del usuario obtenido correctamente');
+    return successResponse(res, user, 'Perfil del usuario obtenido correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al obterner perfil del usuario', 500, errorMessage);
@@ -118,7 +100,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     const data = updateMeSchema.parse(req.body);
     const result = await userService.updateProfile(userId, data);
     await redis.deleteKeysByPrefix('users:');
-    return successResponse(res, result,'Usuario actualizado');
+    return successResponse(res, result, 'Usuario actualizado');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al actualizar usuario', 500, errorMessage);
@@ -214,7 +196,7 @@ export const unlockUser = async (req: Request, res: Response) => {
     const userId = req.params.id;
     const role = req.role as string;
     if (!['ADMIN', 'SUPPORT'].includes(role)) {
-     return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
+      return errorResponse(res, 'No autorizado para desbloquear usuarios', 403);
     }
     const result = await userService.unlockUser(userId);
     return successResponse(res, result, 'Usuario desbloqueado correctamente');
@@ -242,19 +224,19 @@ export const getAllSessions = async (req: Request, res: Response) => {
   try {
 
     const filters: Record<string, unknown> = buildPrismaFilters(req.query);
-    const { skip, take, page, limit,warnings  } = buildPagination(req.query);
+    const { skip, take, page, limit, warnings } = buildPagination(req.query);
     const cacheKey = `sessions:${JSON.stringify(req.query)}`;
     const cached = await redis.get(cacheKey);
     const role = req.role as string;
     if (cached) {
       return successResponse(res, JSON.parse(cached as string), 'Sesiones cacheadas');
     }
-   
+
     const [sessions, total] = await Promise.all([
       userService.getAllSessions(filters, skip, take),
       userService.countSessions(filters),
     ]);
-     const data = {
+    const data = {
       sessions,
       page,
       limit,
@@ -268,7 +250,7 @@ export const getAllSessions = async (req: Request, res: Response) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al listar sesiones', 500, errorMessage);
-  } 
+  }
 }
 
 /**
@@ -320,7 +302,7 @@ export const deleteSessionUser = async (req: Request, res: Response) => {
  *        description: No autorizado para eliminar sesiones de usuarios
  *       500:
  *        description: Error al eliminar sesiones de usuario
- */ 
+ */
 
 export const deleteAllSessions = async (req: Request, res: Response) => {
   try {
@@ -331,7 +313,7 @@ export const deleteAllSessions = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No autorizado para eliminar sesiones de usuarios' });
     }
     const result = await userService.deleteUserSessions(sessionId);
-     return successResponse(res, result, 'Sesiones de usuario eliminadas correctamente');
+    return successResponse(res, result, 'Sesiones de usuario eliminadas correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al eliminar sesiones', 500, errorMessage);
@@ -359,7 +341,7 @@ export const deleteAllSessions = async (req: Request, res: Response) => {
 export const filterUsers = async (req: Request, res: Response) => {
   try {
     const filters = buildPrismaFilters(req.query);
-    const { skip, take, page, limit,warnings  } = buildPagination(req.query);
+    const { skip, take, page, limit, warnings } = buildPagination(req.query);
     const filtersRemovePageLimit = { ...filters };
     delete filtersRemovePageLimit.page;
     delete filtersRemovePageLimit.limit;
@@ -369,7 +351,7 @@ export const filterUsers = async (req: Request, res: Response) => {
     if (cached) {
       return successResponse(res, JSON.parse(cached as string), 'Usuarios cacheados');
     }
-    const [users,total ] = await Promise.all([
+    const [users, total] = await Promise.all([
       userService.getUsers(filtersRemovePageLimit, skip, take),
       userService.countUsers(filtersRemovePageLimit),
     ]);
@@ -407,7 +389,7 @@ export const filterUsers = async (req: Request, res: Response) => {
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const user = await userService.findById(req.params.id);
-    if (!user || user.isDeleted)  return errorResponse(res, 'Usuario no encontrado', 404, 'Usuario no encontrado');
+    if (!user || user.isDeleted) return errorResponse(res, 'Usuario no encontrado', 404, 'Usuario no encontrado');
     return successResponse(res, user, 'Usuario encontrado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

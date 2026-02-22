@@ -1,18 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 
-// Extendemos la interfaz de Express para que req.user y req.role sean reconocidos en toda la app
-declare global {
-  namespace Express {
-    interface Request {
-      user: any;
-      role: string;
-      sessionId?: string;
-      session?: { id: string;[key: string]: any };
-      societyId?: string;
-    }
-  }
-}
 
 const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {

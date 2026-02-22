@@ -41,6 +41,7 @@ export class AuthService {
             name: true,
             emailVerified: true,
             isActive: true,
+            mustChangePassword: true,
             failedLoginAttempts: true,
             lockedUntil: true,
             role: { // Traemos el rol directamente desde aquí
@@ -157,6 +158,7 @@ export class AuthService {
 
     const hashedPass = await hashPassword(newPassword);
     await prisma.account.updateMany({ where: { userId: reset.userId }, data: { password: hashedPass } });
+    await prisma.user.update({ where: { id: reset.userId }, data: { mustChangePassword: false } });
     await prisma.passwordResetToken.delete({ where: { token: hashed } });
   }
 
@@ -171,6 +173,7 @@ export class AuthService {
     const hashedPass = await hashPassword(newPassword);
     if (!account.id) throw new Error('Cuenta inválida');
     await prisma.account.update({ where: { id: account.id }, data: { password: hashedPass } });
+    await prisma.user.update({ where: { id: userId }, data: { mustChangePassword: false } });
     await sendPasswordChangeEmail(user?.email || '');
   }
 
@@ -216,7 +219,10 @@ export class AuthService {
   }
 
   async resetUserPassword(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true }
+    });
     if (!user) throw new Error('Usuario no encontrado');
     const newPassword = generateRandomPassword();
     const hashedPassword = await argon2.hash(newPassword);
@@ -224,6 +230,15 @@ export class AuthService {
       where: { userId },
       data: { password: hashedPassword },
     });
+
+    // No forzamos cambio de contraseña si es ADMIN
+    if (user.role.code !== 'ADMIN') {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { mustChangePassword: true }
+      });
+    }
+
     await sendResetByAdminEmail(user.email, newPassword);
   }
 

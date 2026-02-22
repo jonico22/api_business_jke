@@ -154,8 +154,44 @@ export const initSocketHub = async (httpServer: any) => {
             }
 
             else if (payload.action === 'UPDATE_TABLE') {
-                // Solo emitir (No guardamos en tabla notificaciones, es solo visual)
-                io.to(`business_${payload.businessId}`).emit("ui_update_table", payload.data);
+                const resolvedBusinessId = payload.businessId || payload.data?.businessId || payload.data?.societyId;
+
+                logger.info(`🔄 UPDATE_TABLE recibido. ID resuelto: ${resolvedBusinessId}`);
+
+                if (!resolvedBusinessId) {
+                    logger.warn(`[SocketHub] UPDATE_TABLE ignorado: No se pudo resolver un ID válido del payload.`);
+                    console.error("===== ERROR PAYLOAD =====");
+                    console.error(JSON.stringify(payload, null, 2));
+                    console.error("=========================");
+                    return;
+                }
+
+                try {
+                    // Resolve Subscription ID to handle societyId fallback like NOTIFY does
+                    let targetBusinessId = resolvedBusinessId;
+
+                    // Only query Prisma if the derived businessId is exactly a 36-char UUID format
+                    if (resolvedBusinessId.length === 36 && resolvedBusinessId.split('-').length === 5) {
+                        const subById = await prisma.subscription.findUnique({
+                            where: { id: resolvedBusinessId },
+                            select: { id: true, societyId: true }
+                        });
+
+                        if (subById) {
+                            targetBusinessId = subById.id;
+                        }
+                    }
+
+                    // Emit to the primary resolved ID room
+                    io.to(`business_${resolvedBusinessId}`).emit("ui_update_table", payload.data);
+
+                    if (targetBusinessId && targetBusinessId !== resolvedBusinessId) {
+                        logger.info(`[SocketHub] Emitiendo UPDATE_TABLE también a room secundario: business_${targetBusinessId}`);
+                        io.to(`business_${targetBusinessId}`).emit("ui_update_table", payload.data);
+                    }
+                } catch (err: any) {
+                    logger.error(`[SocketHub] Error critico procesando UPDATE_TABLE: ${err.message}`, err);
+                }
             }
 
         } catch (err: any) {

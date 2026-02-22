@@ -7,15 +7,6 @@ import { errorResponse, successResponse } from '@/utils/response';
 import { sessionService } from "./session.service";
 import { setSessionCookie } from "@/utils/cookies";
 
-// Extend Express Request interface to include sessionId
-declare global {
-  namespace Express {
-    interface Request {
-      sessionId?: string;
-      session?: { id: string; [key: string]: any }; // session is now an object with at least an id property
-    }
-  }
-}
 // Definimos si estamos en producción una sola vez
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -30,11 +21,11 @@ export const login = async (req: Request, res: Response) => {
 
     const { email, password } = validation.data;
     const userAgent = req.headers['user-agent'] || 'unknown';
-    
+
     // 2. Obtención de IP (priorizando proxies confiables)
-    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || 
-                      req.socket.remoteAddress || 
-                      'unknown';
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+      req.socket.remoteAddress ||
+      'unknown';
 
     // 3. Lógica de negocio
     const result = await authService.login(email, password, userAgent, ipAddress);
@@ -42,8 +33,8 @@ export const login = async (req: Request, res: Response) => {
     // 4. Configuración de la Cookie
     res.cookie("session-token", result.token, {
       httpOnly: true,
-      secure: isProduction, 
-      sameSite: isProduction ? "none" : "lax", 
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       path: "/",
       expires: result.newExpiresAt,
     });
@@ -52,9 +43,9 @@ export const login = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     // Diferenciar errores de autenticación (401) de errores de servidor (500)
-    const status = error.status || 401; 
+    const status = error.status || 401;
     const message = error.message || 'Error al iniciar sesión';
-    
+
     return errorResponse(res, message, status, isProduction ? undefined : error.stack);
   }
 };
@@ -66,10 +57,10 @@ export const logout = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'User ID or session ID is missing' });
     }
     await authService.logout(userId, sessionId);
-       // Limpia la cookie
+    // Limpia la cookie
     res.clearCookie("session-token", {
       httpOnly: true,
-      secure: isProduction, 
+      secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
       path: "/",
     });
@@ -150,7 +141,6 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 
 
 export const getCurrentUser = async (req: Request, res: Response) => {
-  console.log('GetCurrentUser variable',isProduction);
   try {
     const sessionId = req.sessionId;
 
@@ -164,10 +154,10 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     res.cookie("session-token", result.token, {
       httpOnly: true,
       // En producción DEBE ser true (requiere HTTPS)
-      secure: isProduction, 
+      secure: isProduction,
       // 'none' permite enviar cookies entre dominios distintos (ej: api.com y app.com)
       // pero solo funciona si 'secure' es true. En dev usamos 'lax'.
-      sameSite: isProduction ? "none" : "lax", 
+      sameSite: isProduction ? "none" : "lax",
       path: "/",
       expires: result.expires,
     });
