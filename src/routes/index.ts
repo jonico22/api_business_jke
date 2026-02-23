@@ -57,6 +57,8 @@ router.use(limiter);
 // File upload routes registered BEFORE express.json()
 router.use('/sales/products', productRoutes);
 router.use('/sales/categories', categoryRoutes);
+import salesFileRoutes from '@/modules/sales/file/file.routes';
+router.use('/sales/files', salesFileRoutes);
 router.use('/files', files);
 
 // Apply express.json() AFTER file upload routes to prevent interference with multipart/form-data
