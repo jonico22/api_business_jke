@@ -16,11 +16,12 @@ export const createUserSchema = z.object({
 });
 
 export const updateMeSchema = z.object({
-  firstName: z.string().min(2),
-  lastName: z.string().min(2),
+  firstName: z.string().min(2).optional(),
+  lastName: z.string().min(2).optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   sexo: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  image: z.string().url().optional(),
 });
 
 export const createBusinessUserSchema = z.object({

@@ -99,16 +99,35 @@ class UserService {
 
     async updateProfile(userId: string, data: any) {
         const response = updateMeSchema.parse(data);
-        return prisma.bussinessPartner.update({
-            where: { userId },
-            data: {
-                firstName: response.firstName,
-                lastName: response.lastName,
-                phone: response.phone,
-                address: response.address,
-                sexo: response.sexo,
-            },
-        });
+
+        const bpData = {
+            firstName: response.firstName,
+            lastName: response.lastName,
+            phone: response.phone,
+            address: response.address,
+            sexo: response.sexo,
+        };
+
+        const hasBpData = Object.values(bpData).some(val => val !== undefined);
+        let updatedBP;
+
+        if (hasBpData) {
+            updatedBP = await prisma.bussinessPartner.update({
+                where: { userId },
+                data: bpData,
+            });
+        } else {
+            updatedBP = await prisma.bussinessPartner.findUnique({ where: { userId } });
+        }
+
+        if (response.image !== undefined) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { image: response.image }
+            });
+        }
+
+        return updatedBP;
     }
 
     async getProfile(userId: string) {
