@@ -6,12 +6,12 @@ import { getNotificationsQuerySchema } from './notification.validation';
 
 export const checkListCache = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
         if (!subscriptionId) return next();
 
-        // Validate/Clean query to match service logic exactly
+        // Validate/Clean query to match service logic exactamente
         const queryResult = getNotificationsQuerySchema.safeParse({ query: req.query });
-        if (!queryResult.success) return next(); // Let controller handle validation error
+        if (!queryResult.success) return next(); // Dejar que el controlador maneje el error de validación
 
         const query = queryResult.data.query;
         const cacheKey = getListCacheKey(subscriptionId, query);
@@ -33,7 +33,7 @@ export const checkListCache = async (req: Request, res: Response, next: NextFunc
 
 export const checkUnreadCache = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
         if (!subscriptionId) return next();
 
         const cacheKey = getUnreadCacheKey(subscriptionId);

@@ -66,7 +66,7 @@ export const createInitialAdmin = async () => {
       },
       person: {
         create: {
-          typeBP: 'natural',
+          typeBP: 'PERSONA',
           firstName: 'Admin',
           lastName: 'Principal',
           email: adminEmail,

@@ -97,27 +97,38 @@ model DocumentType {
   BussinessPartner BussinessPartner[]
 }
 
+enum BusinessPartnerType {
+  PERSONA
+  EMPRESA
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
 model BussinessPartner {
-  userId         String?       @unique
-  user           User?         @relation(fields: [userId], references: [id])
-  id             String        @id @default(uuid())
-  typeBP         String // Tipo de socio de negocio (persona, empresa, etc.)
+  userId         String?             @unique
+  user           User?               @relation(fields: [userId], references: [id])
+  id             String              @id @default(uuid())
+  typeBP         BusinessPartnerType // Tipo de socio de negocio (persona, empresa, etc.)
   typeDocId      String?
-  documentType   DocumentType? @relation(fields: [typeDocId], references: [id])
-  documentNumber String?       @unique
+  documentType   DocumentType?       @relation(fields: [typeDocId], references: [id])
+  documentNumber String?             @unique
   firstName      String
   middleName     String?
   lastName       String
   surname        String?
   companyName    String?
   contactEmail   String?
-  email          String        @unique
-  phone          String
+  email          String              @unique
+  phone          String?
   telephone      String?
   address        String?
-  sexo           String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  sexo           Gender?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   isActive  Boolean @default(true)
   isDeleted Boolean @default(false)
@@ -254,8 +265,11 @@ model Plan {
   name             String
   description      String?
   shortdescription String?
+  features         Json? // JSON para almacenar detalles personalizados ej: [{ text: "Ventas ilimitadas", icon: "check" }]
   price            Float
   maxUsers         Int
+  maxProducts      Int     @default(100)
+  storage          Int     @default(150) // en MB
   isActive         Boolean @default(true)
 
   serviceId String
@@ -274,7 +288,10 @@ model Plan {
   createdBy String?
   updatedBy String?
 
-  Tariff Tariff[]
+  Tariff            Tariff[]
+  subscriptions     Subscription[]
+  previousMovements SubscriptionMovement[] @relation("PreviousPlan")
+  newMovements      SubscriptionMovement[] @relation("NewPlan")
 }
 
 model Promotion {
@@ -318,9 +335,11 @@ enum DurationUnit {
 model Subscription {
   id              String             @id @default(uuid())
   userId          String
+  planId          String
   startDate       DateTime
   endDate         DateTime
   status          SubscriptionStatus @default(PENDING)
+  autoRenew       Boolean            @default(true) // Indica si se renovará automáticamente
   lastRenewalDate DateTime?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -328,6 +347,7 @@ model Subscription {
   societyId       String             @unique
   // Relaciones
   user            User               @relation(fields: [userId], references: [id])
+  plan            Plan               @relation(fields: [planId], references: [id])
   createdBy       String?
   updatedBy       String?
 
@@ -337,6 +357,9 @@ model Subscription {
   requestId                  String
   request                    Request                      @relation(fields: [requestId], references: [id])
   notifications              Notification[]
+
+  @@index([userId])
+  @@index([societyId])
 }
 
 model Notification {
@@ -358,6 +381,8 @@ model Notification {
   isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
 }
 
 enum NotificationType {
@@ -384,6 +409,8 @@ enum SubscriptionStatus {
 model SubscriptionMovement {
   id                  String               @id @default(uuid())
   subscriptionId      String
+  previousPlanId      String?
+  newPlanId           String?
   movementDate        DateTime             @default(now()) // fecha de renovación o cambio
   previousEndDate     DateTime? // fecha de fin antes de la renovación
   newEndDate          DateTime // nueva fecha de fin después de la renovación
@@ -392,7 +419,11 @@ model SubscriptionMovement {
   createdAt           DateTime?            @default(now())
   createdBy           String?
   subscription        Subscription         @relation(fields: [subscriptionId], references: [id])
+  previousPlan        Plan?                @relation("PreviousPlan", fields: [previousPlanId], references: [id])
+  newPlan             Plan?                @relation("NewPlan", fields: [newPlanId], references: [id])
   paymentTransactions PaymentTransaction[] // AÑADIDO: Relación inversa a las transacciones
+
+  @@index([subscriptionId])
 }
 
 enum MovementType {
@@ -433,6 +464,8 @@ model PaymentTransaction {
   fileId                 String?
   file                   File?                @relation(fields: [fileId], references: [id])
   receipt                Receipt? // Relación uno a uno con el comprobante
+
+  @@index([subscriptionMovementId])
 }
 
 enum PaymentMethod {
@@ -479,7 +512,7 @@ model Request {
   phone          String
   documentNumber String?       @unique
   isBusiness     Boolean       @default(false)
-  status         RequestStatus @default(pending)
+  status         RequestStatus @default(PENDING)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   tariffId       String // tarifa aplicada si es que se verificó
@@ -493,9 +526,9 @@ model Request {
 }
 
 enum RequestStatus {
-  pending
-  rejected
-  verified
+  PENDING
+  REJECTED
+  VERIFIED
 }
 
 model Tariff {
@@ -523,6 +556,13 @@ model ReasoneForRejection {
   Request Request[]
 }
 
+enum FileCategory {
+  GENERAL
+  REPORT
+  RECEIPT
+  AVATAR
+}
+
 model File {
   id         String       @id @default(uuid())
   name       String
@@ -532,13 +572,21 @@ model File {
   key        String?      @unique
   provider   FileProvider @default(R2)
   uploadedAt DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
 
   // Relaciones
+  category     FileCategory @default(GENERAL)
+  societyId    String?
   uploadedById String?
-  uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id])
 
   PaymentTransaction PaymentTransaction[]
   Receipt            Receipt[]
+
+  isDeleted Boolean @default(false)
+
+  @@index([societyId])
+  @@index([uploadedById])
 }
 
 model Tax {
@@ -601,6 +649,8 @@ model Receipt {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
 }
 
 enum ReceiptStatus {

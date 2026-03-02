@@ -109,13 +109,25 @@ export class AuthService {
 
     console.log('[LOGIN] ✅ Login exitoso. Sesión creada:', session.id);
 
+    // Obtener info de suscripción si tiene sociedad
+    let subscription = null;
+    if (user.role?.code !== 'ADMIN' && user.role?.code !== 'SUPPORT') {
+      const roleDoc = await prisma.role.findFirst({ where: { code: user.role.code } });
+      if (roleDoc?.societyId) {
+        subscription = await prisma.subscription.findUnique({
+          where: { societyId: roleDoc.societyId },
+          select: { status: true, planId: true, endDate: true, autoRenew: true }
+        });
+      }
+    }
+
     return {
       token: session.token,
       user: account.user,
       newExpiresAt,
       role: user.role,
-      session
-      //views: await this.getViewsByRoleId(account.user.roleId || '') 
+      session,
+      subscription // <-- Se envía al frontend
     };
   }
 
@@ -242,19 +254,48 @@ export class AuthService {
     await sendResetByAdminEmail(user.email, newPassword);
   }
 
-  async getPermissionsByRoleId(roleId: string) {
-    const permissions = await prisma.roleViewPermission.findMany({
-      where: { roleId },
-      include: { permission: true },
+  async getMyPermissions(userId: string, roleId: string) {
+    // 1. Obtener todos los permisos del rol
+    const rolePerms = await prisma.roleViewPermission.findMany({
+      where: { roleId, isActive: true },
+      include: {
+        view: { select: { code: true } },
+        permission: { select: { name: true } }
+      }
     });
-    return permissions.map((p: { permission: { name: any; }; }) => ({ name: p.permission.name }));
-  }
-  async getViewsByRoleId(roleId: string) {
-    const views = await prisma.roleViewPermission.findMany({
-      where: { roleId, permission: { name: 'read' } },
-      include: { view: true, permission: true },
+
+    // 2. Obtener todos los permisos aditivos directos del usuario
+    const userPerms = await prisma.userViewPermission.findMany({
+      where: { userId, isActive: true },
+      include: {
+        view: { select: { code: true } },
+        permission: { select: { name: true } }
+      }
     });
-    return views.map((v: { view: { name: any; }; permission: { name: any; }; }) => ({ name: v.view.name, permissions: v.permission ? { name: v.permission.name } : null }));
+
+    // 3. Estructurar el resultado para el Frontend
+    const viewsMap: Record<string, Set<string>> = {};
+
+    // Helper para agrupar permisos en el mapa
+    const addPermissionToMap = (viewCode: string, permissionName: string) => {
+      if (!viewsMap[viewCode]) {
+        viewsMap[viewCode] = new Set();
+      }
+      viewsMap[viewCode].add(permissionName);
+    };
+
+    rolePerms.forEach(rp => addPermissionToMap(rp.view.code, rp.permission.name));
+    userPerms.forEach(up => addPermissionToMap(up.view.code, up.permission.name));
+
+    // Convertir de Map<string, Set> a Objeto final
+    const finalPermissions: Record<string, string[]> = {};
+    for (const [view, actions] of Object.entries(viewsMap)) {
+      finalPermissions[view] = Array.from(actions);
+    }
+
+    return {
+      views: finalPermissions
+    };
   }
 
   async getCurrentUser(sessionId: string) {
@@ -268,11 +309,21 @@ export class AuthService {
     const role = await prisma.role.findFirst({
       where: { users: { some: { id: session.userId } } },
     });
+
+    let subscription = null;
+    if (role && role.code !== 'ADMIN' && role.code !== 'SUPPORT' && role.societyId) {
+      subscription = await prisma.subscription.findUnique({
+        where: { societyId: role.societyId },
+        select: { status: true, planId: true, endDate: true, autoRenew: true }
+      });
+    }
+
     return {
       user: session.user,
       expires: session.expiresAt,
       token: session.token,
       role,
+      subscription // <-- Se envía al frontend al recargar página
     };
   }
   async verificationEmail(email: string) {

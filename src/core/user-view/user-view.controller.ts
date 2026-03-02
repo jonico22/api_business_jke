@@ -7,7 +7,7 @@ export const assignUserViewPermission = async (req: Request, res: Response) => {
   try {
     const validated = userViewSchema.safeParse(req.body);
     if (!validated.success) return res.status(400).json(validated.error.flatten());
-    const result = await userViewService.assign(validated.data);
+    const result = await userViewService.assign(validated.data as any);
     res.status(201).json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -32,7 +32,7 @@ export const getUserViewPermissions = async (req: Request, res: Response) => {
     const result = await userViewService.getByUserPermission(userId);
     res.json(result);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';  
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 }

@@ -23,6 +23,7 @@ declare global {
             sessionId?: string;
             session?: { id: string;[key: string]: any };
             societyId?: string;
+            subscriptionId?: string;
         }
     }
 }

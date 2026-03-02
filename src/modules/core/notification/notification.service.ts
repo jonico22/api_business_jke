@@ -3,40 +3,20 @@ import { GetNotificationsQuery } from './notification.validation';
 import { Prisma, NotificationType } from '@prisma/client';
 import { redis } from '@/shared/services/redis.service';
 import { logger } from '@/utils/logger';
+import { buildPagination } from '@/utils/query-filter';
 
 // Helper for cache keys
 export const getListCacheKey = (subscriptionId: string, query: any) =>
-    `notifications:${subscriptionId}:list:${JSON.stringify(query)}`;
+    redis.generateDeterministicKey(`notifications:${subscriptionId}:list`, query);
 
 export const getUnreadCacheKey = (subscriptionId: string) =>
     `notifications:${subscriptionId}:unreadCount`;
-
-// Helper to resolve subscription ID (UUID) from Context ID (Society Code or UUID)
-const resolveSubscriptionId = async (id: string): Promise<string> => {
-    // Basic UUID check
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    if (isUuid) return id;
-
-    // It's likely a societyId (SOC-...)
-    const sub = await prisma.subscription.findUnique({
-        where: { societyId: id },
-        select: { id: true }
-    });
-
-    if (!sub) {
-        logger.warn(`[NotificationService] No subscription found for societyId: ${id}`);
-        // Return original to let Prisma fail naturally or return empty
-        return id;
-    }
-    return sub.id;
-};
 
 export const getNotifications = async (
     subscriptionId: string,
     query: GetNotificationsQuery
 ) => {
-    const { page, limit, type, read } = query;
-    // Cache key generation uses the ORIGINAL identifier (req.societyId) to match Middleware
+    // Cache key generation uses deterministic helper
     const cacheKey = getListCacheKey(subscriptionId, query);
 
     // 1. Try to get from cache
@@ -46,28 +26,28 @@ export const getNotifications = async (
         return cached;
     }
 
-    // Resolve real UUID for DB query
-    const dbSubscriptionId = await resolveSubscriptionId(subscriptionId);
-
     const where: Prisma.NotificationWhereInput = {
-        subscriptionId: dbSubscriptionId,
+        subscriptionId,
         isDeleted: false,
     };
 
-    if (type) {
-        where.type = type as NotificationType;
+    if (query.type) {
+        where.type = query.type as NotificationType;
     }
 
-    if (read !== undefined) {
-        where.read = read;
+    if (query.read !== undefined) {
+        where.read = query.read;
     }
+
+    // Use global pagination utility
+    const { skip, take, page, limit } = buildPagination(query);
 
     const [total, notifications] = await Promise.all([
         prisma.notification.count({ where }),
         prisma.notification.findMany({
             where,
-            skip: (page - 1) * limit,
-            take: limit,
+            skip,
+            take,
             orderBy: { createdAt: 'desc' },
         }),
     ]);
@@ -94,11 +74,9 @@ export const getUnreadCount = async (subscriptionId: string) => {
         return cached;
     }
 
-    const dbSubscriptionId = await resolveSubscriptionId(subscriptionId);
-
     const count = await prisma.notification.count({
         where: {
-            subscriptionId: dbSubscriptionId,
+            subscriptionId,
             read: false,
             isDeleted: false
         }
@@ -109,12 +87,9 @@ export const getUnreadCount = async (subscriptionId: string) => {
 };
 
 export const markAsRead = async (id: string, subscriptionId: string) => {
-    // Resolve UUID for DB
-    const dbSubscriptionId = await resolveSubscriptionId(subscriptionId);
-
-    // Ensure the notification belongs to the subscription (using UUID)
+    // Ensure the notification belongs to the subscription
     const notification = await prisma.notification.findFirst({
-        where: { id, subscriptionId: dbSubscriptionId },
+        where: { id, subscriptionId },
     });
 
     if (!notification) {
@@ -126,16 +101,14 @@ export const markAsRead = async (id: string, subscriptionId: string) => {
         data: { read: true },
     });
 
-    // Invalidate cache using ORIGINAL subscriptionId (SOC code)
+    // Invalidate cache
     await redis.deleteKeysByPrefix(`notifications:${subscriptionId}:`);
     return result;
 };
 
 export const markAllAsRead = async (subscriptionId: string) => {
-    const dbSubscriptionId = await resolveSubscriptionId(subscriptionId);
-
     const result = await prisma.notification.updateMany({
-        where: { subscriptionId: dbSubscriptionId, read: false },
+        where: { subscriptionId, read: false },
         data: { read: true },
     });
 
@@ -144,11 +117,9 @@ export const markAllAsRead = async (subscriptionId: string) => {
 };
 
 export const deleteNotification = async (id: string, subscriptionId: string) => {
-    const dbSubscriptionId = await resolveSubscriptionId(subscriptionId);
-
     // Ensure the notification belongs to the subscription
     const notification = await prisma.notification.findFirst({
-        where: { id, subscriptionId: dbSubscriptionId },
+        where: { id, subscriptionId },
     });
 
     if (!notification) {

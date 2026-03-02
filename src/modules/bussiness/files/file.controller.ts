@@ -19,6 +19,7 @@ export const uploadFile = async (req: Request, res: Response) => {
       size: result.size,
       key: result.key,
       provider: 'R2',
+      societyId: req.societyId,
     });
 
     res.status(201).json({ message: 'Archivo subido con éxito', file: result });
@@ -39,6 +40,7 @@ export const registerExternalFile = async (req: Request, res: Response) => {
       name,
       path: url,
       provider: 'EXTERNAL',
+      societyId: req.societyId,
     });
 
     res.status(201).json({ message: 'Archivo externo registrado con éxito', file });
@@ -79,6 +81,9 @@ export const getFile = async (req: Request, res: Response) => {
 };
 
 export const listFiles = async (req: Request, res: Response) => {
-  const files = await prisma.file.findMany();
-  res.json(files);
+  const societyId = req.societyId;
+  if (!societyId) return res.status(401).json({ message: "Contexto de sociedad no encontrado" });
+
+  const result = await require('./file.service').getFiles(societyId, req.query);
+  res.json(result);
 };

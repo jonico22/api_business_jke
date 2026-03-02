@@ -168,6 +168,25 @@ export const redis = {
     } catch (error) {
       logger.error(`[Redis] Error limpiando prefijo ${prefix}:`, error);
     }
+  },
+
+  /**
+   * Genera una clave de caché determinista ordenando las propiedades del objeto
+   */
+  generateDeterministicKey(prefix: string, obj: any): string {
+    const sortObject = (o: any): any => {
+      if (o === null || typeof o !== 'object') return o;
+      if (Array.isArray(o)) return o.map(sortObject);
+      return Object.keys(o)
+        .sort()
+        .reduce((acc: any, key) => {
+          acc[key] = sortObject(o[key]);
+          return acc;
+        }, {});
+    };
+
+    const sortedStr = JSON.stringify(sortObject(obj));
+    return `${prefix}:${sortedStr}`;
   }
 };
 

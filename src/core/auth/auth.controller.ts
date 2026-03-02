@@ -211,3 +211,20 @@ export const archiveUser = async (req: Request, res: Response) => {
   }
 };
 
+export const getMyPermissions = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const roleId = req.user?.roleId;
+
+    if (!userId || !roleId) {
+      return res.status(401).json({ message: 'Usuario no autenticado' });
+    }
+
+    const permissions = await authService.getMyPermissions(userId, roleId);
+    return successResponse(res, permissions, 'Permisos obtenidos correctamente');
+  } catch (error) {
+    console.error('[GetMyPermissions Error]:', error);
+    return res.status(500).json({ message: 'Error interno obteniendo permisos' });
+  }
+};
+

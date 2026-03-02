@@ -143,3 +143,70 @@ export const sendSubscriptionPaymentEmail = async (to: string, amount: number, c
   }
 
 }
+
+export const sendSubscriptionRenewalReminder = async (to: string, daysLeft: number, endDate: Date): Promise<void> => {
+  try {
+    const formattedDate = endDate.toLocaleDateString('es-ES', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const htmlContent = `
+      <h2>¡Atención! Tu suscripción expira pronto</h2>
+      <p>Hola,</p>
+      <p>Te escribimos para recordarte que tu suscripción finalizará en <strong>${daysLeft} días</strong> (el ${formattedDate}).</p>
+      <p>Para evitar interrupciones en el servicio, por favor realiza el pago de tu plan (Mediante Transferencia Bancaria) entrando a tu panel de facturación.</p>
+      <br/>
+      <a href="${getFrontendAppUrl()}/settings/billing" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Notificar Pago</a>
+    `;
+
+    await sendEmail({
+      to,
+      subject: `Tu suscripción expira en ${daysLeft} días`,
+      htmlContent,
+    });
+  } catch (error) {
+    console.error('❌ Error enviando recordatorio de suscripción:', error);
+  }
+};
+
+export const sendSubscriptionExpired = async (to: string): Promise<void> => {
+  try {
+    const htmlContent = `
+      <h2>Tu suscripción ha expirado - Período de Gracia</h2>
+      <p>Hola,</p>
+      <p>Queremos informarte que la fecha límite de tu suscripción ha expirado. Al no contar con un sistema de cobro automático, no hemos registrado ningún pago reciente.</p>
+      <p>Para apoyarte, te hemos otorgado un <strong>Periodo de Gracia de 7 días</strong> para que puedas realizar tu transferencia y no perder el acceso a la plataforma.</p>
+      <br/>
+      <a href="${getFrontendAppUrl()}/settings/billing" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Ver detalles de transferencia</a>
+    `;
+
+    await sendEmail({
+      to,
+      subject: 'Tu suscripción ha expirado (7 días de gracia)',
+      htmlContent,
+    });
+  } catch (error) {
+    console.error('❌ Error enviando correo de expiración:', error);
+  }
+};
+
+export const sendSubscriptionCancelledFinal = async (to: string): Promise<void> => {
+  try {
+    const htmlContent = `
+      <h2>Tu suscripción ha sido cancelada definitivamente</h2>
+      <p>Hola,</p>
+      <p>Te informamos que tu periodo de gracia de 7 días ha concluido sin registrar un pago, por lo que tu suscripción ha sido cancelada permanentemente.</p>
+      <p>Para volver a utilizar nuestro servicio, deberás adquirir un nuevo plan desde tu panel de facturación.</p>
+      <br/>
+      <a href="${getFrontendAppUrl()}/settings/billing" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Ver Planes</a>
+    `;
+
+    await sendEmail({
+      to,
+      subject: 'Cancelación definitiva de Suscripción',
+      htmlContent,
+    });
+  } catch (error) {
+    console.error('❌ Error enviando correo de cancelación final:', error);
+  }
+};

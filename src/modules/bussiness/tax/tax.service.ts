@@ -12,12 +12,12 @@ export const getTaxById = async (id: string) => {
 
 export const createTax = async (data: z.infer<typeof createTaxSchema>) => {
   const validated = createTaxSchema.parse(data);
-  return await prisma.tax.create({ data: validated })
+  return await prisma.tax.create({ data: validated as any })
 }
 
 export const updateTax = async (id: string, data: z.infer<typeof updateTaxSchema>) => {
   const validated = updateTaxSchema.parse(data);
-  return await prisma.tax.update({ where: { id }, data: validated })
+  return await prisma.tax.update({ where: { id }, data: validated as any })
 }
 
 export const deleteTax = async (id: string) => {

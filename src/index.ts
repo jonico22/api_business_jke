@@ -21,6 +21,7 @@ import hpp from 'hpp'; // Added import for hpp
 import http from 'http'; // Added import for http
 import prisma from '@/config/database';
 import { initSocketHub } from '@/services/socket-hub';
+import { initCronJobs } from '@/utils/cron.service';
 
 // Helper function to initialize data and services
 async function initializeDataAndServices() {
@@ -31,6 +32,9 @@ async function initializeDataAndServices() {
 async function main() {
   await initializeDataAndServices();
   await connectRedis();
+
+  // Inicializar trabajos programados (Correos automáticos)
+  initCronJobs();
 
   const port = process.env.PORT || 4000;
   const app = express();

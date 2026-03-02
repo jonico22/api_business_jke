@@ -38,7 +38,7 @@ class UserService {
                         phone: response.phone,
                         address: response.address,
                         email: response.email,
-                        typeBP: response.typeBP || 'natural',
+                        typeBP: response.typeBP || 'PERSONA',
                         typeDocId: documentType ? documentType.id : null,
                         documentNumber: response.documentNumber || null,
                         sexo: response.sexo || null,
@@ -207,6 +207,47 @@ class UserService {
         });
         if (!user) throw new Error('Usuario no encontrado');
         return user;
+    }
+
+    /**
+     * Asignar permisos especiales/aditivos a un Usuario
+     * Reemplaza los permisos aditivos anteriores por los nuevos para la vista especificada
+     */
+    async assignPermissionsToUser(userId: string, viewCode: string, permissionNames: string[], assignerId: string | undefined) {
+        // 1. Validar que la Vista y el Usuario existan
+        const view = await prisma.view.findUnique({ where: { code: viewCode } });
+        if (!view) throw new Error(`Vista ${viewCode} no encontrada`);
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error(`Usuario no encontrado`);
+
+        // 2. Obtener IDs de los permisos permitidos
+        const validPermissions = await prisma.permission.findMany({
+            where: { name: { in: permissionNames } }
+        });
+
+        const validPermissionIds = validPermissions.map(p => p.id);
+
+        // 3. Eliminar permisos anteriores de este Usuario para esta Vista
+        await prisma.userViewPermission.deleteMany({
+            where: { userId, viewId: view.id }
+        });
+
+        // 4. Crear los nuevos permisos aditivos
+        if (validPermissionIds.length > 0) {
+            const newPermissions = validPermissionIds.map(permissionId => ({
+                userId,
+                viewId: view.id,
+                permissionId,
+                createdBy: assignerId,
+            }));
+
+            await prisma.userViewPermission.createMany({
+                data: newPermissions
+            });
+        }
+
+        return { message: 'Permisos especiales del usuario actualizados correctamente' };
     }
 }
 

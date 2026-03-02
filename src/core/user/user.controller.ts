@@ -1,14 +1,17 @@
 // src/core/user/user.controller.ts
 import { Request, Response } from 'express';
 import { userService } from './user.service';
-import { createUserSchema, updateMeSchema } from './user.validation';
+import { createUserSchema, updateMeSchema, createBusinessUserSchema, updateBusinessUserSchema } from './user.validation';
+import prisma from '@/config/database';
 import { buildPrismaFilters, buildPagination } from '@/utils/query-filter';
 import { successResponse, errorResponse } from '@/utils/response';
 
 import { generateEmailToken, verifyEmailToken } from '@/utils/token-email';
-import { sendEmailVerification } from '@/utils/mailer';
+import { sendEmailVerification, sendWelcomeEmail } from '@/utils/mailer';
+import { generateRandomPassword } from '@/utils/hash';
 
 import { redis } from '@/shared/services/redis.service';
+import { requestApiSalePut } from '@/services/api-sales.service';
 
 
 /**
@@ -53,6 +56,483 @@ export const createUser = async (req: Request, res: Response) => {
     return errorResponse(res, 'Error al crear usuario', 500, errorMessage);
   }
 };
+
+/**
+ * @swagger
+ * /users/business:
+ *   post:
+ *     summary: Crear nuevo usuario para un negocio (Solo OWNER o ADMIN) verificando límites del plan
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               roleCode:
+ *                 type: string 
+ *     responses:
+ *       200:
+ *         description: Usuario creado correctamente
+ *       400:
+ *         description: Límite excedido o datos inválidos
+ *       500:
+ *         description: Error interno
+ */
+export const createBusinessUser = async (req: Request, res: Response) => {
+  try {
+    const data = createBusinessUserSchema.parse(req.body);
+    const societyId = req.societyId;
+    const subscriptionId = req.subscriptionId;
+
+    if (!societyId || !subscriptionId) {
+      return errorResponse(res, 'No tienes una sociedad o suscripción asignada', 400);
+    }
+
+    // 1. Obtener la suscripción y su plan (maxUsers)
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { plan: true }
+    });
+
+    if (!subscription || subscription.status !== 'ACTIVE') {
+      return errorResponse(res, 'Suscripción no válida o inactiva', 400);
+    }
+
+    const maxUsers = subscription.plan.maxUsers;
+
+    // 2. Contar usuarios actuales autorizados
+    const currentUsers = await prisma.authorizedUserSubscription.count({
+      where: { subscriptionId: subscriptionId }
+    });
+
+    // Validar límite (currentUsers representan los empleados ocupando asientos, si owner NO está en authorized, 
+    // debes reservar +1 asiento, o verificar si currentUsers + 1 (el nuevo) >= maxUsers)
+    if (currentUsers >= maxUsers) {
+      return errorResponse(res, `Límite de usuarios (${maxUsers}) alcanzado para el plan ${subscription.plan.name}`, 403);
+    }
+
+    // 3. Obtener o crear el Rol personalizado para este negocio (ej: SELLER-SOC-123)
+    let userRole = await prisma.role.findFirst({
+      where: { code: `${data.roleCode}-${societyId}` }
+    });
+
+    if (!userRole) {
+      const baseRole = await prisma.role.findUnique({ where: { code: data.roleCode } });
+      if (!baseRole) return errorResponse(res, 'Código de rol base no existe (ej: SELLER, STOCK_MANAGER)', 400);
+      userRole = await prisma.role.create({
+        data: {
+          code: `${data.roleCode}-${societyId}`,
+          name: baseRole.name,
+          societyId: societyId
+        }
+      });
+    }
+
+    // 4. Crear el usuario delegando en userService
+    const newPassword = data.password || generateRandomPassword();
+    const mockData = {
+      email: data.email,
+      password: newPassword,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      role: userRole.code,
+      isBusiness: false,
+      typeBP: 'PERSONA'
+    };
+
+    const newUser = await userService.createUser(mockData);
+
+    // 5. Vincular a la suscripción
+    await prisma.authorizedUserSubscription.create({
+      data: {
+        userId: newUser.id,
+        subscriptionId: subscriptionId
+      }
+    });
+
+    // 6. Notificar por email las credenciales
+    await sendWelcomeEmail(data.email, data.firstName, data.lastName, data.email, newPassword);
+
+    // 7. Sincronizar recuento de usuarios a Ventas
+    try {
+      const totalUsers = await prisma.authorizedUserSubscription.count({
+        where: { subscriptionId }
+      });
+      await requestApiSalePut(`societies/${societyId}`, { totalUsers });
+    } catch (syncError) {
+      console.error('Error sincronizando totalUsers a Ventas tras creación:', syncError);
+      // Operación no crítica en el momento, no cortamos el flujo
+    }
+
+    return successResponse(res, newUser, 'Usuario de negocio creado correctamente');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al crear usuario de negocio', 500, errorMessage);
+  }
+};
+
+/**
+ * @swagger
+ * /users/business:
+ *   get:
+ *     summary: Listar todos los usuarios asociados al negocio (Solo OWNER o ADMIN)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios del negocio
+ *       400:
+ *         description: No tienes una sociedad o suscripción asignada
+ *       500:
+ *         description: Error interno
+ */
+export const getBusinessUsers = async (req: Request, res: Response) => {
+  try {
+    const subscriptionId = req.subscriptionId;
+
+    if (!subscriptionId) {
+      return errorResponse(res, 'No tienes una sociedad o suscripción asignada', 400);
+    }
+
+    const authorizedUsers = await prisma.authorizedUserSubscription.findMany({
+      where: {
+        subscriptionId: subscriptionId,
+        user: {
+          role: {
+            code: {
+              not: 'OWNER'
+            }
+          }
+        }
+      },
+      include: {
+        user: {
+          include: {
+            role: true,
+            person: true,
+            sessions: {
+              orderBy: { createdAt: 'desc' },
+              take: 1, // Traer solo la sesión más reciente
+              select: {
+                createdAt: true // Fecha de inicio de sesión
+              }
+            }
+          }
+        }
+      },
+      orderBy: { authorizedAt: 'asc' }
+    });
+
+    // Mapeamos para devolver un arreglo limpio de usuarios
+    const users = authorizedUsers.map(auth => {
+      const userObj = auth.user;
+      return {
+        ...userObj,
+        lastLogin: userObj.sessions.length > 0 ? userObj.sessions[0].createdAt : null,
+        sessions: undefined // Removemos el arreglo crudo
+      };
+    });
+
+    return successResponse(res, users, 'Usuarios del negocio obtenidos correctamente');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al obtener usuarios de negocio', 500, errorMessage);
+  }
+};
+
+/**
+ * @swagger
+ * /users/business/{id}/toggle-status:
+ *   patch:
+ *     summary: Activa o desactiva (Suspende) un empleado del negocio
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Estado del usuario actualizado
+ *       403:
+ *         description: El usuario no pertenece a este negocio
+ *       500:
+ *         description: Error interno
+ */
+export const toggleBusinessUserStatus = async (req: Request, res: Response) => {
+  try {
+    const subscriptionId = req.subscriptionId;
+    const { id: targetUserId } = req.params;
+
+    if (!subscriptionId) {
+      return errorResponse(res, 'No tienes una sociedad o suscripción asignada', 400);
+    }
+
+    // 1. Validar que el usuario objetivo realmente pertenezca a la suscripción de quien está pidiendo el cambio
+    const authorizedLink = await prisma.authorizedUserSubscription.findFirst({
+      where: {
+        userId: targetUserId,
+        subscriptionId: subscriptionId
+      },
+      include: { user: true }
+    });
+
+    if (!authorizedLink) {
+      return errorResponse(res, 'Este usuario no pertenece a tu negocio', 403);
+    }
+
+    // 2. No permitir que el Owner se auto-desactive aquí (opcional pero buena práctica)
+    if (authorizedLink.user.roleId === req.user?.roleId) {
+      // o si el targetUserId === req.user.id
+      if (targetUserId === req.user?.id) {
+        return errorResponse(res, 'No puedes desactivar tu propia cuenta desde este módulo', 400);
+      }
+    }
+
+    // 3. Modificar el estado (toggle)
+    const newStatus = !authorizedLink.user.isActive;
+    await prisma.user.update({
+      where: { id: targetUserId },
+      data: { isActive: newStatus }
+    });
+
+    // 4. Invalida la sesión (si lo desactivaron para botarlo del sistema de inmediato)
+    if (!newStatus) {
+      await prisma.session.deleteMany({ where: { userId: targetUserId } });
+    }
+
+    return successResponse(res, { isActive: newStatus }, `El acceso del usuario a la plataforma ha sido ${newStatus ? 'activado' : 'suspendido'}`);
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al cambiar estado del empleado', 500, errorMessage);
+  }
+};
+
+/**
+ * @swagger
+ * /users/business/{id}:
+ *   delete:
+ *     summary: Eliminar permanentemente un empleado del negocio
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Usuario eliminado correctamente
+ *       403:
+ *         description: El usuario no pertenece a este negocio
+ *       500:
+ *         description: Error interno
+ */
+export const removeBusinessUser = async (req: Request, res: Response) => {
+  try {
+    const subscriptionId = req.subscriptionId;
+    const { id: targetUserId } = req.params;
+
+    if (!subscriptionId) {
+      return errorResponse(res, 'No tienes una sociedad o suscripción asignada', 400);
+    }
+
+    // 1. Validar que el usuario objetivo realmente pertenezca a la suscripción de quien está pidiendo el cambio
+    const authorizedLink = await prisma.authorizedUserSubscription.findFirst({
+      where: {
+        userId: targetUserId,
+        subscriptionId: subscriptionId
+      },
+      include: { user: true }
+    });
+
+    if (!authorizedLink) {
+      return errorResponse(res, 'Este usuario no pertenece a tu negocio', 403);
+    }
+
+    // 2. Proteger al OWNER contra auto-eliminación
+    if (authorizedLink.user.roleId === req.user?.roleId || targetUserId === req.user?.id) {
+      return errorResponse(res, 'No puedes eliminar tu propia cuenta de Dueño/Administrador desde este submódulo', 400);
+    }
+
+    // 3. Eliminar dependencias
+    await prisma.authorizedUserSubscription.deleteMany({ where: { userId: targetUserId } });
+    await prisma.userViewPermission.deleteMany({ where: { userId: targetUserId } });
+
+    // 4. Delegar la eliminación final al user.service
+    await userService.deleteUser(targetUserId);
+
+    // 5. Sincronizar recuento de usuarios con Ventas
+    try {
+      // Necesitamos el societyId de esta subscripción.
+      // Ya que no lo tenemos desde req.societyId explícitamente en remoción,
+      // lo podemos sacar de la suscripción, porque authorizeLink tiene la subscripción vinculada o
+      // también a través de la DB de suscripciones.
+      const sub = await prisma.subscription.findUnique({
+        where: { id: subscriptionId },
+        select: { societyId: true }
+      });
+      if (sub && sub.societyId) {
+        const totalUsers = await prisma.authorizedUserSubscription.count({
+          where: { subscriptionId }
+        });
+        await requestApiSalePut(`societies/${sub.societyId}`, { totalUsers });
+      }
+    } catch (syncError) {
+      console.error('Error sincronizando totalUsers a Ventas tras eliminación:', syncError);
+    }
+
+    return successResponse(res, null, 'Usuario eliminado del negocio permanentemente');
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al eliminar empleado', 500, errorMessage);
+  }
+};
+
+/**
+ * @swagger
+ * /users/business/{id}:
+ *   put:
+ *     summary: Editar datos básicos y/o rol de un empleado del negocio
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               roleCode:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado correctamente
+ *       400:
+ *         description: Datos inválidos
+ *       403:
+ *         description: Acceso denegado
+ *       500:
+ *         description: Error interno
+ */
+export const updateBusinessUser = async (req: Request, res: Response) => {
+  try {
+    const subscriptionId = req.subscriptionId;
+    const societyId = req.societyId;
+    const { id: targetUserId } = req.params;
+
+    if (!subscriptionId || !societyId) {
+      return errorResponse(res, 'No tienes una sociedad o suscripción asignada', 400);
+    }
+
+    const data = updateBusinessUserSchema.parse(req.body);
+
+    // 1. Validar que pertenece al negocio actual
+    const authorizedLink = await prisma.authorizedUserSubscription.findFirst({
+      where: {
+        userId: targetUserId,
+        subscriptionId: subscriptionId
+      },
+      include: { user: true }
+    });
+
+    if (!authorizedLink) {
+      return errorResponse(res, 'Este usuario no pertenece a tu negocio', 403);
+    }
+
+    // 2. Proteger al OWNER contra auto-edición en este submódulo
+    if (authorizedLink.user.roleId === req.user?.roleId || targetUserId === req.user?.id) {
+      return errorResponse(res, 'Debes usar tu Perfil para editar tus propios datos.', 400);
+    }
+
+    // 3. Procesar Cambio de Rol si lo enviaron
+    let newRoleId: string | undefined = undefined;
+    if (data.roleCode) {
+      let userRole = await prisma.role.findFirst({
+        where: { code: `${data.roleCode}-${societyId}` }
+      });
+
+      if (!userRole) {
+        const baseRole = await prisma.role.findUnique({ where: { code: data.roleCode } });
+        if (!baseRole) return errorResponse(res, 'Código de rol base no existe', 400);
+        userRole = await prisma.role.create({
+          data: {
+            code: `${data.roleCode}-${societyId}`,
+            name: baseRole.name,
+            societyId: societyId
+          }
+        });
+      }
+      newRoleId = userRole.id;
+    }
+
+    // 4. Actualizar tabla Person 
+    const personUpdateData: any = {};
+    if (data.firstName) personUpdateData.firstName = data.firstName;
+    if (data.lastName) personUpdateData.lastName = data.lastName;
+    if (data.phone !== undefined) personUpdateData.phone = data.phone;
+
+    const dbTransactions = [];
+
+    if (Object.keys(personUpdateData).length > 0) {
+      dbTransactions.push(
+        prisma.bussinessPartner.update({
+          where: { userId: targetUserId },
+          data: personUpdateData
+        })
+      );
+    }
+
+    // Si cambió el Rol 
+    if (newRoleId && authorizedLink.user.roleId !== newRoleId) {
+      dbTransactions.push(
+        prisma.user.update({
+          where: { id: targetUserId },
+          data: { roleId: newRoleId }
+        })
+      );
+      // Tumbar sesiones para forzar los nuevos permisos
+      dbTransactions.push(
+        prisma.session.deleteMany({ where: { userId: targetUserId } })
+      );
+    }
+
+    if (dbTransactions.length > 0) {
+      await prisma.$transaction(dbTransactions);
+    }
+
+    return successResponse(res, null, 'Usuario de negocio actualizado correctamente');
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error al actualizar información del empleado', 500, errorMessage);
+  }
+};
+
 /**
  * @swagger
  * /users/me:
@@ -455,5 +935,23 @@ export const verifyEmail = async (req: Request, res: Response) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Token inválido o expirado', 400, errorMessage);
+  }
+};
+
+export const assignUserPermissions = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // userId
+    const { viewCode, permissions } = req.body; // array of permission names e.g ['READ', 'CREATE']
+    const assignerId = req.user?.id;
+
+    if (!viewCode || !Array.isArray(permissions)) {
+      return errorResponse(res, 'Faltan datos obligatorios: viewCode o permissions (array)', 400);
+    }
+
+    const result = await userService.assignPermissionsToUser(id, viewCode, permissions, assignerId);
+    return successResponse(res, result, 'Permisos especiales asignados');
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return errorResponse(res, 'Error asignando permisos al usuario', 500, errorMessage);
   }
 };

@@ -9,11 +9,10 @@ export const getNotifications = async (
     next: NextFunction
 ) => {
     try {
-        const subscriptionId = req.societyId; // Assuming this middleware populates societyId
-        // If not, use req.user?.subscriptionId or similar logic based on your auth implementation
+        const subscriptionId = req.subscriptionId;
 
         if (!subscriptionId) {
-            throw new AppError('No subscription context found', 400);
+            throw new AppError('No se encontró el contexto de suscripción del usuario', 400);
         }
 
         const { query } = getNotificationsQuerySchema.parse({ query: req.query });
@@ -34,10 +33,10 @@ export const getUnreadCount = async (
     next: NextFunction
 ) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
 
         if (!subscriptionId) {
-            throw new AppError('No subscription context found', 400);
+            throw new AppError('No se encontró el contexto de suscripción del usuario', 400);
         }
 
         const count = await NotificationService.getUnreadCount(subscriptionId);
@@ -57,11 +56,11 @@ export const markAsRead = async (
     next: NextFunction
 ) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
         const { id } = req.params;
 
         if (!subscriptionId) {
-            throw new AppError('No subscription context found', 400);
+            throw new AppError('No se encontró el contexto de suscripción del usuario', 400);
         }
 
         const updatedNotification = await NotificationService.markAsRead(id, subscriptionId);
@@ -81,10 +80,10 @@ export const markAllAsRead = async (
     next: NextFunction
 ) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
 
         if (!subscriptionId) {
-            throw new AppError('No subscription context found', 400);
+            throw new AppError('No se encontró el contexto de suscripción del usuario', 400);
         }
 
         await NotificationService.markAllAsRead(subscriptionId);
@@ -104,11 +103,11 @@ export const deleteNotification = async (
     next: NextFunction
 ) => {
     try {
-        const subscriptionId = req.societyId;
+        const subscriptionId = req.subscriptionId;
         const { id } = req.params;
 
         if (!subscriptionId) {
-            throw new AppError('No subscription context found', 400);
+            throw new AppError('No se encontró el contexto de suscripción del usuario', 400);
         }
 
         await NotificationService.deleteNotification(id, subscriptionId);

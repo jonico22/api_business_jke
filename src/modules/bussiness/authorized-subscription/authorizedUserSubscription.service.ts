@@ -3,7 +3,12 @@ import { CreateAuthorizedUserSubscriptionDTO } from './authorizedUserSubscriptio
 
 export const authorizedUserSubscriptionService = {
   add: async (data: CreateAuthorizedUserSubscriptionDTO) => {
-    return prisma.authorizedUserSubscription.create({ data });
+    return prisma.authorizedUserSubscription.create({
+      data: {
+        user: { connect: { id: data.userId } },
+        subscription: { connect: { id: data.subscriptionId } }
+      } as any
+    });
   },
 
   findAll: async () => {

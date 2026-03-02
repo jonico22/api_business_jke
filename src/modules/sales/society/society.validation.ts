@@ -20,6 +20,9 @@ export const createSocietySchema = z.object({
     phone: z.string().optional(),
     web: z.string().url('URL inválida').optional().or(z.literal('')),
     isActive: z.boolean().default(true),
+    maxUsers: z.number().int().min(1).optional(),
+    maxProducts: z.number().int().min(1).optional(),
+    storageLimit: z.number().int().min(0).optional(),
 });
 
 /**
@@ -40,6 +43,12 @@ export const updateSocietySchema = z.object({
     // Regional Config
     mainCurrencyId: z.string().uuid().optional(),
     taxIds: z.array(z.string().uuid()).optional(),
+
+    // Limits Configuration
+    maxUsers: z.number().int().min(1).optional(),
+    maxProducts: z.number().int().min(1).optional(),
+    storageLimit: z.number().int().min(0).optional(),
+    totalUsers: z.number().int().min(0).optional(),
 
     // Customization
     stockNotificationFrequency: z.nativeEnum(Frequency).optional(),
