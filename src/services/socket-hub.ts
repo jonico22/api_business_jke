@@ -133,8 +133,8 @@ export const initSocketHub = async (httpServer: any) => {
                     logger.info(`[SocketHub] Notificación guardada con ID: ${notifDB.id}`);
 
                     // Invalidate cache for this subscription
-                    // CRITICAL: Invalidate using the SocietyId (SOC-...) because that's what Middleware uses for keys
-                    await redis.deleteKeysByPrefix(`notifications:${targetSocietyId}:`);
+                    // CRITICAL: Invalidate using the Subscription UUID because that's what Notification Service uses for keys
+                    await redis.deleteKeysByPrefix(`notifications:${targetSubscriptionId}:`);
 
                     // 2. Emitir a la Campana (usamos businessId para el room, asumiendo que el frontend se conecta con el mismo ID que enviamos)
                     // OJO: Si el frontend se conecta con societyId, debemos emitir a business_societyId
