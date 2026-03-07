@@ -107,8 +107,6 @@ export class AuthService {
       }
     });
 
-    console.log('[LOGIN] ✅ Login exitoso. Sesión creada:', session.id);
-
     // Obtener info de suscripción si tiene sociedad
     let subscription = null;
     if (user.role?.code !== 'ADMIN' && user.role?.code !== 'SUPPORT') {
@@ -293,8 +291,26 @@ export class AuthService {
       finalPermissions[view] = Array.from(actions);
     }
 
+    // Role code for module mapping
+    const role = await prisma.role.findUnique({ where: { id: roleId }, select: { code: true } });
+    const code = role?.code || '';
+
+    const hasRole = (allowedRoles: string[]) => allowedRoles.some(allowed => code === allowed || code.startsWith(`${allowed}-`));
+
+    // Módulos base permitidos según el script de plantados
+    const modules = {
+      DASHBOARD: true,
+      INVENTARIO: hasRole(['OWNER', 'BUSINESS_MANAGER', 'STOCK_MANAGER', 'ADMIN', 'SUPPORT']),
+      VENTAS: hasRole(['OWNER', 'BUSINESS_MANAGER', 'SELLER', 'ADMIN', 'SUPPORT']),
+      USUARIOS: hasRole(['OWNER', 'BUSINESS_MANAGER', 'ADMIN', 'SUPPORT']),
+      REPORTES: hasRole(['OWNER', 'BUSINESS_MANAGER', 'ADMIN', 'SUPPORT']),
+      SUSCRIPCION: hasRole(['OWNER', 'ADMIN', 'SUPPORT']),
+      CONFIGURACION: true
+    };
+
     return {
-      views: finalPermissions
+      views: finalPermissions,
+      modules
     };
   }
 

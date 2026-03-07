@@ -13,7 +13,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 export const login = async (req: Request, res: Response) => {
   try {
     // 1. Validación de esquema
-    console.log("Cuerpo recibido:", req.body);
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
       return errorResponse(res, 'Datos de entrada inválidos', 400, validation.error.format());

@@ -73,9 +73,6 @@ const requestApiSalePostFormData = async (path: string, formData: any): Promise<
             });
 
             res.on('end', () => {
-                console.log('[FormData Upload] Status:', res.statusCode);
-                console.log('[FormData Upload] Response:', data);
-
                 if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                     try {
                         resolve(JSON.parse(data));
@@ -114,14 +111,11 @@ export const requestApiSalePost = async (path: string, body: any, options?: { he
     try {
         // Si body es FormData del paquete form-data, usar función especializada
         if (body && typeof body === 'object' && body.constructor.name === 'FormData') {
-            console.log('[API SALE] Detectado FormData, usando streaming nativo');
             return await requestApiSalePostFormData(path, body);
         }
 
         // Para JSON normal, usar fetch
         const url = `${API_SALES_URL}/${path}`;
-        console.log('POST request a:', url);
-
         const requestOptions: RequestInit = {
             method: 'POST',
             headers: {
@@ -159,8 +153,6 @@ export const requestApiSalePost = async (path: string, body: any, options?: { he
 export const requestApiSalePut = async (path: string, body: any) => {
     try {
         const url = `${API_SALES_URL}/${path}`;
-        console.log('PUT request a:', url);
-
         const response = await fetch(url, {
             method: 'PUT',
             headers: {
@@ -195,8 +187,6 @@ export const requestApiSalePut = async (path: string, body: any) => {
 export const requestApiSaleDelete = async (path: string, body?: any) => {
     try {
         const url = `${API_SALES_URL}/${path}`;
-        console.log('DELETE request a:', url);
-
         const options: RequestInit = {
             method: 'DELETE',
             headers: {

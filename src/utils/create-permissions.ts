@@ -11,6 +11,7 @@ const permissions = [
 ];
 
 const views = [
+  { code: 'DASHBOARD', name: 'Dashboard', description: 'Vista principal de indicadores' },
   { code: 'USERS', name: 'Gestión de Usuarios', description: 'Vista para administrar usuarios' },
   { code: 'ROLES', name: 'Gestión de Roles', description: 'Vista para configurar roles y accesos' },
   { code: 'SALES', name: 'Ventas y POS', description: 'Vista del Punto de Venta' },

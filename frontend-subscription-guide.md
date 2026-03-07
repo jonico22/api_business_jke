@@ -518,3 +518,68 @@ Para proteger las rutas del proyecto y habilitar visualizaciones condicionales, 
 Cuando el cliente envia su Comprobante de Yape o Transferencia desde estado EXPIRED, su Suscripcion **sigue fisicamente bloqueada/EXPIRED** hasta que un admin apruebe. Sin embargo, el API responde con un Transaction en PENDING. 
 **Mejora de UX Frontend:** Al terminar la subida, debes esconder el formulario y mostrar una alerta tipo:
 > 'Hemos recibido tu Ticket de pago. Nuestro equipo lo validara en las proximas 24hs para reactivar tus servicios.'
+
+---
+
+## 11. Referencia de Permisos y Menú (UI Sidebar)
+
+Para renderizar las opciones correctas en tu barra de navegación lateral (Sidebar) de React de acuerdo al rol del empleado logueado, a continuación se detallan las **Vistas** disponibles, los **Permisos Base** y qué accesos tiene cada Rol por defecto.
+
+### 11.1 Catálogo de Vistas (Módulos del Menú)
+Estas son las claves (`code`) que debes buscar en los arreglos de permisos del usuario para mostrar u ocultar el ítem del menú:
+
+- **`DASHBOARD`** -> Vista principal de indicadores
+- **`STOCK`** -> Inventario
+- **`SALES`** -> Ventas
+- **`USERS`** -> Usuarios
+- **`REPORTS`** -> Reportes
+- **`SUBSCRIPTIONS`** -> Suscripción
+- **`SETTINGS`** -> Configuración
+- **`ROLES`** -> Gestión de Roles (Normalmente interno para Admin/Support)
+
+### 11.2 Catálogo de Permisos (Acciones)
+El permiso principal que te interesa para MOSTRAR la opción en el Sidebar es **`read`**.
+- **`read`**: Ver / Acceder al módulo.
+- **`create`**: Añadir nuevos registros.
+- **`update`**: Editar registros.
+- **`delete`**: Borrar permanentemente.
+- **`soft_delete`**: Archivar.
+- **`export`**: Exportar a Excel.
+
+### 11.3 Matriz de Accesos por Defecto (Roles)
+Para obtener el arreglo de permisos del usuario logueado en tu Frontend, debes hacer una petición a este endpoint (o sacarlo de la propiedad `user.permissions` del `/auth/me` si ya lo tienes en caché):
+
+**Endpoint:** `GET /api/auth/me/permissions`
+**Auth:** Requiere Token JWT (Bearer)
+
+Cuando evalúes al usuario logueado (`user.permissions`), estos son los módulos a los que tendrán acceso (`read`) originalmente en base al script de plantados:
+
+| Rol | `DASHBOARD` | `INVENTARIO` | `VENTAS` | `USUARIOS` | `REPORTES` | `SUSCRIPCIÓN` | `CONFIGURACIÓN` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **OWNER** (Dueño) | ✅ | ✅ (`STOCK`) | ✅ (`SALES`) | ✅ (`USERS`) | ✅ (`REPORTS`) | ✅ (`SUBSCR...`) | ✅ (`SETTINGS`) |
+| **BUSINESS_MANAGER** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **SELLER** (Vendedor)| ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **STOCK_MANAGER** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **ADMIN / SUPPORT** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+#### Código de Ejemplo en React (Sidebar.jsx)
+```javascript
+const misPermisos = user.permissions; // Array que te devuelve el Login/Me
+
+// Función Helper
+const canView = (viewCode) => {
+   return misPermisos.some(p => p.view.code === viewCode && p.permission.name === 'read');
+}
+
+return (
+  <nav>
+     {canView('DASHBOARD') && <Link to="/dashboard">Dashboard</Link>}
+     {canView('STOCK') && <Link to="/inventario">Inventario</Link>}
+     {canView('SALES') && <Link to="/ventas">Ventas</Link>}
+     {canView('USERS') && <Link to="/usuarios">Usuarios</Link>}
+     {canView('REPORTS') && <Link to="/reportes">Reportes</Link>}
+     {canView('SUBSCRIPTIONS') && <Link to="/suscripcion">Suscripción</Link>}
+     {canView('SETTINGS') && <Link to="/configuracion">Configuración</Link>}
+  </nav>
+);
+```

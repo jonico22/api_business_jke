@@ -45,8 +45,6 @@ export const createInitialAdmin = async () => {
         }
       });
     }
-
-    console.log('✅ Usuario administrador actualizado:', adminEmail);
     return;
   }
 
@@ -76,5 +74,4 @@ export const createInitialAdmin = async () => {
     },
   });
 
-  console.log('✅ Usuario administrador creado:', adminEmail);
 };

@@ -23,11 +23,10 @@ const newSociety = async (data: any, suscription: string, code: string, plan: an
     tradeName: data.businessName,
     maxUsers: plan.maxUsers,
     maxProducts: plan.maxProducts,
-    storageLimit: plan.storage,
+    storageLimit: plan.storage * 1024 * 1024,
   });
   return response;
 }
-
 
 const getTariffWithDetails = async (tariffId: string) => {
   const tariff = await prisma.tariff.findUnique({
