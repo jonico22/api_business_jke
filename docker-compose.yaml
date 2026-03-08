@@ -6,7 +6,7 @@ services:
       # Añadimos esta sección para asegurar que los args pasen del host al Dockerfile
       args:
         - NODE_ENV=${NODE_ENV:-production}
-    ports:
+    expose:
       - '${PORT:-4000}'
     env_file:
       - .env
