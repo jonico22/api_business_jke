@@ -11,49 +11,80 @@ import { generatePdfBuffer } from '@/shared/services/pdf-maker.service'; // 1. D
 import { generateReceiptDefinition } from '@/utils/pdfkit/generateReceiptPdfBuffer'; // 2. Definición de recibo en PDFMake
 
 export const createReceipt = async (data: any) => {
-   if (data.currencyId){
+  if (data.currencyId) {
     const currency = await prisma.currency.findUnique({
       where: { code: data.currencyId },
     });
     data.currencyId = currency?.id;
-   }
-   if (data.taxId){
-      const tax = await prisma.tax.findUnique({
-        where: { code: data.taxId },
-      });
-      data.taxId = tax?.id;
-   }
-   if (data.receiptTypeId){
-      const receiptType = await prisma.receiptType.findUnique({
-        where: { code: data.receiptTypeId },
-      });
-      data.receiptTypeId = receiptType?.id;
-   }
-   const receipt = await prisma.receipt.create({
-      data: {
-        ...data,
-      },
+  }
+  if (data.taxId) {
+    const tax = await prisma.tax.findUnique({
+      where: { code: data.taxId },
     });
-   // 2. Generar QR con la URL de verificación
-   // const qrText = `${process.env.PUBLIC_RECEIPT_VERIFY_URL}/${receipt.id}`;
-   // const qrFileName = `qr-receipt-${receipt.id}`;
-   // const folder = "qrs/receipts";
-   // await generateQrAndUpload(qrText, folder, qrFileName);
-   setTimeout(async() => {
+    data.taxId = tax?.id;
+  }
+  if (data.receiptTypeId) {
+    const receiptType = await prisma.receiptType.findUnique({
+      where: { code: data.receiptTypeId },
+    });
+    data.receiptTypeId = receiptType?.id;
+  }
+  const receipt = await prisma.receipt.create({
+    data: {
+      ...data,
+    },
+  });
+  // 2. Generar QR con la URL de verificación
+  // const qrText = `${process.env.PUBLIC_RECEIPT_VERIFY_URL}/${receipt.id}`;
+  // const qrFileName = `qr-receipt-${receipt.id}`;
+  // const folder = "qrs/receipts";
+  // await generateQrAndUpload(qrText, folder, qrFileName);
+  setTimeout(async () => {
     await generateAndStoreReceiptPdf(receipt.id);
-   }, 100);
+  }, 100);
   return receipt;
 };
 
-export const getReceipts = async () => {
-  return prisma.receipt.findMany({
-    include: {
-      currency: true,
-      tax: true,
-      receiptType: true,
-      file: true,
+import { buildPagination } from '@/utils/query-filter';
+
+export const getReceipts = async (societyId: string, query: any) => {
+  const { skip, take, page, limit } = buildPagination(query);
+
+  const where = {
+    transaction: {
+      subscriptionMovement: {
+        subscription: {
+          societyId,
+        },
+      },
     },
-  });
+  };
+
+  const [total, receipts] = await Promise.all([
+    prisma.receipt.count({ where }),
+    prisma.receipt.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        currency: true,
+        tax: true,
+        receiptType: true,
+        file: true,
+      },
+      orderBy: { createdAt: 'desc' as const },
+    })
+  ]);
+
+  return {
+    data: receipts,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const getReceiptById = async (id: string) => {
@@ -111,12 +142,12 @@ export const generateAndStoreReceiptPdf = async (receiptId: string) => {
   try {
     // 3. Directly call the HTML generation function
     // 3. Generar la definición JSON (Lógica de PDFMake)
-    const docDefinition = generateReceiptDefinition(receipt as any); 
+    const docDefinition = generateReceiptDefinition(receipt as any);
 
     // 4. Generar el Buffer PDF (MUCHO más rápido)
     // El proceso es síncrono y no requiere recursos externos como el navegador.
-    const pdfBuffer = await generatePdfBuffer(docDefinition); 
-    
+    const pdfBuffer = await generatePdfBuffer(docDefinition);
+
     // --- FIN DEL REEMPLAZO DE PUPPETEER ---
 
     // Subir a R2

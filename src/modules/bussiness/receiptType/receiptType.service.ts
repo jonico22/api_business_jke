@@ -11,12 +11,12 @@ export const getReceiptTypeById = async (id: string) => {
 
 export const createReceiptType = async (data: unknown) => {
   const validated = createReceiptTypeSchema.parse(data)
-  return await prisma.receiptType.create({ data: validated })
+  return await prisma.receiptType.create({ data: validated as any })
 }
 
 export const updateReceiptType = async (id: string, data: unknown) => {
   const validated = updateReceiptTypeSchema.parse(data)
-  return await prisma.receiptType.update({ where: { id }, data: validated })
+  return await prisma.receiptType.update({ where: { id }, data: validated as any })
 }
 
 export const deleteReceiptType = async (id: string) => {

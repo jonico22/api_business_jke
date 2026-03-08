@@ -1,102 +1,79 @@
 import prisma from '../config/database';
 import { logger } from './logger';
 
-const data = [
+const roleViewMapping = [
     {
-        role: 'admin',
-        view: 'DASH',
-        permission: 'read',
-    },
-    {
-        role: 'admin',
-        view: 'USER',
-        permission: 'read',
+        roleCode: 'OWNER',
+        views: ['DASHBOARD', 'STOCK', 'SALES', 'USERS', 'REPORTS', 'SUBSCRIPTIONS', 'SETTINGS'],
     },
     {
-        role: 'admin',
-        view: 'USER_C',
-        permission: 'create',
+        roleCode: 'BUSINESS_MANAGER',
+        views: ['DASHBOARD', 'STOCK', 'SALES', 'USERS', 'REPORTS', 'SETTINGS'], // Sin Suscripción
     },
     {
-        role: 'admin',
-        view: 'USER_E',
-        permission: 'update',
+        roleCode: 'SELLER',
+        views: ['DASHBOARD', 'SALES', 'SETTINGS'],
     },
     {
-        role: 'admin',
-        view: 'USER',
-        permission: 'delete',
+        roleCode: 'STOCK_MANAGER',
+        views: ['DASHBOARD', 'STOCK', 'SETTINGS'],
     },
     {
-        role: 'admin',
-        view: 'USER',
-        permission: 'soft_delete',
+        roleCode: 'ADMIN',
+        views: ['DASHBOARD', 'STOCK', 'SALES', 'USERS', 'REPORTS', 'SUBSCRIPTIONS', 'SETTINGS', 'ROLES'], // Acceso total general
     },
     {
-        role: 'admin',
-        view: 'ROLE',
-        permission: 'read',
-    },
-    {
-        role: 'admin',
-        view: 'ROLE_C',
-        permission: 'create',
-    },
-    {
-        role: 'admin',
-        view: 'ROLE_E',
-        permission: 'update',
-    },
-    {
-        role: 'admin',
-        view: 'ROLE',
-        permission: 'delete',
-    },
-     {
-        role: 'admin',
-        view: 'ROLE',
-        permission: 'soft_delete',
-    },
-]
+        roleCode: 'SUPPORT',
+        views: ['DASHBOARD', 'STOCK', 'SALES', 'USERS', 'REPORTS', 'SUBSCRIPTIONS', 'SETTINGS', 'ROLES'], // Soporte general
+    }
+];
+
 export const createRoleViewPermission = async () => {
-    for (const item of data) {
-        const { role, view, permission } = item;
+    // En tu frontend, el permiso maestro para MOSTRAR la vista en el menú es "read" 
+    // Opcionalmente podemos iterar ["create", "read", "update", "delete"] si quieres darles poder total, 
+    // pero para los menús bastará con asignar la base primero. Agregaremos todos los básicos:
+    const allPermissions = await prisma.permission.findMany();
 
-        const roleExists = await prisma.role.findFirst({ where: { name: role } });
-        if (!roleExists) {
-            logger.warn(`Rol no encontrado: ${role}`);
+    if (allPermissions.length === 0) {
+        logger.warn('No hay permisos en la BD. Ejecuta createPermissions primero.');
+        return;
+    }
+
+    for (const mapping of roleViewMapping) {
+        const role = await prisma.role.findUnique({ where: { code: mapping.roleCode } });
+        if (!role) {
+            logger.warn(`Rol no encontrado: ${mapping.roleCode}`);
             continue;
         }
 
-        const viewExists = await prisma.view.findUnique({ where: { code: view } });
-        if (!viewExists) {
-            logger.warn(`Vista no encontrada: ${view}`);
-            continue;
-        }
+        for (const viewCode of mapping.views) {
+            const view = await prisma.view.findUnique({ where: { code: viewCode } });
+            if (!view) {
+                logger.warn(`Vista no encontrada: ${viewCode}`);
+                continue;
+            }
 
-        const permissionExists = await prisma.permission.findUnique({ where: { name: permission } });
-        if (!permissionExists) {
-            logger.warn(`Permiso no encontrado: ${permission}`);
-            continue;
-        }
+            // Asignar todos los permisos de la BD a esta vista para el ROL (Poder total en la vista)
+            for (const permission of allPermissions) {
+                const exists = await prisma.roleViewPermission.findFirst({
+                    where: {
+                        roleId: role.id,
+                        viewId: view.id,
+                        permissionId: permission.id,
+                    },
+                });
 
-        const exists = await prisma.roleViewPermission.findFirst({
-            where: {
-                roleId: roleExists.id,
-                viewId: viewExists.id,
-                permissionId: permissionExists.id,
-            },
-        });
-
-        if (!exists) {
-            await prisma.roleViewPermission.create({
-                data: {
-                    roleId: roleExists.id,
-                    viewId: viewExists.id,
-                    permissionId: permissionExists.id,
-                },
-            });
-            logger.info(`Permiso de rol y vista creado para ${role} en ${view} con permiso ${permission}`);
+                if (!exists) {
+                    await prisma.roleViewPermission.create({
+                        data: {
+                            roleId: role.id,
+                            viewId: view.id,
+                            permissionId: permission.id,
+                        },
+                    });
+                    logger.info(`Permiso [${permission.name}] de vista [${viewCode}] concedido al rol [${mapping.roleCode}]`);
+                }
+            }
         }
     }
 };

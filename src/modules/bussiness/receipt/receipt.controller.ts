@@ -50,9 +50,12 @@ export const create = async (req: Request, res: Response) => {
  *         description: Lista de recibos obtenidos correctamente
  */
 
-export const findAll = async (_req: Request, res: Response) => {
-  const receipts = await receiptService.getReceipts();
-  res.json({ data: receipts });
+export const findAll = async (req: Request, res: Response) => {
+  const societyId = req.societyId;
+  if (!societyId) return res.status(401).json({ message: "Contexto de sociedad no encontrado" });
+
+  const result = await receiptService.getReceipts(societyId, req.query);
+  res.json(result);
 };
 
 /**

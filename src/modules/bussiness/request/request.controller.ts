@@ -3,6 +3,7 @@ import { requestService } from "./request.service";
 import {
   createRequestSchema,
   updateRequestSchema,
+  statusSchema
 } from "./request.validation";
 
 /**
@@ -191,7 +192,8 @@ export const deleteRequest = async (req: Request, res: Response) => {
 export const updateRequestStatusVerified = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-    const result = await requestService.updateStatusVerified(req.params.id, status);
+    const parsedStatus = statusSchema.parse(status);
+    const result = await requestService.updateStatusVerified(req.params.id, parsedStatus);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message });

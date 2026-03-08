@@ -1,13 +1,19 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from '@/config/database';
 import { z } from "zod";
 import { createSubscriptionMovementSchema, updateSubscriptionMovementSchema } from "./subscriptionMovement.validation";
 
-const prisma = new PrismaClient();
-
 export const subscriptionMovementService = {
   async create(data: z.infer<typeof createSubscriptionMovementSchema>) {
+    const { subscriptionId, paymentTransactionId, newPlanId, previousPlanId, ...otherData } = data;
     return prisma.subscriptionMovement.create({
-      data});
+      data: {
+        ...otherData,
+        subscription: { connect: { id: subscriptionId } },
+        newPlan: newPlanId ? { connect: { id: newPlanId } } : undefined,
+        previousPlan: previousPlanId ? { connect: { id: previousPlanId } } : undefined,
+        paymentTransactions: paymentTransactionId ? { connect: { id: paymentTransactionId } } : undefined
+      } as any
+    });
   },
 
   async getAll() {

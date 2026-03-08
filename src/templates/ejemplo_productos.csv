@@ -1,0 +1,16 @@
+NombreProducto,CodigoInterno,CodigoCategoria,PrecioVenta,PrecioCosto,StockInicial,StockMinimo,CodigoBarras(Opcional),Marca(Opcional),Descripcion(Opcional),Color(Opcional),ColorCode(Opcional)
+PC Desktop Intel Core i5,DESK-INT-001,CAT-DESKTOP,2500.00,1800.00,10,2,2000000000001,Generica,PC armada para oficina,,
+Mac mini M2,DESK-APP-002,CAT-DESKTOP,3100.00,2600.00,5,1,2000000000002,Apple,Apple Mac Mini Chip M2,,
+Laptop Dell Inspiron 15,LPT-DEL-001,CAT-LAPTOPS,2800.00,2100.00,8,2,2000000000003,Dell,Laptop ofimática 15 pulgadas,Plata,#C0C0C0
+MacBook Air M1,LPT-APP-002,CAT-LAPTOPS,4200.00,3500.00,15,3,2000000000004,Apple,Laptop ultraligera de 13 pulgadas,Gris Espacial,#808080
+Laptop Gamer ASUS ROG,LPT-ASU-003,CAT-LAPTOPS,6500.00,5000.00,4,1,2000000000005,ASUS,Laptop RTX 4070 para Gaming,Negro,#000000
+Mouse Gamer G502,PER-MOU-001,CAT-PERIFERICOS,250.00,150.00,30,5,2000000000006,Logitech,Mouse para gaming alto rendimiento,Negro,#000000
+Mouse Inalámbrico Básico,PER-MOU-002,CAT-PERIFERICOS,45.00,20.00,50,10,2000000000007,Genius,Mouse para oficina inalámbrico,Azul,#0000FF
+Teclado Mecánico RGB,PER-KEY-001,CAT-PERIFERICOS,320.00,200.00,25,5,2000000000008,Redragon,Teclado switches azules,,
+Teclado Ofimático Español,PER-KEY-002,CAT-PERIFERICOS,80.00,40.00,40,10,2000000000009,Logitech,Teclado de membrana silencioso,Blanco,#FFFFFF
+Auriculares Gaming 7.1,PER-AUD-001,CAT-PERIFERICOS,180.00,100.00,20,5,2000000000010,HyperX,Headset con sonido envolvente,,
+Monitor 24 IPS FHD,MON-24-001,CAT-MONITORES,600.00,450.00,15,3,2000000000011,LG,Monitor de oficina 75Hz,,
+Monitor Gamer 27 144Hz,MON-27-002,CAT-MONITORES,1200.00,900.00,10,2,2000000000012,Samsung,Monitor curvo para juegos,,
+Tarjeta Fídea RTX 3060,COM-GPU-001,CAT-COMP,1800.00,1400.00,8,2,2000000000013,MSI,GPU 12GB DDR6,,
+Disco Sólido SSD 1TB,COM-SSD-001,CAT-COMP,350.00,220.00,40,10,2000000000014,Kingston,SSD formato M.2 NVMe PCI 4.0,,
+Memoria RAM 16GB RGB,COM-RAM-001,CAT-COMP,280.00,180.00,35,8,2000000000015,Corsair,2x8GB DDR4 3200Mhz,,

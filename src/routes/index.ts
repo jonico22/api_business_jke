@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 import authRoutes from '@/core/auth/auth.routes';
 import userRoutes from '@/core/user/user.routes';
 import roleRoutes from '@/core/role/role.routes';
@@ -23,7 +24,45 @@ import subscriptionMovementRoutes from '@/modules/bussiness/subscriptionMovement
 import tariffRoutes from '@/modules/bussiness/tariff/tariff.routes';
 import files from '@/modules/bussiness/files/file.routes';
 
+//modulo de ventas
+import categoryRoutes from '@/modules/sales/category/category.routes';
+import productRoutes from '@/modules/sales/product/product.routes';
+import clientRoutes from '@/modules/sales/client/client.routes';
+import branchOfficeRoutes from '@/modules/sales/branch-office/branch-office.routes';
+import salesCurrencyRoutes from '@/modules/sales/currency/currency.routes';
+import societyRoutes from '@/modules/sales/society/society.routes';
+import orderRoutes from '@/modules/sales/order/order.routes';
+import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
+import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
+import favoriteRoutes from '@/modules/sales/favorite/favorite.routes';
+import salesDashboardRoutes from '@/modules/sales/dashboard/sales-dashboard.routes';
+import notificationRoutes from '@/modules/core/notification/notification.routes';
+import { setupRateLimiter } from '@/config/rateLimit';
+
 const router = Router();
+const limiter = setupRateLimiter();
+
+// IMPORTANT: Routes that handle file uploads MUST be registered BEFORE express.json()
+// This prevents express.json() from interfering with multipart/form-data parsing
+
+// 1. Notificaciones: Maneja su propio Rate Limit + Caché
+router.use('/notifications', notificationRoutes);
+
+// 2. Global Rate Limiter para el resto de rutas
+router.use(limiter);
+
+
+
+//modulo de ventas
+// File upload routes registered BEFORE express.json()
+router.use('/sales/products', productRoutes);
+router.use('/sales/categories', categoryRoutes);
+import salesFileRoutes from '@/modules/sales/file/file.routes';
+router.use('/sales/files', salesFileRoutes);
+router.use('/files', files);
+
+// Apply express.json() AFTER file upload routes to prevent interference with multipart/form-data
+router.use(express.json());
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -45,10 +84,27 @@ router.use("/receipts", receiptRoutes);
 router.use('/requests', requestRoutes);
 router.use('/rejection-reasons', reasonRoutes)
 router.use('/taxes', tax);
-router.use('/files', files);
 router.use('/receipt-types', receiptType);
 router.use('/subscription-movements', subscriptionMovementRoutes);
 router.use('/tariffs', tariffRoutes);
+// All other routes that need JSON parsing
+
+router.use('/sales/clients', clientRoutes);
+router.use('/sales/branch-offices', branchOfficeRoutes);
+router.use('/sales/currencies', salesCurrencyRoutes);
+router.use('/sales/societies', societyRoutes);
+import reportRoutes from '@/modules/sales/order/report/report.routes';
+
+// ... other imports
+
+router.use('/sales/orders/reports', reportRoutes); // Report route MUST be before generic order routes
+router.use('/sales/orders', orderRoutes);
+router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-items', orderItemRoutes);
+router.use('/sales/order-payments', orderPaymentRoutes);
+router.use('/sales/favorites', favoriteRoutes);
+router.use('/sales/dashboard', salesDashboardRoutes);
+// router.use('/notifications', notificationRoutes); // Moved up
 
 export default router;
-

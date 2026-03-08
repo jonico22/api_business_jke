@@ -1,10 +1,15 @@
 import prisma from '../config/database';
 
 const defaultRoles = [
+  // --- ROLES DE ADMINISTRACIÓN DEL SAAS (Equipo interno) ---
   { name: 'Administrador', code: 'ADMIN' },
-  { name: 'Soporte', code: 'SUPPORT' },
-  { name: 'Titular', code: 'OWNER' },
-  { name: 'Colaborador', code: 'MEMBER' },
+  { name: 'Soporte Técnico', code: 'SUPPORT' },
+
+  // --- ROLES DE LOS NEGOCIOS/SUSCRIPTORES ---
+  { name: 'Titular de cuenta', code: 'OWNER' },
+  { name: 'Administrador Local', code: 'BUSINESS_MANAGER' },
+  { name: 'Vendedor', code: 'SELLER' },
+  { name: 'Almacenero', code: 'STOCK_MANAGER' },
 ];
 
 export const createDefaultRoles = async () => {

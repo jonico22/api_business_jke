@@ -22,10 +22,13 @@ export const createCuponUsado = async (req: Request, res: Response) => {
   }
 };
 
-export const getCuponesUsados = async (_req: Request, res: Response) => {
+export const getCuponesUsados = async (req: Request, res: Response) => {
   try {
-    const data = await cuponesUsadosService.findAll();
-    res.json({ data });
+    const societyId = req.societyId;
+    if (!societyId) return res.status(401).json({ message: "Contexto de sociedad no encontrado" });
+
+    const result = await cuponesUsadosService.findAll(societyId, req.query);
+    res.json(result);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

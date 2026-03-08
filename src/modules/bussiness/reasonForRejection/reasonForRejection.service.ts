@@ -4,7 +4,7 @@ import z from 'zod';
 
 export const createReason = async (data: z.infer<typeof createReasonSchema>) => {
   return await prisma.reasoneForRejection.create({
-    data,
+    data: data as any,
   })
 }
 
@@ -21,7 +21,7 @@ export const getReasonById = async (id: string) => {
 export const updateReason = async (id: string, data: z.infer<typeof createReasonSchema>) => {
   return await prisma.reasoneForRejection.update({
     where: { id },
-    data,
+    data: data as any,
   })
 }
 

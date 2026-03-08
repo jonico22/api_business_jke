@@ -28,6 +28,14 @@ import { createPlanSchema, updatePlanSchema } from "./plan.validation";
  *                 type: string
  *               maxUsers:
  *                type: integer
+ *               maxProducts:
+ *                type: integer
+ *               storage:
+ *                type: integer
+ *               features:
+ *                type: array
+ *                items:
+ *                  type: object
  *               serviceId:
  *                type: string
  *     responses:
@@ -120,6 +128,14 @@ export const getPlanById = async (req: Request, res: Response) => {
 *                 type: string
 *               maxUsers:
 *                type: integer
+*               maxProducts:
+*                type: integer
+*               storage:
+*                type: integer
+*               features:
+*                type: array
+*                items:
+*                  type: object
 *               serviceId:
 *                type: string
 *     responses:
