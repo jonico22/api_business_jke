@@ -66,8 +66,6 @@ COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
 COPY --from=builder /usr/src/app/src/fonts ./src/fonts
 
-# 4. Copiar variables de entorno
-COPY .env ./
 
 EXPOSE 4000
 
