@@ -107,19 +107,24 @@ const createReceiptPdf = async (transactionId: string) => {
 
 export const requestService = {
   async create(data: any) {
-    const verifyPhoneBussiness = await prisma.bussinessPartner.findFirst({
-      where: { email: data.email }
-    });
-    const verifyTarrif = await prisma.tariff.findFirst({
-      where: {
-        isActive: true, // <-- Aseguramos tomar la Tarifa Activa actual del plan
-        plan: {
-          code: data.namePlan,
-          isActive: true
-        }
-      },
-      include: { plan: true, promotion: true },
-    });
+    // Paralelizar las 2 validaciones independientes
+    const [verifyPhoneBussiness, verifyTarrif] = await Promise.all([
+      prisma.bussinessPartner.findFirst({
+        where: { email: data.email },
+        select: { email: true }
+      }),
+      prisma.tariff.findFirst({
+        where: {
+          isActive: true,
+          plan: {
+            code: data.namePlan,
+            isActive: true
+          }
+        },
+        include: { plan: true, promotion: true },
+      })
+    ]);
+
     if (!verifyTarrif) {
       return Promise.reject(new Error('El plan seleccionado no existe'));
     }
@@ -139,11 +144,18 @@ export const requestService = {
     return prisma.request.create({ data });
 
   },
-  findAll: async () => {
-    return prisma.request.findMany({
-      include: { tariff: true },
-      orderBy: { createdAt: "desc" },
-    })
+  findAll: async (page = 1, limit = 20) => {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      prisma.request.findMany({
+        include: { tariff: true },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.request.count(),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   },
 
   findById: (id: string) =>
@@ -188,10 +200,14 @@ export const requestService = {
 
       const subscriptionMovement = await suscripcion(user.id, request.id, codeSociety, tariffDetails.plan.id, endDate);
       await newSociety(request, subscriptionMovement.subscriptionId, codeSociety, tariffDetails.plan);
-      await sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password);
-      await paymentTransaction(subscriptionMovement.id);
-      //await createReceiptPdf(payment.id);
-      await requestService.updateStatus(id, status);
+
+      // Paralelizar operaciones independientes post-creación de sociedad
+      await Promise.all([
+        sendWelcomeEmail(request.email, request.firstName, request.lastName, request.email, password),
+        paymentTransaction(subscriptionMovement.id),
+        requestService.updateStatus(id, status),
+      ]);
+
       return request;
     } catch (error) {
       console.log(error);

@@ -171,12 +171,12 @@ export const getCurrentUser = async (req: Request, res: Response) => {
 
 export const refreshSession = async (req: Request, res: Response) => {
   try {
-    const session = req.session;
-    if (!session?.id) {
+    const sessionId = req.sessionId;
+    if (!sessionId) {
       return res.status(401).json({ error: "Sesión no válida" });
     }
 
-    const renewed = await sessionService.renew(session.id);
+    const renewed = await sessionService.renew(sessionId);
     if (!renewed) {
       return res.status(401).json({ error: "No se pudo renovar sesión" });
     }

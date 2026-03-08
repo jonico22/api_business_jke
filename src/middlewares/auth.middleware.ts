@@ -1,6 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
+import { redis } from '@/shared/services/redis.service';
 
+const SESSION_CACHE_TTL = 300; // 5 minutos en segundos
+
+/**
+ * Invalida la caché de sesión en Redis.
+ * Llamar al hacer logout, cambio de rol, o desactivar usuario.
+ */
+export const invalidateSessionCache = async (token: string) => {
+  await redis.del(`session:${token}`);
+};
 
 const auth = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -13,7 +23,33 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: 'No autorizado: Token no proporcionado' });
     }
 
-    // 2. Búsqueda en base de datos
+    // 2. Intentar leer de Redis primero (≈1ms vs ≈70ms de BD)
+    const cacheKey = `session:${token}`;
+    const cached = await redis.get<{
+      sessionId: string;
+      user: any;
+      roleCode: string;
+      societyId: string | null;
+      subscriptionId: string | null;
+      expiresAt: string;
+    }>(cacheKey);
+
+    if (cached) {
+      // Validar expiración
+      if (new Date(cached.expiresAt) < new Date()) {
+        await redis.del(cacheKey);
+        return res.status(401).json({ message: 'Sesión expirada' });
+      }
+
+      req.user = cached.user;
+      req.role = cached.roleCode;
+      req.sessionId = cached.sessionId;
+      req.societyId = cached.societyId;
+      req.subscriptionId = cached.subscriptionId;
+      return next();
+    }
+
+    // 3. Cache miss → Buscar en BD
     const session = await prisma.session.findUnique({
       where: { token },
       include: {
@@ -23,26 +59,43 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       },
     });
 
-    // 3. Validación de vigencia
     if (!session || session.expiresAt < new Date()) {
       return res.status(401).json({ message: 'Sesión inválida o expirada' });
     }
 
-    // 4. Inyección de datos en el objeto Request
+    if (!session.user || !session.user.isActive) {
+      return res.status(401).json({ message: 'Usuario inactivo' });
+    }
+
+    // 4. Resolver subscriptionId en la misma pasada
+    let subscriptionId: string | null = null;
+    const societyId = session.user.role.societyId;
+
+    if (societyId) {
+      const subscription = await prisma.subscription.findUnique({
+        where: { societyId },
+        select: { id: true }
+      });
+      subscriptionId = subscription?.id || null;
+    }
+
+    // 5. Inyectar datos en req
     req.user = session.user;
     req.role = session.user.role.code;
     req.sessionId = session.id;
     req.session = session;
-    req.societyId = session.user.role.societyId;
+    req.societyId = societyId;
+    req.subscriptionId = subscriptionId;
 
-    // 5. Inyección del subscriptionId (UUID) para optimizar Core
-    if (req.societyId) {
-      const subscription = await prisma.subscription.findUnique({
-        where: { societyId: req.societyId },
-        select: { id: true }
-      });
-      req.subscriptionId = subscription?.id;
-    }
+    // 6. Guardar en Redis para las próximas peticiones
+    await redis.set(cacheKey, {
+      sessionId: session.id,
+      user: session.user,
+      roleCode: session.user.role.code,
+      societyId,
+      subscriptionId,
+      expiresAt: session.expiresAt.toISOString(),
+    }, SESSION_CACHE_TTL);
 
     next();
   } catch (error) {
