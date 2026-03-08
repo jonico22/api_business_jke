@@ -5,7 +5,8 @@ services:
       target: deps # Usará la etapa 'deps' que ya tiene Infisical si usaste mi Dockerfile anterior
     ports:
       - "4000:4000"
-    # IMPORTANTE: Eliminamos 'env_file'
+    env_file:
+      - .env
     command: npm run dev
     volumes:
       - .:/usr/src/app

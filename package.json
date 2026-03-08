@@ -5,15 +5,15 @@
     "dev:start": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register --poll src/index.ts",
     "dev:prisma": "npx prisma generate && npx prisma migrate dev --name init",
     "prisma:seed": "npx tsx prisma/seed.ts",
-    "dev": "npx prisma db push  && npm run prisma:seed && npm run dev:start",
-    "migrate:deploy": "npx prisma db push --force-reset && npm run prisma:seed",
+    "dev": "npx prisma migrate dev && npm run prisma:seed && npm run dev:start",
+    "migrate:deploy": "npx prisma migrate deploy && npm run prisma:seed",
     "build": "node --max-old-space-size=2048 ./node_modules/.bin/tsc && tsc-alias",
     "start:prod-app": "npm run migrate:deploy && node -r tsconfig-paths/register dist/index.js",
     "start:prod": " npm run start:prod-app",
     "start": "node dist/index.js",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
-    "docker:dev": "infisical run --env=dev --path=/api -- docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
+    "docker:dev": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up api db redis --build",
     "docker:clean": "docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v --remove-orphans"
   },
   "dependencies": {
