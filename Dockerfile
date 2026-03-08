@@ -67,7 +67,5 @@ COPY --from=builder /usr/src/app/tsconfig.json ./tsconfig.json
 COPY --from=builder /usr/src/app/src/fonts ./src/fonts
 
 
-EXPOSE 4000
-
 # Ejecutar el inicio de la app que primero migra y luego lanza el server
 CMD ["npm", "run", "start:prod-app"]
