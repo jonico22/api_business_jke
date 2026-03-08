@@ -8,8 +8,8 @@ const defaultRoles = [
   // --- ROLES DE LOS NEGOCIOS/SUSCRIPTORES ---
   { name: 'Titular de cuenta', code: 'OWNER' },
   { name: 'Administrador Local', code: 'BUSINESS_MANAGER' },
-  { name: 'Vendedor', code: 'SELLER' },
-  { name: 'Almacenero', code: 'STOCK_MANAGER' },
+  { name: 'Ejecutivo de ventas', code: 'SELLER' },
+  { name: 'Operario de almacén', code: 'STOCK_MANAGER' },
 ];
 
 export const createDefaultRoles = async () => {
