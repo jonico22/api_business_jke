@@ -3,125 +3,138 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  emailVerified  Boolean   @default(false)
-  image          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  isActive       Boolean   @default(false)
-  roleId         String
-  role           Role      @relation(fields: [roleId], references: [id])
-  accounts       Account[]
-  sessions       Session[]
-  person         BussinessPartner?
-  resetTokens    PasswordResetToken[]
-  failedLoginAttempts Int  @default(0)
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  emailVerified       Boolean              @default(false)
+  image               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  isActive            Boolean              @default(false)
+  mustChangePassword  Boolean              @default(false)
+  roleId              String
+  role                Role                 @relation(fields: [roleId], references: [id])
+  accounts            Account[]
+  sessions            Session[]
+  person              BussinessPartner?
+  resetTokens         PasswordResetToken[]
+  failedLoginAttempts Int                  @default(0)
   lockedUntil         DateTime?
-  isArchived     Boolean   @default(false) 
-  isDeleted   Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+  isArchived          Boolean              @default(false)
+  isDeleted           Boolean              @default(false)
+  createdBy           String?
+  updatedBy           String?
 
-  UserViewPermission UserViewPermission[]
-  Subscription Subscription[]
+  UserViewPermission         UserViewPermission[]
+  Subscription               Subscription[]
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-  UsedCoupons UsedCoupons[]
+  UsedCoupons                UsedCoupons[]
 
   File File[]
 }
 
 model Account {
-  id                      String   @id @default(uuid())
-  userId                 String
-  user                   User     @relation(fields: [userId], references: [id])
-  accountId              String
-  providerId             String
-  accessToken            String?
-  refreshToken           String?
-  accessTokenExpiresAt   DateTime?
-  refreshTokenExpiresAt  DateTime?
-  scope                  String?
-  idToken                String?
-  password               String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id])
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String?
+  updatedBy             String?
 }
 
 model Session {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  token      String   @unique
-  expiresAt  DateTime
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Role {
-  id    String  @id @default(uuid())
-  code  String  @unique
-  name  String  
-  isActive Boolean @default(true)
-  isDeleted Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
-  users User[]
+  id                 String               @id @default(uuid())
+  code               String               @unique
+  name               String
+  isActive           Boolean              @default(true)
+  isDeleted          Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  createdBy          String?
+  updatedBy          String?
+  users              User[]
   RoleViewPermission RoleViewPermission[]
-  society     Society?   @relation(fields: [societyId], references: [id])
-  societyId   String?
+  societyId          String?
 }
 
 model DocumentType {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isActive    Boolean @default(true)
-  createdBy   String?
-  updatedBy   String?
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  createdBy String?
+  updatedBy String?
 
   BussinessPartner BussinessPartner[]
 }
 
-model BussinessPartner {
-  userId    String?   @unique
-  user      User?     @relation(fields: [userId], references: [id])
-  id          String   @id @default(uuid())
-  typeBP      String  // Tipo de socio de negocio (persona, empresa, etc.)
-  typeDocId   String?
-  documentType   DocumentType? @relation(fields: [typeDocId], references: [id])
-  documentNumber String? @unique
-  firstName  String
-  middleName String?
-  lastName   String
-  surname   String?
-  companyName String?
-  contactEmail String?
-  email      String @unique
-  phone      String 
-  telephone  String?
-  address    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum BusinessPartnerType {
+  PERSONA
+  EMPRESA
+}
 
-  isActive    Boolean @default(true)
-  isDeleted   Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model BussinessPartner {
+  userId         String?             @unique
+  user           User?               @relation(fields: [userId], references: [id])
+  id             String              @id @default(uuid())
+  typeBP         BusinessPartnerType // Tipo de socio de negocio (persona, empresa, etc.)
+  typeDocId      String?
+  documentType   DocumentType?       @relation(fields: [typeDocId], references: [id])
+  documentNumber String?             @unique
+  firstName      String
+  middleName     String?
+  lastName       String
+  surname        String?
+  companyName    String?
+  contactEmail   String?
+  email          String              @unique
+  phone          String?
+  telephone      String?
+  address        String?
+  sexo           Gender?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  isActive  Boolean @default(true)
+  isDeleted Boolean @default(false)
+  createdBy String?
+  updatedBy String?
 }
 
 model PasswordResetToken {
@@ -132,15 +145,15 @@ model PasswordResetToken {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isActive    Boolean @default(true)
-  isDeleted   Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+  id                 String               @id @default(uuid())
+  name               String               @unique
+  description        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  isActive           Boolean              @default(true)
+  isDeleted          Boolean              @default(false)
+  createdBy          String?
+  updatedBy          String?
   RoleViewPermission RoleViewPermission[]
   UserViewPermission UserViewPermission[]
 }
@@ -148,58 +161,58 @@ model Permission {
 model View {
   id          String   @id @default(uuid())
   code        String   @unique
-  name        String   
+  name        String
   description String?
   path        String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  isActive Boolean @default(true)
+  isActive  Boolean @default(true)
   isDeleted Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+  createdBy String?
+  updatedBy String?
 
   RoleViewPermission RoleViewPermission[]
   UserViewPermission UserViewPermission[]
 }
 
 model RoleViewPermission {
-  id          String     @id @default(uuid())
-  roleId      String
-  role        Role       @relation(fields: [roleId], references: [id])
-  
-  viewId      String
-  view        View       @relation(fields: [viewId], references: [id])
+  id     String @id @default(uuid())
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  viewId String
+  view   View   @relation(fields: [viewId], references: [id])
 
   permissionId String
   permission   Permission @relation(fields: [permissionId], references: [id])
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  isActive    Boolean @default(true)
-  isDeleted   Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+  isDeleted Boolean  @default(false)
+  createdBy String?
+  updatedBy String?
 
   @@unique([roleId, viewId, permissionId]) // evita duplicados
 }
 
 model UserViewPermission {
-  id           String     @id @default(uuid())
+  id           String @id @default(uuid())
   userId       String
   viewId       String
   permissionId String
 
-  user         User       @relation(fields: [userId], references: [id])
-  view         View       @relation(fields: [viewId], references: [id])
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  view       View       @relation(fields: [viewId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
-  isActive    Boolean @default(true)
-  isDeleted   Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  isActive  Boolean  @default(true)
+  isDeleted Boolean  @default(false)
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, viewId, permissionId])
 }
@@ -212,23 +225,23 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  createdBy   String?
-  updatedBy   String?
-  plans  Plan[]
+  createdBy String?
+  updatedBy String?
+  plans     Plan[]
 }
 
 model PaymentFrequency {
-  id          String   @id @default(uuid())
-  name        String
-  description String? 
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
   intervalDays Int
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdBy   String?
-  updatedBy   String?
-  plans  Plan[]
+  createdBy String?
+  updatedBy String?
+  plans     Plan[]
 }
 
 model Currency {
@@ -240,61 +253,68 @@ model Currency {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  createdBy   String?
-  updatedBy   String?
-  plans  Plan[]
+  createdBy String?
+  updatedBy String?
+  plans     Plan[]
 
   Receipt Receipt[]
 }
 
 model Plan {
-  id                 String             @id @default(uuid())
-  code               String             @unique @default("DEFAULT_CODE")
-  name               String
-  description        String?
-  price              Float
-  maxUsers           Int
-  isActive           Boolean            @default(true)
+  id               String  @id @default(uuid())
+  code             String  @unique @default("DEFAULT_CODE")
+  name             String
+  description      String?
+  shortdescription String?
+  features         Json? // JSON para almacenar detalles personalizados ej: [{ text: "Ventas ilimitadas", icon: "check" }]
+  price            Float
+  maxUsers         Int
+  maxProducts      Int     @default(100)
+  storage          Int     @default(150) // en MB
+  isActive         Boolean @default(true)
 
-  serviceId          String
-  service            Service            @relation(fields: [serviceId], references: [id])
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
 
-  frequencyId        String
-  paymentFrequency   PaymentFrequency   @relation(fields: [frequencyId], references: [id])
+  frequencyId      String
+  paymentFrequency PaymentFrequency @relation(fields: [frequencyId], references: [id])
 
-  currencyId         String
-  currency           Currency           @relation(fields: [currencyId], references: [id])
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
 
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  isDeleted     Boolean @default(false)
-  isEnabled    Boolean @default(false)
-  createdBy   String?
-  updatedBy   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  isEnabled Boolean  @default(false)
+  createdBy String?
+  updatedBy String?
 
-  Tariff Tariff[]
+  Tariff            Tariff[]
+  subscriptions     Subscription[]
+  previousMovements SubscriptionMovement[] @relation("PreviousPlan")
+  newMovements      SubscriptionMovement[] @relation("NewPlan")
 }
 
 model Promotion {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  name              String
-  description       String?
-  discountType      DiscountType
-  discountValue     Float
-  durationUnit      DurationUnit
-  durationValue     Int
-  isSingleUse       Boolean  @default(false)
-  startDate         DateTime
-  endDate           DateTime
-  maxUsages         Int
-  currentUsages     Int      @default(0)
-  isActive          Boolean  @default(true)
+  id            String       @id @default(uuid())
+  code          String       @unique
+  name          String
+  description   String?
+  discountType  DiscountType
+  discountValue Float
+  durationUnit  DurationUnit
+  durationValue Int
+  isSingleUse   Boolean      @default(false)
+  startDate     DateTime
+  endDate       DateTime
+  maxUsages     Int
+  currentUsages Int          @default(0)
+  isActive      Boolean      @default(true)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy   String?
-  updatedBy   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
 
   UsedCoupons UsedCoupons[]
 
@@ -314,26 +334,70 @@ enum DurationUnit {
 }
 
 model Subscription {
-  id          String     @id @default(uuid())
-  userId      String
-  startDate   DateTime
-  endDate     DateTime
-  status      SubscriptionStatus @default(PENDING)
+  id              String             @id @default(uuid())
+  userId          String
+  planId          String
+  startDate       DateTime
+  endDate         DateTime
+  status          SubscriptionStatus @default(PENDING)
+  autoRenew       Boolean            @default(true) // Indica si se renovará automáticamente
   lastRenewalDate DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  isActive    Boolean  @default(true)
-  societyId String @unique 
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  isActive        Boolean            @default(true)
+  societyId       String             @unique
   // Relaciones
-  user        User       @relation(fields: [userId], references: [id])
-  createdBy   String?
-  updatedBy   String?
+  user            User               @relation(fields: [userId], references: [id])
+  plan            Plan               @relation(fields: [planId], references: [id])
+  createdBy       String?
+  updatedBy       String?
 
   AuthorizedUserSubscription AuthorizedUserSubscription[]
-  UsedCoupons UsedCoupons[]
-  SubscriptionMovement SubscriptionMovement[]
-  requestId   String    
-  request     Request   @relation(fields: [requestId], references: [id])
+  UsedCoupons                UsedCoupons[]
+  SubscriptionMovement       SubscriptionMovement[]
+  requestId                  String
+  request                    Request                      @relation(fields: [requestId], references: [id])
+  notifications              Notification[]
+
+  @@index([userId])
+  @@index([societyId])
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  type    NotificationType
+  title   String
+  message String
+  read    Boolean          @default(false)
+
+  // Relations
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  // Suggested additional fields
+  priority NotificationPriority @default(MEDIUM)
+  link     String? // URL or route to redirect
+  metadata Json? // For additional flexible data
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+}
+
+enum NotificationType {
+  SALES
+  STOCK
+  REPORTS
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum SubscriptionStatus {
@@ -344,17 +408,23 @@ enum SubscriptionStatus {
 }
 
 model SubscriptionMovement {
-  id              String        @id @default(uuid())
-  subscriptionId  String
-  movementDate    DateTime      @default(now())  // fecha de renovación o cambio
-  previousEndDate DateTime?     // fecha de fin antes de la renovación
-  newEndDate      DateTime      // nueva fecha de fin después de la renovación
-  movementType    MovementType  // tipo: RENEWAL, CANCELLATION, UPGRADE, SUBSCRIBED
-  notes           String?       // comentarios o detalle de la renovación
-  createdAt       DateTime?      @default(now())
-  createdBy       String?
-  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
-  paymentTransactions  PaymentTransaction[]   // AÑADIDO: Relación inversa a las transacciones
+  id                  String               @id @default(uuid())
+  subscriptionId      String
+  previousPlanId      String?
+  newPlanId           String?
+  movementDate        DateTime             @default(now()) // fecha de renovación o cambio
+  previousEndDate     DateTime? // fecha de fin antes de la renovación
+  newEndDate          DateTime // nueva fecha de fin después de la renovación
+  movementType        MovementType // tipo: RENEWAL, CANCELLATION, UPGRADE, SUBSCRIBED
+  notes               String? // comentarios o detalle de la renovación
+  createdAt           DateTime?            @default(now())
+  createdBy           String?
+  subscription        Subscription         @relation(fields: [subscriptionId], references: [id])
+  previousPlan        Plan?                @relation("PreviousPlan", fields: [previousPlanId], references: [id])
+  newPlan             Plan?                @relation("NewPlan", fields: [newPlanId], references: [id])
+  paymentTransactions PaymentTransaction[] // AÑADIDO: Relación inversa a las transacciones
+
+  @@index([subscriptionId])
 }
 
 enum MovementType {
@@ -365,36 +435,38 @@ enum MovementType {
 }
 
 model AuthorizedUserSubscription {
-  id             String      @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   subscriptionId String
-  authorizedAt   DateTime    @default(now())
+  authorizedAt   DateTime @default(now())
 
-  user           User        @relation(fields: [userId], references: [id])
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
 
   @@unique([userId, subscriptionId]) // Clave compuesta única
   @@map("authorized_user_subscription")
 }
 
 model PaymentTransaction {
-  id                String       @id @default(uuid())
-  subscriptionMovementId    String
+  id                     String               @id @default(uuid())
+  subscriptionMovementId String
   subscriptionMovement   SubscriptionMovement @relation(fields: [subscriptionMovementId], references: [id])
   amount                 Float
   paymentDate            DateTime
   nextPaymentDate        DateTime?
   paymentMethod          PaymentMethod
   status                 PaymentStatus
-  description            String?       // opcional para registrar detalles o errores
-  referenceCode          String?       // para conciliación (ej: código de pasarela)
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
+  description            String? // opcional para registrar detalles o errores
+  referenceCode          String? // para conciliación (ej: código de pasarela)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
   createdBy              String?
   updatedBy              String?
   fileId                 String?
-  file                   File?         @relation(fields: [fileId], references: [id])
-  receipt                Receipt?      // Relación uno a uno con el comprobante
+  file                   File?                @relation(fields: [fileId], references: [id])
+  receipt                Receipt? // Relación uno a uno con el comprobante
+
+  @@index([subscriptionMovementId])
 }
 
 enum PaymentMethod {
@@ -415,172 +487,194 @@ enum PaymentStatus {
 }
 
 model UsedCoupons {
-  id              String      @id @default(uuid())
-  userId          String
-  subscriptionId  String
-  promotionId     String
-  usedAt          DateTime   @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  subscriptionId String
+  promotionId    String
+  usedAt         DateTime @default(now())
 
-  user            User        @relation(fields: [userId], references: [id])
-  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
-  promotion       Promotion   @relation(fields: [promotionId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  promotion    Promotion    @relation(fields: [promotionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, promotionId], name: "unique_user_promotion_once")
-
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
 }
 
 model Request {
-  id          String             @id @default(uuid())
-  code        String            @unique
-  firstName   String
-  lastName    String
-  businessName String
-  email       String             @unique
-  phone       String
-  documentNumber String?         @unique
-  isBusiness Boolean             @default(false)
-  status      RequestStatus      @default(pending)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  tariffId   String            // tarifa aplicada si es que se verificó
-  
-  createdBy   String?
-  updatedBy   String?
-  rejection   ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
-  tariff      Tariff            @relation(fields: [tariffId], references: [id])
-  rejectionid String?
+  id             String        @id @default(uuid())
+  code           String        @unique
+  firstName      String
+  lastName       String
+  businessName   String
+  email          String        @unique
+  phone          String
+  documentNumber String?       @unique
+  isBusiness     Boolean       @default(false)
+  status         RequestStatus @default(PENDING)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tariffId       String // tarifa aplicada si es que se verificó
+
+  createdBy    String?
+  updatedBy    String?
+  rejection    ReasoneForRejection? @relation(fields: [rejectionid], references: [id])
+  tariff       Tariff               @relation(fields: [tariffId], references: [id])
+  rejectionid  String?
   Subscription Subscription[]
 }
 
 enum RequestStatus {
-  pending
-  rejected
-  verified
+  PENDING
+  REJECTED
+  VERIFIED
 }
 
 model Tariff {
-  id           String      @id @default(uuid())
-  planId       String
-  promotionId  String?     // opcional: si está asociado a una promoción específica
-  
-  totalCost    Float       // Costo final de la tarifa
-  description  String?     // Descripción opcional de la tarifa (ej: "Plan anual con descuento")
+  id          String  @id @default(uuid())
+  planId      String
+  promotionId String? // opcional: si está asociado a una promoción específica
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  isActive     Boolean     @default(false)
+  totalCost   Float // Costo final de la tarifa
+  description String? // Descripción opcional de la tarifa (ej: "Plan anual con descuento")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(false)
 
   // Relaciones
-  plan         Plan        @relation(fields: [planId], references: [id])
-  promotion    Promotion?  @relation(fields: [promotionId], references: [id])
+  plan      Plan       @relation(fields: [planId], references: [id])
+  promotion Promotion? @relation(fields: [promotionId], references: [id])
 
   Request Request[]
 }
 
-
 model ReasoneForRejection {
-  id          String   @id @default(uuid())
-  reason      String   // texto del motivo de rechazo
+  id      String    @id @default(uuid())
+  reason  String // texto del motivo de rechazo
   Request Request[]
+}
+
+enum FileCategory {
+  GENERAL
+  REPORT
+  RECEIPT
+  AVATAR
 }
 
 model File {
-  id           String   @id @default(uuid())
-  name         String
-  path         String
-  mimeType     String
-  size         Int
-  key          String   @unique
-  uploadedAt   DateTime @default(now())
+  id         String       @id @default(uuid())
+  name       String
+  path       String
+  mimeType   String?
+  size       Int?
+  key        String?      @unique
+  provider   FileProvider @default(R2)
+  uploadedAt DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
 
   // Relaciones
-  uploadedById String?  
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  category     FileCategory @default(GENERAL)
+  societyId    String?
+  uploadedById String?
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id])
 
   PaymentTransaction PaymentTransaction[]
-  Receipt Receipt[]
+  Receipt            Receipt[]
+
+  isDeleted Boolean @default(false)
+
+  @@index([societyId])
+  @@index([uploadedById])
 }
 
 model Tax {
   id          String   @id @default(uuid())
   code        String   @unique
   name        String
-  value       Float     // Porcentaje (ej. 18.0 para 18%)
-  type        TaxType   // Tipo de impuesto: porcentaje o fijo
-  description String?   // Descripción opcional
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  value       Float // Porcentaje (ej. 18.0 para 18%)
+  type        TaxType // Tipo de impuesto: porcentaje o fijo
+  description String? // Descripción opcional
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   Receipt Receipt[]
 }
 
 enum TaxType {
   percentage // Porcentaje, ej. 18%
-  fixed      // Monto fijo, ej. 5 USD
+  fixed // Monto fijo, ej. 5 USD
 }
 
 model ReceiptType {
-  id          String   @id @default(uuid())
-  code        String   @unique   // Código SUNAT o equivalente (ej. 01, 03)
-  name        String             // Nombre descriptivo (Factura, Boleta, etc.)
-  description String?            // Información adicional si se desea
-  isElectronic Boolean  @default(true) // Si es electrónico (e.g. para integración con SUNAT u otros)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  Receipt Receipt[]
+  id           String    @id @default(uuid())
+  code         String    @unique // Código SUNAT o equivalente (ej. 01, 03)
+  name         String // Nombre descriptivo (Factura, Boleta, etc.)
+  description  String? // Información adicional si se desea
+  isElectronic Boolean   @default(true) // Si es electrónico (e.g. para integración con SUNAT u otros)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  Receipt      Receipt[]
 }
 
 model Receipt {
-  id                String    @id @default(uuid())
-  series            String         // Serie del comprobante (ej: F001)
-  number            String    @unique    // Número del comprobante (ej. F001-000123)
-  issueDate         DateTime  @default(now())   // Fecha de emisión del comprobante
-  dueDate           DateTime  @default(now())   // Fecha y hora vencimiento del comprobante
-  taxAmount         Float               // Monto del impuesto aplicado
-  totalAmount       Float               // Total a pagar (incluye impuestos)
-  status            ReceiptStatus       // Estado del comprobante
-  notes             String?             // Observaciones opcionales
+  id          String        @id @default(uuid())
+  series      String // Serie del comprobante (ej: F001)
+  number      String        @unique // Número del comprobante (ej. F001-000123)
+  issueDate   DateTime      @default(now()) // Fecha de emisión del comprobante
+  dueDate     DateTime      @default(now()) // Fecha y hora vencimiento del comprobante
+  taxAmount   Float // Monto del impuesto aplicado
+  totalAmount Float // Total a pagar (incluye impuestos)
+  status      ReceiptStatus // Estado del comprobante
+  notes       String? // Observaciones opcionales
 
   // Relaciones
-  transactionId     String @unique
-  transaction       PaymentTransaction  @relation(fields: [transactionId], references: [id])
+  transactionId String             @unique
+  transaction   PaymentTransaction @relation(fields: [transactionId], references: [id])
 
-  currencyId        String
-  currency          Currency            @relation(fields: [currencyId], references: [id])
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
 
-  taxId             String
-  tax               Tax                 @relation(fields: [taxId], references: [id])
+  taxId String
+  tax   Tax    @relation(fields: [taxId], references: [id])
 
-  receiptTypeId     String
-  receiptType       ReceiptType        @relation(fields: [receiptTypeId], references: [id])
+  receiptTypeId String
+  receiptType   ReceiptType @relation(fields: [receiptTypeId], references: [id])
 
-  fileId            String?             // Opcional: PDF o XML del comprobante
-  file              File?               @relation(fields: [fileId], references: [id])
+  fileId String? // Opcional: PDF o XML del comprobante
+  file   File?   @relation(fields: [fileId], references: [id])
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
 }
 
 enum ReceiptStatus {
-  issued       // Emitido correctamente
-  canceled     // Anulado
+  issued // Emitido correctamente
+  canceled // Anulado
   pending_send // Pendiente de envío a sistema externo (como SUNAT)
 }
 
-
 model UbigeoPeru {
-  id              String   @id @map("ubigeo_id") @db.Char(6)
-  department      String   @db.VarChar(100)
-  province        String   @db.VarChar(100)
-  district        String   @db.VarChar(100)
-  naturalRegion   String?  @db.VarChar(50)
-  region          String?  @db.VarChar(50)
-  latitude        Decimal? @db.Decimal(9, 6)
-  longitude       Decimal? @db.Decimal(9, 6)
+  id            String   @id @map("ubigeo_id") @db.Char(6)
+  department    String   @db.VarChar(100)
+  province      String   @db.VarChar(100)
+  district      String   @db.VarChar(100)
+  naturalRegion String?  @db.VarChar(50)
+  region        String?  @db.VarChar(50)
+  latitude      Decimal? @db.Decimal(9, 6)
+  longitude     Decimal? @db.Decimal(9, 6)
 
   @@map("UbigeoPeru")
+}
+
+enum FileProvider {
+  R2
+  S3
+  EXTERNAL
 }

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { uploadFile,deleteFile,getFile,listFiles } from "@/modules/bussiness/files/file.controller";
-import  {upload}  from "@/middlewares/upload.middleware";
+import { uploadFile, registerExternalFile, deleteFile, getFile, listFiles } from "@/modules/bussiness/files/file.controller";
+import { upload } from "@/middlewares/upload.middleware";
 
 const router = Router();
 
@@ -11,6 +11,7 @@ router.post(
   upload.single('file'), // campo 'file' en el form-data
   uploadFile
 );
+router.post('/register', registerExternalFile);
 router.delete('/:id', deleteFile);
 
 export default router;

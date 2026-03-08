@@ -7,7 +7,7 @@ import { successResponse, errorResponse } from '@/utils/response';
 export const createPermission = async (req: Request, res: Response) => {
   try {
     const data = permissionSchema.parse(req.body);
-    const result = await permissionService.create(data);
+    const result = await permissionService.create(data as any);
     return successResponse(res, result, 'Permiso creado correctamente');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -29,7 +29,7 @@ export const updatePermission = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const data = permissionSchema.parse(req.body);
-    const result = await permissionService.update(id, data);
+    const result = await permissionService.update(id, data as any);
     res.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

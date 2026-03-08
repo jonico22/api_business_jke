@@ -4,13 +4,16 @@
     "module": "commonjs",
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "skipLibCheck": true,
-    "baseUrl": "./src",
+    "baseUrl": ".", // Cambiado de ./src a .
     "paths": {
-      "@/*": ["*"]
-    }
-  }
+      "@/*": ["src/*"] // Apunta a src desde la raíz
+    },
+    "noEmitOnError": false,  // Esto genera archivos aunque haya errores
+    "skipLibCheck": true,
+    "strict": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma"]
 }

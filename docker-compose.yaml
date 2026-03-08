@@ -2,13 +2,49 @@ services:
   api:
     build:
       context: .
-      target: runner 
-    ports:
-      - "4000:4000"
+      target: runner
+      # Añadimos esta sección para asegurar que los args pasen del host al Dockerfile
+      args:
+        - NODE_ENV=${NODE_ENV:-production}
+    expose:
+      - '${PORT:-4000}'
     env_file:
-      - .env # Carga las variables de entorno para producción
-    command: npm run start:prod
-    # No se definen servicios 'db' ni 'redis' aquí, ya que se conectará a servicios externos.
+      - .env
+    environment:
+      - PORT=${PORT:-4000}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_ENABLED=true
+      - DATABASE_URL
+      - DIRECT_URL
+      - JWT_SECRET
+      - NEW_RELIC_APP_NAME
+      - NEW_RELIC_LICENSE_KEY
+      - NEW_RELIC_ENABLED=true
+      - NEW_RELIC_NO_CONFIG_FILE=true
+      - NEW_RELIC_PRISMA_ENABLED=true
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
+      - FRONTEND_APP_URL=${FRONTEND_APP_URL:-http://localhost:5173}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
+      - API_SALES_URL=${API_SALES_URL:-http://localhost:5000}
+      # -----------------------
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - R2_BUCKET_NAME_EMAIL=${R2_BUCKET_NAME_EMAIL}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=America/Lima
+    restart: always
+    networks:
+      - coolify
 
-# Nota: No se definen 'volumes' de persistencia para la base de datos local aquí,
-# ya que la base de datos y Redis serán servicios gestionados externamente.
+# 2. ESTO DEFINE LA RED (Fuera de services)
+networks:
+  coolify:
+    external: true

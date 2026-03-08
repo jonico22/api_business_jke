@@ -1,0 +1,6 @@
+NombreCategoria,CodigoCategoria,Descripcion
+Desktop y All in One,CAT-DESKTOP,Computadoras de escritorio completas
+Laptops,CAT-LAPTOPS,Computadoras portátiles y notebooks
+Periféricos,CAT-PERIFERICOS,Teclados ratones y accesorios
+Monitores,CAT-MONITORES,Pantallas y monitores para PC
+Componentes PC,CAT-COMP,Partes internas de computadoras

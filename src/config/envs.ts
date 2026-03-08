@@ -7,6 +7,7 @@ export const envs = {
   DATABASE_URL: process.env.DATABASE_URL || '',
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
+  TZ: process.env.TZ || 'America/Lima',
   // Agrega aquí una validación simple
   isProd: process.env.NODE_ENV === 'production',
 };

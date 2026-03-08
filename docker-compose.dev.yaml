@@ -2,46 +2,85 @@ services:
   api:
     build:
       context: .
-      target: deps
+      target: deps # Usará la etapa 'deps' que ya tiene Infisical si usaste mi Dockerfile anterior
     ports:
       - "4000:4000"
-    command: npm run dev
     env_file:
       - .env
+    command: npm run dev
     volumes:
-      - .:/usr/src/app 
+      - .:/usr/src/app
       - /usr/src/app/node_modules
     environment:
       - NODE_ENV=development
+      # Al poner solo el nombre, Docker busca la variable en tu terminal (inyectada por Infisical)
+      - DATABASE_URL=postgresql://app_user:app_password@db:5432/my_app_db
+      - DIRECT_URL=postgresql://app_user:app_password@db:5432/my_app_db
+      - REDIS_URL=redis://redis:6379
+      - REDIS_ENABLED=true
+      - REDIS_HOST=redis # O la variable que uses para Redis
+      - JWT_SECRET
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
+      - FRONTEND_APP_URL=${FRONTEND_APP_URL:-http://localhost:5173}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
+      - API_SALES_URL=${API_SALES_URL:-http://localhost:5000}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_BUCKET_NAME_EMAIL=${R2_BUCKET_NAME_EMAIL}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      # Puedes añadir aquí cualquier otra variable que tengas en Infisical
+      # --- LÍNEAS NUEVAS PARA NEW RELIC ---
+      - NEW_RELIC_APP_NAME
+      - NEW_RELIC_LICENSE_KEY
+      - NEW_RELIC_ENABLED=true
+      - NEW_RELIC_LOG_LEVEL
+      - NEW_RELIC_NO_CONFIG_FILE=true
+      - NEW_RELIC_ATTRIBUTES_INCLUDE="utils.prisma.*"
+      - TZ=America/Lima
+
     depends_on:
-        db:
-          condition: service_healthy 
-        redis:
-          condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - coolify
   db:
     image: postgres:15
     ports:
       - "5433:5432"
     environment:
-      - POSTGRES_USER=app_user
-      - POSTGRES_PASSWORD=app_password
-      - POSTGRES_DB=my_app_db
+      # Estos valores pueden ser fijos en dev o venir de Infisical también
+      - POSTGRES_USER=${POSTGRES_USER:-app_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-app_password}
+      - POSTGRES_DB=${POSTGRES_DB:-my_app_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app_user -d my_app_db"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - coolify
   redis:
     image: redis:7
     ports:
       - "6378:6379"
     healthcheck:
-          test: ["CMD", "redis-cli", "ping"]
-          interval: 5s
-          timeout: 3s
-          retries: 5
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - coolify
 volumes:
   postgres_data:

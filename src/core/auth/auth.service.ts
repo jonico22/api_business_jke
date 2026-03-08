@@ -1,7 +1,9 @@
 import prisma from '@/config/database';
-import { sendResetEmail, sendPasswordChangeEmail,sendResetByAdminEmail, 
-  sendAccountLockedEmail, notifyAdminOnUserLock } from '@/utils/mailer';
-import { hashToken,generateToken,generateRandomPassword,hashPassword } from '@/utils/hash';
+import {
+  sendResetEmail, sendPasswordChangeEmail, sendResetByAdminEmail,
+  sendAccountLockedEmail, notifyAdminOnUserLock
+} from '@/utils/mailer';
+import { hashToken, generateToken, generateRandomPassword, hashPassword } from '@/utils/hash';
 import argon2 from 'argon2';
 import { generateEmailToken } from '@/utils/token-email';
 import { sendEmailVerification } from '@/utils/mailer';
@@ -24,28 +26,59 @@ export class AuthService {
   }
 
   async login(email: string, password: string, userAgent: string, ipAddress: string) {
-    
     const account = await prisma.account.findFirst({
       where: {
         accountId: email,
         providerId: 'credentials',
       },
-      include: {
-        user: true,
-      },
+      select: {
+        id: true,
+        password: true,
+        user: { // Aquí seleccionas los campos de la relación
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            emailVerified: true,
+            isActive: true,
+            mustChangePassword: true,
+            failedLoginAttempts: true,
+            lockedUntil: true,
+            role: { // Traemos el rol directamente desde aquí
+              select: {
+                code: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
     });
+
     if (!account || !account.password) {
-      throw new Error( 'Credenciales incorrectas');
+      throw new Error('Credenciales incorrectas');
     }
-    console.log('account',account);
-    console.log('account user',password);    
+
     const user = account.user;
-    if (!user.emailVerified) throw new Error('Debes verificar tu correo electrónico');
-    if (!user.isActive) throw new Error('Cuenta inactiva');
-    if (await this.isUserBlocked(user.id)) throw new Error('Cuenta bloqueada temporalmente');
-    if (user.lockedUntil && user.lockedUntil > new Date()) throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
-    
+
+    if (!user.emailVerified) {
+      throw new Error('Debes verificar tu correo electrónico');
+    }
+
+    if (!user.isActive) {
+      throw new Error('Cuenta inactiva');
+    }
+
+    if (await this.isUserBlocked(user.id)) {
+      throw new Error('Cuenta bloqueada temporalmente');
+    }
+
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new Error(`Cuenta bloqueada hasta ${user.lockedUntil.toLocaleTimeString()}`);
+    }
+
     const valid = await argon2.verify(account.password, password);
+
     if (!valid) {
       const { attemptsLeft } = await this.incrementFailedAttempts(user.id, user.email);
       const message = attemptsLeft > 0 ? `Te quedan ${attemptsLeft} intentos.` : 'Has superado el número de intentos. Tu cuenta ha sido bloqueada temporalmente.';
@@ -65,17 +98,34 @@ export class AuthService {
         userAgent,
         ipAddress,
       },
-    });
-     const role = await prisma.role.findFirst({
-      where: { users: { some: { id: session.userId } } },
+      select: {
+        id: true,
+        token: true,
+        expiresAt: true,
+        userId: true,
+        // No devolvemos userId ni ipAddress si no son necesarios
+      }
     });
 
-    return { 
-      token: session.token, 
-      user: account.user, 
+    // Obtener info de suscripción si tiene sociedad
+    let subscription = null;
+    if (user.role?.code !== 'ADMIN' && user.role?.code !== 'SUPPORT') {
+      const roleDoc = await prisma.role.findFirst({ where: { code: user.role.code } });
+      if (roleDoc?.societyId) {
+        subscription = await prisma.subscription.findUnique({
+          where: { societyId: roleDoc.societyId },
+          select: { status: true, planId: true, endDate: true, autoRenew: true }
+        });
+      }
+    }
+
+    return {
+      token: session.token,
+      user: account.user,
       newExpiresAt,
-      role,
-      views: await this.getViewsByRoleId(account.user.roleId || '') 
+      role: user.role,
+      session,
+      subscription // <-- Se envía al frontend
     };
   }
 
@@ -116,8 +166,9 @@ export class AuthService {
     const reset = await prisma.passwordResetToken.findUnique({ where: { token: hashed } });
     if (!reset || reset.expiresAt < new Date()) throw new Error('Token inválido o expirado');
 
-    const hashedPass =  await hashPassword(newPassword);
+    const hashedPass = await hashPassword(newPassword);
     await prisma.account.updateMany({ where: { userId: reset.userId }, data: { password: hashedPass } });
+    await prisma.user.update({ where: { id: reset.userId }, data: { mustChangePassword: false } });
     await prisma.passwordResetToken.delete({ where: { token: hashed } });
   }
 
@@ -129,9 +180,10 @@ export class AuthService {
     const valid = await argon2.verify(account.password, currentPassword);
     if (!valid) throw new Error('Contraseña actual incorrecta');
 
-    const hashedPass =  await hashPassword(newPassword);
+    const hashedPass = await hashPassword(newPassword);
     if (!account.id) throw new Error('Cuenta inválida');
     await prisma.account.update({ where: { id: account.id }, data: { password: hashedPass } });
+    await prisma.user.update({ where: { id: userId }, data: { mustChangePassword: false } });
     await sendPasswordChangeEmail(user?.email || '');
   }
 
@@ -149,9 +201,9 @@ export class AuthService {
     const attemptsLeft = Math.max(0, max - attempts);
 
     if (attempts >= max) {
-          const lockedUntil = new Date(Date.now() + blockMins * 60000);
-          await sendAccountLockedEmail(email, lockedUntil);
-          await notifyAdminOnUserLock(email, lockedUntil);
+      const lockedUntil = new Date(Date.now() + blockMins * 60000);
+      await sendAccountLockedEmail(email, lockedUntil);
+      await notifyAdminOnUserLock(email, lockedUntil);
     }
     const blockedUntil = attempts >= max ? new Date(Date.now() + blockMins * 60 * 1000) : null;
     await prisma.user.update({ where: { id: userId }, data: { failedLoginAttempts: attempts, lockedUntil: blockedUntil } });
@@ -161,7 +213,7 @@ export class AuthService {
   async resetFailedAttempts(userId: string) {
     await prisma.user.update({ where: { id: userId }, data: { failedLoginAttempts: 0, lockedUntil: null } });
   }
-  
+
 
   async getUserSessions(userId: string) {
     return prisma.session.findMany({
@@ -177,7 +229,10 @@ export class AuthService {
   }
 
   async resetUserPassword(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true }
+    });
     if (!user) throw new Error('Usuario no encontrado');
     const newPassword = generateRandomPassword();
     const hashedPassword = await argon2.hash(newPassword);
@@ -185,48 +240,109 @@ export class AuthService {
       where: { userId },
       data: { password: hashedPassword },
     });
+
+    // No forzamos cambio de contraseña si es ADMIN
+    if (user.role.code !== 'ADMIN') {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { mustChangePassword: true }
+      });
+    }
+
     await sendResetByAdminEmail(user.email, newPassword);
   }
 
-  async getPermissionsByRoleId(roleId: string) {
-    const permissions = await prisma.roleViewPermission.findMany({
-      where: { roleId },
-      include: { permission: true },
+  async getMyPermissions(userId: string, roleId: string) {
+    // 1. Obtener todos los permisos del rol
+    const rolePerms = await prisma.roleViewPermission.findMany({
+      where: { roleId, isActive: true },
+      include: {
+        view: { select: { code: true } },
+        permission: { select: { name: true } }
+      }
     });
-    return permissions.map((p: { permission: { name: any; }; }) => ({ name: p.permission.name }));
-  }
-   async getViewsByRoleId(roleId: string) {
-    const views = await prisma.roleViewPermission.findMany({
-      where: { roleId, permission: { name : 'read' } },
-      include: { view: true,permission: true },
+
+    // 2. Obtener todos los permisos aditivos directos del usuario
+    const userPerms = await prisma.userViewPermission.findMany({
+      where: { userId, isActive: true },
+      include: {
+        view: { select: { code: true } },
+        permission: { select: { name: true } }
+      }
     });
-    return views.map((v: { view: { name: any; }; permission: { name: any; }; }) => ({ name: v.view.name , permissions: v.permission ? { name: v.permission.name } : null }));
+
+    // 3. Estructurar el resultado para el Frontend
+    const viewsMap: Record<string, Set<string>> = {};
+
+    // Helper para agrupar permisos en el mapa
+    const addPermissionToMap = (viewCode: string, permissionName: string) => {
+      if (!viewsMap[viewCode]) {
+        viewsMap[viewCode] = new Set();
+      }
+      viewsMap[viewCode].add(permissionName);
+    };
+
+    rolePerms.forEach(rp => addPermissionToMap(rp.view.code, rp.permission.name));
+    userPerms.forEach(up => addPermissionToMap(up.view.code, up.permission.name));
+
+    // Convertir de Map<string, Set> a Objeto final
+    const finalPermissions: Record<string, string[]> = {};
+    for (const [view, actions] of Object.entries(viewsMap)) {
+      finalPermissions[view] = Array.from(actions);
+    }
+
+    // Role code for module mapping
+    const role = await prisma.role.findUnique({ where: { id: roleId }, select: { code: true } });
+    const code = role?.code || '';
+
+    const hasRole = (allowedRoles: string[]) => allowedRoles.some(allowed => code === allowed || code.startsWith(`${allowed}-`));
+
+    // Módulos base permitidos según el script de plantados
+    const modules = {
+      DASHBOARD: true,
+      INVENTARIO: hasRole(['OWNER', 'BUSINESS_MANAGER', 'STOCK_MANAGER', 'ADMIN', 'SUPPORT']),
+      VENTAS: hasRole(['OWNER', 'BUSINESS_MANAGER', 'SELLER', 'ADMIN', 'SUPPORT']),
+      USUARIOS: hasRole(['OWNER', 'BUSINESS_MANAGER', 'ADMIN', 'SUPPORT']),
+      REPORTES: hasRole(['OWNER', 'BUSINESS_MANAGER', 'ADMIN', 'SUPPORT']),
+      SUSCRIPCION: hasRole(['OWNER', 'ADMIN', 'SUPPORT']),
+      CONFIGURACION: true
+    };
+
+    return {
+      views: finalPermissions,
+      modules
+    };
   }
 
   async getCurrentUser(sessionId: string) {
-    if (!sessionId) throw new Error( 'No autorizado');
+    if (!sessionId) throw new Error('No autorizado');
 
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       include: { user: true },
     });
-    if (!session || !session.user || !session.user.isActive) throw new Error( 'Sesión inválida');
+    if (!session || !session.user || !session.user.isActive) throw new Error('Sesión inválida');
     const role = await prisma.role.findFirst({
       where: { users: { some: { id: session.userId } } },
     });
-    //const permissions = await this.getPermissionsByRoleId(role?.id || '');
-    const views = await this.getViewsByRoleId(role?.id || '');
-    
+
+    let subscription = null;
+    if (role && role.code !== 'ADMIN' && role.code !== 'SUPPORT' && role.societyId) {
+      subscription = await prisma.subscription.findUnique({
+        where: { societyId: role.societyId },
+        select: { status: true, planId: true, endDate: true, autoRenew: true }
+      });
+    }
+
     return {
       user: session.user,
       expires: session.expiresAt,
       token: session.token,
       role,
-      //permissions,
-      views,
+      subscription // <-- Se envía al frontend al recargar página
     };
   }
-  async verificationEmail(email: string){
+  async verificationEmail(email: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -234,14 +350,14 @@ export class AuthService {
     }
 
     if (user.emailVerified) {
-       throw new Error( 'El correo ya fue verificado');
+      throw new Error('El correo ya fue verificado');
     }
     const token = generateEmailToken(user.email);
     await sendEmailVerification(email, token);
     return { message: 'Correo de verificación reenviado' };
   }
 
-  async  archiveUser(userId: string) {
+  async archiveUser(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {

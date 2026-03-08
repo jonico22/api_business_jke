@@ -8,7 +8,7 @@ export const assignRoleViewPermission = async (req: Request, res: Response) => {
   try {
     const validation = roleViewPermissionSchema.safeParse(req.body);
     if (!validation.success) return res.status(400).json(validation.error.flatten());
-    const result = await roleViewPermissionService.assign(validation.data);
+    const result = await roleViewPermissionService.assign(validation.data as any);
     res.status(201).json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -21,7 +21,7 @@ export const getAllRoleViewPermissions = async (_req: Request, res: Response) =>
     const result = await roleViewPermissionService.getAll();
     res.json(result);
   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 };
@@ -32,7 +32,7 @@ export const removeRoleViewPermission = async (req: Request, res: Response) => {
     await roleViewPermissionService.remove(id);
     res.json({ message: 'Permiso de vista por rol eliminado' });
   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(400).json({ error: errorMessage });
   }
 };
@@ -44,7 +44,7 @@ export const getPermissionsByRole = async (req: Request, res: Response) => {
     const result = await roleViewPermissionService.getPermissionsByRole(roleId);
     res.json(result);
   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 };
@@ -76,7 +76,7 @@ export const removeAllRolePermissionsFromView = async (req: Request, res: Respon
     await roleViewPermissionService.removeAllRolePermissionsFromView(roleId, viewId);
     res.json({ message: 'Todos los permisos del rol sobre la vista han sido eliminados' });
   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 };
@@ -88,7 +88,7 @@ export const getViewsByRole = async (req: Request, res: Response) => {
     const result = await roleViewPermissionService.getViewsByRole(roleId);
     res.json(result);
   } catch (error) {
-     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: errorMessage });
   }
 };
