@@ -7,13 +7,14 @@ services:
       args:
         - NODE_ENV=${NODE_ENV:-production}
     ports:
-      - '${PORT:-4000}:4000'
+      - '${PORT:-4000}'
     env_file:
       - .env
     environment:
       - REDIS_URL=${REDIS_URL}
       - REDIS_ENABLED=true
       - DATABASE_URL
+      - DIRECT_URL
       - JWT_SECRET
       - NEW_RELIC_APP_NAME
       - NEW_RELIC_LICENSE_KEY
