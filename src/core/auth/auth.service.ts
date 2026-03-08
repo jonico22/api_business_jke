@@ -7,6 +7,8 @@ import { hashToken, generateToken, generateRandomPassword, hashPassword } from '
 import argon2 from 'argon2';
 import { generateEmailToken } from '@/utils/token-email';
 import { sendEmailVerification } from '@/utils/mailer';
+import { redis } from '@/shared/services/redis.service';
+import { invalidateSessionCache } from '@/middlewares/auth.middleware';
 
 export class AuthService {
 
@@ -39,15 +41,20 @@ export class AuthService {
             id: true,
             email: true,
             name: true,
+            image: true,
             emailVerified: true,
             isActive: true,
             mustChangePassword: true,
             failedLoginAttempts: true,
             lockedUntil: true,
-            role: { // Traemos el rol directamente desde aquí
+            roleId: true,
+            role: {
               select: {
+                id: true,
                 code: true,
-                name: true
+                name: true,
+                societyId: true, // Incluimos societyId de una vez para evitar query extra
+                isActive: true
               }
             }
           }
@@ -85,10 +92,12 @@ export class AuthService {
       throw new Error(`Credenciales inválidas. ${message}`);
     }
 
-    await this.resetFailedAttempts(user.id);
+    // Paralelizar operaciones post-verificación de contraseña
+    await Promise.all([
+      this.resetFailedAttempts(user.id),
+      this.verifySession(user.id)
+    ]);
 
-    await this.verifySession(user.id);
-    // new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 días
     const newExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 2); // 2 horas
     const session = await prisma.session.create({
       data: {
@@ -103,21 +112,27 @@ export class AuthService {
         token: true,
         expiresAt: true,
         userId: true,
-        // No devolvemos userId ni ipAddress si no son necesarios
       }
     });
 
-    // Obtener info de suscripción si tiene sociedad
+    // Obtener suscripción usando societyId del role (ya incluido en query inicial)
     let subscription = null;
-    if (user.role?.code !== 'ADMIN' && user.role?.code !== 'SUPPORT') {
-      const roleDoc = await prisma.role.findFirst({ where: { code: user.role.code } });
-      if (roleDoc?.societyId) {
-        subscription = await prisma.subscription.findUnique({
-          where: { societyId: roleDoc.societyId },
-          select: { status: true, planId: true, endDate: true, autoRenew: true }
-        });
-      }
+    if (user.role?.code !== 'ADMIN' && user.role?.code !== 'SUPPORT' && user.role?.societyId) {
+      subscription = await prisma.subscription.findUnique({
+        where: { societyId: user.role.societyId },
+        select: { id: true, status: true, planId: true, endDate: true, autoRenew: true }
+      });
     }
+
+    // Pre-cachear sesión en Redis para que la próxima petición sea instantánea
+    await redis.set(`session:${session.token}`, {
+      sessionId: session.id,
+      user: account.user,
+      roleCode: user.role.code,
+      societyId: user.role?.societyId || null,
+      subscriptionId: subscription?.id || null,
+      expiresAt: newExpiresAt.toISOString(),
+    }, 300);
 
     return {
       token: session.token,
@@ -125,7 +140,7 @@ export class AuthService {
       newExpiresAt,
       role: user.role,
       session,
-      subscription // <-- Se envía al frontend
+      subscription
     };
   }
 
@@ -136,14 +151,19 @@ export class AuthService {
   }
 
   async logout(userId: string, sessionId: string) {
-    const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.userId !== userId) {
-      throw new Error('No autorizado');
-    }
-    if (userId) {
-      // Elimina todas las sesiones del usuario
-      await this.destroyAllByUser(userId);
-    }
+    // Buscar TODAS las sesiones del usuario para invalidar sus cachés en Redis
+    const sessions = await prisma.session.findMany({
+      where: { userId },
+      select: { token: true }
+    });
+
+    // Invalidar cada sesión cacheada en Redis
+    await Promise.all(
+      sessions.map(s => invalidateSessionCache(s.token))
+    );
+
+    // Eliminar todas las sesiones de la BD
+    await this.destroyAllByUser(userId);
   }
 
   async forgotPassword(email: string) {
@@ -317,14 +337,41 @@ export class AuthService {
   async getCurrentUser(sessionId: string) {
     if (!sessionId) throw new Error('No autorizado');
 
+    // Una sola query con include de user + role (elimina query separada de role)
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { user: true },
+      select: {
+        id: true,
+        token: true,
+        expiresAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            emailVerified: true,
+            isActive: true,
+            mustChangePassword: true,
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                societyId: true,
+                isActive: true
+              }
+            }
+          }
+        }
+      },
     });
+
     if (!session || !session.user || !session.user.isActive) throw new Error('Sesión inválida');
-    const role = await prisma.role.findFirst({
-      where: { users: { some: { id: session.userId } } },
-    });
+
+    // Extraemos role para enviarlo al nivel principal y lo eliminamos del objeto user
+    const { role, ...userData } = session.user;
 
     let subscription = null;
     if (role && role.code !== 'ADMIN' && role.code !== 'SUPPORT' && role.societyId) {
@@ -335,11 +382,11 @@ export class AuthService {
     }
 
     return {
-      user: session.user,
+      user: userData,
       expires: session.expiresAt,
       token: session.token,
       role,
-      subscription // <-- Se envía al frontend al recargar página
+      subscription
     };
   }
   async verificationEmail(email: string) {
