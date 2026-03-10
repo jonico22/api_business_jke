@@ -69,8 +69,10 @@ export const createRequest = async (req: Request, res: Response) => {
 
 export const getRequests = async (req: Request, res: Response) => {
   try {
-    const result = await requestService.findAll();
-    res.json({ data: result });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const result = await requestService.findAll(page, limit);
+    res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

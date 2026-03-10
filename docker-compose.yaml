@@ -6,14 +6,16 @@ services:
       # Añadimos esta sección para asegurar que los args pasen del host al Dockerfile
       args:
         - NODE_ENV=${NODE_ENV:-production}
-    ports:
-      - '${PORT:-4000}:4000'
+    expose:
+      - '${PORT:-4000}'
     env_file:
       - .env
     environment:
+      - PORT=${PORT:-4000}
       - REDIS_URL=${REDIS_URL}
       - REDIS_ENABLED=true
       - DATABASE_URL
+      - DIRECT_URL
       - JWT_SECRET
       - NEW_RELIC_APP_NAME
       - NEW_RELIC_LICENSE_KEY
@@ -27,6 +29,8 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - BREVO_ACTIVE=${BREVO_ACTIVE:-false}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL}
       - API_SALES_URL=${API_SALES_URL:-http://localhost:5000}
       # -----------------------
       - R2_BUCKET=${R2_BUCKET}

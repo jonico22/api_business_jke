@@ -7,7 +7,7 @@ const getAdminEmail = () => process.env.ADMIN_EMAIL || '';
 const getFrontendAppUrl = () => process.env.FRONTEND_APP_URL || 'http://localhost:5173';
 
 export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Contraseña actualizada',
     htmlContent: `<p>Tu contraseña fue actualizada. Si no fuiste tú, contacta al soporte.</p>`,
@@ -15,7 +15,7 @@ export const sendPasswordChangeEmail = async (to: string): Promise<void> => {
 };
 
 export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Promise<void> => {
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Cuenta bloqueada por seguridad',
     htmlContent: `
@@ -27,7 +27,7 @@ export const sendAccountLockedEmail = async (to: string, unlockTime: Date): Prom
 };
 
 export const notifyAdminOnUserLock = async (userEmail: string, unlockTime: Date): Promise<void> => {
-  sendEmail({
+  await sendEmail({
     to: getAdminEmail(),
     subject: 'Usuario bloqueado por intentos fallidos',
     htmlContent: `
@@ -41,16 +41,15 @@ export const sendResetEmail = async (to: string, token: string): Promise<void> =
   const html = await EmailTemplateService.getTemplate('reset-password', {
     reset_link: `${getFrontendAppUrl()}/auth/reset-password?token=${token}`
   });
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Restablecimiento de contraseña',
     htmlContent: html,
   });
-
 }
 
 export const sendResetByAdminEmail = async (to: string, newPassword: string): Promise<void> => {
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Nueva contraseña asignada por un administrador',
     htmlContent: `<p>Se te ha asignado una nueva contraseña: <strong>${newPassword}</strong></p><p>Por favor, cambia esta contraseña después de iniciar sesión.</p>`,
@@ -79,7 +78,7 @@ export const sendRegistrationEmail = async (to: string, firstName: string, lastN
 };
 
 export const sendEmailVerification = async (to: string, token: string): Promise<void> => {
-  sendEmail({
+  await sendEmail({
     to,
     subject: 'Verificación de correo electrónico',
     htmlContent: `

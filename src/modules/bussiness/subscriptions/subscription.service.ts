@@ -48,41 +48,41 @@ export const subscriptionService = {
     };
   },
   findById: async (id: string) => {
-    const sub: any = await prisma.subscription.findUnique({
-      where: { id },
-      include: {
-        //user: true,
-        plan: true,
-        request: {
-          include: {
-            tariff: {
-              include: {
-                promotion: true
+    // Paralelizar ambas queries independientes
+    const [sub, pendingPayment] = await Promise.all([
+      prisma.subscription.findUnique({
+        where: { id },
+        include: {
+          plan: true,
+          request: {
+            include: {
+              tariff: {
+                include: {
+                  promotion: true
+                }
               }
             }
           }
+        },
+      }),
+      prisma.paymentTransaction.findFirst({
+        where: {
+          status: 'PENDING',
+          subscriptionMovement: {
+            subscriptionId: id,
+            movementType: 'RENEWAL'
+          }
         }
-      },
-    });
+      })
+    ]);
 
     if (!sub) return null;
-
-    // Verificar si tiene alguna transacción PENDING de renovación
-    const pendingPayment = await prisma.paymentTransaction.findFirst({
-      where: {
-        status: 'PENDING',
-        subscriptionMovement: {
-          subscriptionId: id,
-          movementType: 'RENEWAL'
-        }
-      }
-    });
 
     const isNearingExpiration = differenceInDays(sub.endDate, new Date()) <= 7 || sub.endDate < new Date();
 
     return {
       ...sub,
-      isPublicReview: sub.request?.tariff?.promotion?.code === 'BETA',
+      isPublicReview: (sub as any).request?.tariff?.promotion?.code === 'BETA',
       hasPendingPayment: !!pendingPayment,
       isNearingExpiration
     };
