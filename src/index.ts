@@ -102,6 +102,10 @@ async function main() {
   // 5. Escuchar explícitamente en 0.0.0.0
   server.listen(Number(port), '0.0.0.0', () => {
     logger.info(`🚀 Servidor listo y escuchando en puerto ${port}`);
+    // Keep-alive: Ping a Neon DB cada 4 min para evitar cold start (auto-suspend a los 5 min)
+    setInterval(async () => {
+      try { await prisma.$queryRaw`SELECT 1`; } catch (_) { }
+    }, 4 * 60 * 1000);
   });
 }
 
