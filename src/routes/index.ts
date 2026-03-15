@@ -29,6 +29,7 @@ import categoryRoutes from '@/modules/sales/category/category.routes';
 import productRoutes from '@/modules/sales/product/product.routes';
 import clientRoutes from '@/modules/sales/client/client.routes';
 import branchOfficeRoutes from '@/modules/sales/branch-office/branch-office.routes';
+import branchMovementRoutes from '@/modules/sales/branch-movement/branch-movement.routes';
 import salesCurrencyRoutes from '@/modules/sales/currency/currency.routes';
 import societyRoutes from '@/modules/sales/society/society.routes';
 import orderRoutes from '@/modules/sales/order/order.routes';
@@ -36,6 +37,9 @@ import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
 import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
 import favoriteRoutes from '@/modules/sales/favorite/favorite.routes';
 import salesDashboardRoutes from '@/modules/sales/dashboard/sales-dashboard.routes';
+import cashShiftRoutes from '@/modules/sales/cash-shift/cash-shift.routes';
+import branchOfficeProductRoutes from '@/modules/sales/branch-office-products/branch-office-products.routes';
+import inventoryRoutes from '@/modules/sales/inventory/inventory.routes';
 import notificationRoutes from '@/modules/core/notification/notification.routes';
 import { setupRateLimiter } from '@/config/rateLimit';
 
@@ -91,6 +95,10 @@ router.use('/tariffs', tariffRoutes);
 
 router.use('/sales/clients', clientRoutes);
 router.use('/sales/branch-offices', branchOfficeRoutes);
+router.use('/sales/branch-office-products', branchOfficeProductRoutes);
+router.use('/sales/inventory', inventoryRoutes);
+router.use('/sales/cash-shifts', cashShiftRoutes);
+router.use('/sales/branch-movements', branchMovementRoutes);
 router.use('/sales/currencies', salesCurrencyRoutes);
 router.use('/sales/societies', societyRoutes);
 import reportRoutes from '@/modules/sales/order/report/report.routes';
@@ -99,8 +107,6 @@ import reportRoutes from '@/modules/sales/order/report/report.routes';
 
 router.use('/sales/orders/reports', reportRoutes); // Report route MUST be before generic order routes
 router.use('/sales/orders', orderRoutes);
-router.use('/sales/order-items', orderItemRoutes);
-router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-payments', orderPaymentRoutes);
 router.use('/sales/favorites', favoriteRoutes);
