@@ -14,7 +14,6 @@ export const closeCashShiftSchema = z.object({
   reportedYapeAmount: z.number().min(0, { message: 'reportedYapeAmount debe ser mayor o igual a 0' }),
   reportedPlinAmount: z.number().min(0, { message: 'reportedPlinAmount debe ser mayor o igual a 0' }),
   reportedTransferAmount: z.number().min(0, { message: 'reportedTransferAmount debe ser mayor o igual a 0' }),
-  userId: z.string({ required_error: 'userId es requerido' }),
   observations: z.string().optional(),
 });
 
@@ -31,7 +30,6 @@ export const createManualMovementSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE'], { message: 'type debe ser INCOME o EXPENSE' }),
   amount: z.number().positive({ message: 'amount debe ser mayor a 0' }),
   description: z.string().min(1, { message: 'description es requerida' }),
-  currencyId: z.string().uuid({ message: 'currencyId debe ser un UUID válido' }),
+  currencyId: z.string({ message: 'currencyId debe ser un UUID válido' }),
   paymentMethod: z.string({ required_error: 'paymentMethod es requerido' }),
-  userId: z.string({ required_error: 'userId es requerido' }),
 });

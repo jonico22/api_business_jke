@@ -5,9 +5,9 @@ import {
     requestApiSalePost
 } from '@/services/api-sales.service';
 import { successResponse, errorResponse } from '@/utils/response';
-import { 
-    openCashShiftSchema, 
-    closeCashShiftSchema, 
+import {
+    openCashShiftSchema,
+    closeCashShiftSchema,
     cashShiftIdSchema,
     createManualMovementSchema,
     currentCashShiftQuerySchema
@@ -47,7 +47,7 @@ export const openCashShift = async (req: Request, res: Response) => {
 export const getAllCashShifts = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
-        
+
         const queryParams = new URLSearchParams({
             societyCode: societyId.toString(),
             ...(req.query as any)
@@ -57,6 +57,20 @@ export const getAllCashShifts = async (req: Request, res: Response) => {
         return successResponse(res, cashShifts, 'Turnos de caja obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener turnos de caja', 500, error.message);
+    }
+};
+
+/**
+ * Obtener turnos de caja para select/dropdown
+ * GET /api/cash-shifts/select
+ */
+export const getCashShiftsForSelect = async (req: Request, res: Response) => {
+    try {
+        const societyId = req.societyId || '1';
+        const cashShifts = await requestApiSaleGet(`cash-shifts/select?societyCode=${societyId}`);
+        return successResponse(res, cashShifts, 'Turnos de caja para select obtenidos exitosamente');
+    } catch (error: any) {
+        return errorResponse(res, 'Error al obtener turnos de caja para select', 500, error.message);
     }
 };
 
@@ -79,8 +93,9 @@ export const closeCashShift = async (req: Request, res: Response) => {
         const { id } = paramValidation.data;
         const closeData = {
             ...bodyValidation.data,
-            updatedBy: req.user?.id,
+            userId: req.user?.id,
         };
+        console.log(closeData);
 
         const result = await requestApiSalePost(`cash-shifts/close/${id}`, closeData);
         return successResponse(res, result, 'Turno de caja cerrado exitosamente');
@@ -121,7 +136,7 @@ export const createManualMovement = async (req: Request, res: Response) => {
 
         const movementData = {
             ...validation.data,
-            createdBy: req.user?.id,
+            userId: req.user?.id,
         };
 
         const result = await requestApiSalePost('cash-shifts/movements', movementData);
@@ -138,7 +153,7 @@ export const createManualMovement = async (req: Request, res: Response) => {
 export const getCreatedByUsers = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
-        
+
         // 1. Obtener datos de la API de ventas
         const userIdsRaw = await requestApiSaleGet(`cash-shifts/created-by?societyCode=${societyId}`);
 

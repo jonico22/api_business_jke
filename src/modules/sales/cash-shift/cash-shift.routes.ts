@@ -6,7 +6,8 @@ import {
     getCashShiftById,
     createManualMovement,
     getCreatedByUsers,
-    getCurrentCashShift
+    getCurrentCashShift,
+    getCashShiftsForSelect
 } from './cash-shift.controller';
 import auth from '@/middlewares/auth.middleware';
 
@@ -22,6 +23,9 @@ router.get('/', auth, getAllCashShifts);
 
 // GET /api/cash-shifts/current - Consultar estado de caja actual
 router.get('/current', auth, getCurrentCashShift);
+
+// GET /api/cash-shifts/select - Turnos para select/dropdown
+router.get('/select', auth, getCashShiftsForSelect);
 
 // GET /api/cash-shifts/created-by - Usuarios que han abierto cajas
 router.get('/created-by', auth, getCreatedByUsers);
