@@ -26,7 +26,7 @@ export const openCashShift = async (req: Request, res: Response) => {
 
         const cashShiftData = {
             ...validation.data,
-            createdBy: req.user?.id,
+            userId: req.user?.id,
         };
 
         const result = await requestApiSalePost('cash-shifts/open', cashShiftData);
