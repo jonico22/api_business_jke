@@ -11,7 +11,17 @@ export const kardexQuerySchema = z.object({
   branchId: z.string().uuid({ message: 'branchId debe ser un UUID válido' }).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  type: z.enum(['INCOME', 'EXPENSE']).optional(),
+  type: z.enum([
+    'SALE_EXIT',
+    'TRANSFER_IN',
+    'TRANSFER_OUT',
+    'ADJUSTMENT_ADD',
+    'ADJUSTMENT_SUB',
+    'PURCHASE_IN',
+    'RETURN_IN',
+    'RETURN_OUT',
+    'INITIAL_STOCK'
+  ]).optional(),
 });
 
 /**

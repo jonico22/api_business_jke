@@ -19,6 +19,7 @@ export const listInventorySchema = z.object({
 export const selectInventorySchema = z.object({
   branchOfficeId: z.string().uuid({ message: 'branchOfficeId es requerido y debe ser un UUID válido' }),
   societyCode: z.string().optional(),
+  search: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
 });
