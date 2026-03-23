@@ -23,6 +23,7 @@ export const getAllClients = async (req: Request, res: Response) => {
             type: 'CUSTOMER',
             ...(req.query as any)
         }).toString();
+        console.log(queryParams);
 
         const clients = await requestApiSaleGet(`bussinesspartners?${queryParams}`);
         return successResponse(res, clients, 'Clientes obtenidos exitosamente');
