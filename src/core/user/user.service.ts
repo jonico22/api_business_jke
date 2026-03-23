@@ -105,6 +105,7 @@ class UserService {
             lastName: response.lastName,
             phone: response.phone,
             address: response.address,
+            documentNumber: response.documentNumber,
             sexo: response.sexo,
         };
 
