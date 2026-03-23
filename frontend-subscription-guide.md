@@ -583,3 +583,49 @@ return (
   </nav>
 );
 ```
+
+---
+
+## 12. Actualizar Perfil del Usuario (Mi Perfil)
+Permite al usuario autenticado (Owner, Manager, Empleado) actualizar sus propios datos personales.
+
+**Endpoint:** `PUT /api/users/me`
+**Auth:** Requiere Token JWT (Bearer)
+
+### Campos Editables (Opcionales)
+- `firstName` (String): Nombres.
+- `lastName` (String): Apellidos.
+- `phone` (String): Teléfono/Celular.
+- `address` (String): Dirección.
+- `documentNumber` (String): DNI o RUC (según corresponda).
+- `sexo` (String): Opciones: `MALE`, `FEMALE`, `OTHER`.
+- `image` (String): URL de la imagen de perfil.
+
+### Request Body (Ejemplo):
+```json
+{
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "documentNumber": "70654321",
+  "phone": "987654321"
+}
+```
+
+### Respuesta Exitosa (200 OK)
+Devuelve los datos actualizados del Socio de Negocio (`BussinessPartner`).
+```json
+{
+  "message": "Usuario actualizado",
+  "data": {
+    "id": "uuid-bp",
+    "userId": "uuid-user",
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "documentNumber": "70654321",
+    "phone": "987654321",
+    "address": "Calle Falsa 123",
+    "sexo": "MALE",
+    "updatedAt": "2024-03-23T..."
+  }
+}
+```
