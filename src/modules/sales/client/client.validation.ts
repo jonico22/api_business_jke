@@ -31,7 +31,7 @@ export const createClientSchema = z.object({
     sex: z.string().optional(),
     companyName: z.string().optional(),
     contactEmail: z.string().email().optional(),
-    email: z.string().email('Email inválido'),
+    email: z.string().email('Email inválido').optional(),
     phone: z.string().optional(),
     telephone: z.string().optional(),
     address: z.string().optional(),
