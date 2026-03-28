@@ -8,6 +8,7 @@ export const envs = {
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
   TZ: process.env.TZ || 'America/Lima',
+  TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY || '',
   // Agrega aquí una validación simple
   isProd: process.env.NODE_ENV === 'production',
 };
