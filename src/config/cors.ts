@@ -23,7 +23,7 @@ export const corsOptions: CorsOptions = {
     callback(new AppError(`Dominio ${origin} no permitido por CORS`, 403));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'], // Agregué 'Accept'
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-turnstile-token'], // Agregué 'Accept' y 'x-turnstile-token'
   credentials: true,
   optionsSuccessStatus: 200
 };

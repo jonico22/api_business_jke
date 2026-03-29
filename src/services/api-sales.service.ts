@@ -2,8 +2,8 @@
  * Servicio para comunicación con la API de Ventas/Sales
  */
 
-import http from 'http';
-import https from 'https';
+import * as http from 'http';
+import * as https from 'https';
 import { URL } from 'url';
 
 const API_SALES_URL = process.env.API_SALES_URL || 'http://localhost:3000';
@@ -36,7 +36,8 @@ export const requestApiSaleGet = async (path: string, options?: { headers?: Reco
                 throw new Error(`HTTP ${response.status}: ${errorBody || response.statusText}`);
             }
         }
-        return response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : {};
     } catch (error) {
         console.error('Error en requestApiSaleGet:', error);
         throw error;
@@ -137,7 +138,8 @@ export const requestApiSalePost = async (path: string, body: any, options?: { he
                 throw new Error(`HTTP ${response.status}: ${errorBody || response.statusText}`);
             }
         }
-        return response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : {};
     } catch (error) {
         console.error('Error en requestApiSalePost:', error);
         throw error;
@@ -171,7 +173,8 @@ export const requestApiSalePut = async (path: string, body: any) => {
                 throw new Error(`HTTP ${response.status}: ${errorBody || response.statusText}`);
             }
         }
-        return response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : {};
     } catch (error) {
         console.error('Error en requestApiSalePut:', error);
         throw error;
@@ -210,7 +213,8 @@ export const requestApiSaleDelete = async (path: string, body?: any) => {
                 throw new Error(`HTTP ${response.status}: ${errorBody || response.statusText}`);
             }
         }
-        return response.json();
+        const text = await response.text();
+        return text ? JSON.parse(text) : {};
     } catch (error) {
         console.error('Error en requestApiSaleDelete:', error);
         throw error;

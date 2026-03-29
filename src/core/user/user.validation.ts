@@ -20,6 +20,7 @@ export const updateMeSchema = z.object({
   lastName: z.string().min(2).optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  documentNumber: z.string().optional(),
   sexo: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
   image: z.string().url().optional(),
 });

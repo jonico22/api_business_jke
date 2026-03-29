@@ -49,3 +49,15 @@ export const updateProductSchema = z.object({
 export const productIdSchema = z.object({
     id: z.string().uuid('ID inválido'),
 });
+
+/**
+ * Schema para selector de productos (Select/Dropdown)
+ * GET /api/sales/products/select
+ */
+export const productSelectQuerySchema = z.object({
+    societyCode: z.string().optional(),
+    societyId: z.string().uuid().optional(),
+    categoryCode: z.string().optional(),
+    categoryId: z.string().uuid().optional(),
+    branchId: z.string().uuid().optional(),
+});

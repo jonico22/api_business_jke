@@ -7,7 +7,12 @@ import {
     requestApiSaleDelete
 } from '@/services/api-sales.service';
 import { successResponse, errorResponse } from '@/utils/response';
-import { createProductSchema, updateProductSchema, productIdSchema } from './product.validation';
+import { 
+    createProductSchema, 
+    updateProductSchema, 
+    productIdSchema,
+    productSelectQuerySchema 
+} from './product.validation';
 
 /**
  * Obtener todos los productos
@@ -35,8 +40,19 @@ export const getAllProducts = async (req: Request, res: Response) => {
  */
 export const getProductsForSelect = async (req: Request, res: Response) => {
     try {
+        const validation = productSelectQuerySchema.safeParse(req.query);
+        if (!validation.success) {
+            return errorResponse(res, 'Parámetros de consulta inválidos', 400, validation.error.format());
+        }
+
         const societyId = req.societyId || '1';
-        const products = await requestApiSaleGet(`products/select?societyCode=${societyId}`);
+
+        const queryParams = new URLSearchParams({
+            societyCode: societyId.toString(),
+            ...(validation.data as any)
+        }).toString();
+
+        const products = await requestApiSaleGet(`products/select?${queryParams}`);
         return successResponse(res, products, 'Productos para select obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener productos para select', 500, error.message);
