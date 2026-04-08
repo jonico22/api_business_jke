@@ -37,7 +37,7 @@
     "newrelic": "^13.9.0",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
-    "nodemailer": "^7.0.11",
+    "nodemailer": "^8.0.5",
     "pdfmake": "^0.2.20",
     "qrcode": "^1.5.4",
     "rate-limit-redis": "^4.3.1",
