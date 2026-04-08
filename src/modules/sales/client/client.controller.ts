@@ -25,7 +25,7 @@ export const getAllClients = async (req: Request, res: Response) => {
         }).toString();
         console.log(queryParams);
 
-        const clients = await requestApiSaleGet(`bussinesspartners?${queryParams}`);
+        const clients = await requestApiSaleGet(`business-partners?${queryParams}`);
         return successResponse(res, clients, 'Clientes obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener clientes', 500, error.message);
@@ -39,7 +39,7 @@ export const getAllClients = async (req: Request, res: Response) => {
 export const getClientsForSelect = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
-        const clients = await requestApiSaleGet(`bussinesspartners/select?societyCode=${societyId}&type=CUSTOMER`);
+        const clients = await requestApiSaleGet(`business-partners/select?societyCode=${societyId}&type=CUSTOMER`);
         return successResponse(res, clients, 'Clientes para select obtenidos exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener clientes para select', 500, error.message);
@@ -54,7 +54,7 @@ export const getCreatedByUsers = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
         // 1. Obtener datos de la API de ventas
-        const clients = await requestApiSaleGet(`bussinesspartners/created-by-users?societyId=${societyId}&type=CUSTOMER`);
+        const clients = await requestApiSaleGet(`business-partners/created-by-users?societyId=${societyId}&type=CUSTOMER`);
 
         // 2. Extraer IDs de usuarios únicos.
         // La API devuelve un array de IDs (strings).
@@ -91,7 +91,7 @@ export const getUpdatedByUsers = async (req: Request, res: Response) => {
     try {
         const societyId = req.societyId || '1';
         // 1. Obtener datos de la API de ventas
-        const clients = await requestApiSaleGet(`bussinesspartners/updated-by-users?societyId=${societyId}&type=CUSTOMER`);
+        const clients = await requestApiSaleGet(`business-partners/updated-by-users?societyId=${societyId}&type=CUSTOMER`);
 
         // 2. Extraer IDs de usuarios únicos.
         // La API devuelve un array de IDs (strings), no objetos.
@@ -132,7 +132,7 @@ export const getClientById = async (req: Request, res: Response) => {
         }
 
         const { id } = validation.data;
-        const client = await requestApiSaleGet(`bussinesspartners/${id}`);
+        const client = await requestApiSaleGet(`business-partners/${id}`);
         return successResponse(res, client, 'Cliente obtenido exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al obtener cliente', 500, error.message);
@@ -164,7 +164,7 @@ export const createClient = async (req: Request, res: Response) => {
             return errorResponse(res, 'No se pudo determinar el usuario creador', 400);
         }
 
-        const client = await requestApiSalePost('bussinesspartners', clientData);
+        const client = await requestApiSalePost('business-partners', clientData);
         return successResponse(res, client, 'Cliente creado exitosamente', 201);
     } catch (error: any) {
         return errorResponse(res, 'Error al crear cliente', 500, error.message);
@@ -193,7 +193,7 @@ export const updateClient = async (req: Request, res: Response) => {
         };
 
         const { id } = paramValidation.data;
-        const client = await requestApiSalePut(`bussinesspartners/${id}`, updateData);
+        const client = await requestApiSalePut(`business-partners/${id}`, updateData);
         return successResponse(res, client, 'Cliente actualizado exitosamente');
     } catch (error: any) {
         return errorResponse(res, 'Error al actualizar cliente', 500, error.message);
@@ -213,7 +213,7 @@ export const deleteClient = async (req: Request, res: Response) => {
 
         const { id } = validation.data;
 
-        await requestApiSaleDelete(`bussinesspartners/${id}`, {
+        await requestApiSaleDelete(`business-partners/${id}`, {
             updatedBy: req.user?.id,
         });
 
