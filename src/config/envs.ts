@@ -9,8 +9,11 @@ export const envs = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || '*',
   TZ: process.env.TZ || 'America/Lima',
   TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY || '',
+  TURNSTILE_BYPASS_TOKEN: process.env.TURNSTILE_BYPASS_TOKEN || 'test-turnstile-bypass',
+  CI: process.env.CI === 'true',
   // Agrega aquí una validación simple
   isProd: process.env.NODE_ENV === 'production',
+  isTest: process.env.NODE_ENV === 'test',
 };
 
 // Validación: Si no hay DATABASE_URL, lanzamos error antes de que la app falle después
