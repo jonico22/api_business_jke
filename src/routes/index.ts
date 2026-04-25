@@ -41,6 +41,7 @@ import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
 import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
 import favoriteRoutes from '@/modules/sales/favorite/favorite.routes';
 import salesDashboardRoutes from '@/modules/sales/dashboard/sales-dashboard.routes';
+import salesAnalyticsRoutes from '@/modules/sales/analytics/sales-analytics.routes';
 import cashShiftRoutes from '@/modules/sales/cash-shift/cash-shift.routes';
 import branchOfficeProductRoutes from '@/modules/sales/branch-office-products/branch-office-products.routes';
 import inventoryRoutes from '@/modules/sales/inventory/inventory.routes';
@@ -119,6 +120,7 @@ router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-payments', orderPaymentRoutes);
 router.use('/sales/favorites', favoriteRoutes);
 router.use('/sales/dashboard', salesDashboardRoutes);
+router.use('/sales/analytics', salesAnalyticsRoutes);
 // router.use('/notifications', notificationRoutes); // Moved up
 
 export default router;
