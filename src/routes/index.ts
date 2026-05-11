@@ -30,6 +30,10 @@ import productRoutes from '@/modules/sales/product/product.routes';
 import clientRoutes from '@/modules/sales/client/client.routes';
 import branchOfficeRoutes from '@/modules/sales/branch-office/branch-office.routes';
 import branchMovementRoutes from '@/modules/sales/branch-movement/branch-movement.routes';
+import deliveredConsignmentAgreementRoutes from '@/modules/sales/delivered-consignment-agreement/delivered-consignment-agreement.routes';
+import externalConsignmentSaleRoutes from '@/modules/sales/external-consignment-sale/external-consignment-sale.routes';
+import outgoingConsignmentAgreementRoutes from '@/modules/sales/outgoing-consignment-agreement/outgoing-consignment-agreement.routes';
+import receivedConsignmentSettlementRoutes from '@/modules/sales/received-consignment-settlement/received-consignment-settlement.routes';
 import salesCurrencyRoutes from '@/modules/sales/currency/currency.routes';
 import societyRoutes from '@/modules/sales/society/society.routes';
 import orderRoutes from '@/modules/sales/order/order.routes';
@@ -37,6 +41,7 @@ import orderItemRoutes from '@/modules/sales/order-item/order-item.routes';
 import orderPaymentRoutes from '@/modules/sales/order-payment/order-payment.routes';
 import favoriteRoutes from '@/modules/sales/favorite/favorite.routes';
 import salesDashboardRoutes from '@/modules/sales/dashboard/sales-dashboard.routes';
+import salesAnalyticsRoutes from '@/modules/sales/analytics/sales-analytics.routes';
 import cashShiftRoutes from '@/modules/sales/cash-shift/cash-shift.routes';
 import branchOfficeProductRoutes from '@/modules/sales/branch-office-products/branch-office-products.routes';
 import inventoryRoutes from '@/modules/sales/inventory/inventory.routes';
@@ -61,6 +66,10 @@ router.use(limiter);
 // File upload routes registered BEFORE express.json()
 router.use('/sales/products', productRoutes);
 router.use('/sales/categories', categoryRoutes);
+router.use('/sales/delivered-consignment-agreements', deliveredConsignmentAgreementRoutes);
+router.use('/sales/external-consignment-sales', externalConsignmentSaleRoutes);
+router.use('/sales/outgoing-consignment-agreements', outgoingConsignmentAgreementRoutes);
+router.use('/sales/received-consignment-settlements', receivedConsignmentSettlementRoutes);
 import salesFileRoutes from '@/modules/sales/file/file.routes';
 router.use('/sales/files', salesFileRoutes);
 router.use('/files', files);
@@ -111,6 +120,7 @@ router.use('/sales/order-items', orderItemRoutes);
 router.use('/sales/order-payments', orderPaymentRoutes);
 router.use('/sales/favorites', favoriteRoutes);
 router.use('/sales/dashboard', salesDashboardRoutes);
+router.use('/sales/analytics', salesAnalyticsRoutes);
 // router.use('/notifications', notificationRoutes); // Moved up
 
 export default router;

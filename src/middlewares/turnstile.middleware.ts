@@ -9,6 +9,13 @@ import { logger } from '@/utils/logger';
 export const validateTurnstile = async (req: Request, res: Response, next: NextFunction) => {
   // 1. Extraer token de headers o body
   const token = req.headers['x-turnstile-token'] || req.body?.turnstileToken;
+  const canUseBypass = envs.isTest || envs.CI;
+
+  // En entornos de pruebas/CI permitimos un token estático para evitar llamadas a Cloudflare.
+  if (canUseBypass && token === envs.TURNSTILE_BYPASS_TOKEN) {
+    logger.info('[TurnstileMiddleware]: Bypass de Turnstile aplicado en entorno test/CI.');
+    return next();
+  }
 
   // 2. Si no hay Secret Key, logueamos advertencia y permitimos (evita romper la app si no está configurado)
   if (!envs.TURNSTILE_SECRET_KEY) {

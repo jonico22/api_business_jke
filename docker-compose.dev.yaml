@@ -18,6 +18,8 @@ services:
       - DIRECT_URL=postgresql://app_user:app_password@db:5432/my_app_db
       - REDIS_URL=redis://redis:6379
       - REDIS_ENABLED=true
+      - TURNSTILE_BYPASS_TOKEN=${TURNSTILE_BYPASS_TOKEN}
+      - CI=true
       - REDIS_HOST=redis # O la variable que uses para Redis
       - JWT_SECRET
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4321}
