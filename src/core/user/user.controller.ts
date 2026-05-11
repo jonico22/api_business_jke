@@ -177,6 +177,7 @@ export const createBusinessUser = async (req: Request, res: Response) => {
 
     return successResponse(res, newUser, 'Usuario de negocio creado correctamente');
   } catch (error) {
+    console.error('Error en createBusinessUser:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return errorResponse(res, 'Error al crear usuario de negocio', 500, errorMessage);
   }
