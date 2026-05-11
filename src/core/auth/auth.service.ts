@@ -8,22 +8,54 @@ import argon2 from 'argon2';
 import { generateEmailToken } from '@/utils/token-email';
 import { sendEmailVerification } from '@/utils/mailer';
 import { redis } from '@/shared/services/redis.service';
-import { invalidateSessionCache } from '@/middlewares/auth.middleware';
+import { invalidateSessionCaches } from '@/middlewares/auth.middleware';
 
 export class AuthService {
+  async revokeSessionById(sessionId: string, userId?: string) {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { id: true, userId: true, token: true }
+    });
+
+    if (!session) return;
+    if (userId && session.userId !== userId) {
+      throw new Error('No autorizado');
+    }
+
+    await invalidateSessionCaches([session.token]);
+    await prisma.session.delete({
+      where: { id: session.id }
+    });
+  }
+
+  async revokeUserSessions(userId: string) {
+    const sessions = await prisma.session.findMany({
+      where: { userId },
+      select: { token: true }
+    });
+
+    await invalidateSessionCaches(sessions.map(session => session.token));
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
+  }
 
   async verifySession(userId: string) {
     const MAX_SESSIONS = Number(process.env.MAX_SESSIONS_PER_USER || 2);
-    const activeSessions = await prisma.session.findMany({
-      where: { userId: userId },
-      orderBy: { createdAt: 'asc' },
+    const totalSessions = await prisma.session.count({
+      where: { userId }
     });
 
-    if (activeSessions.length >= MAX_SESSIONS) {
-      // Elimina la sesión más antigua
-      await prisma.session.delete({
-        where: { id: activeSessions[0].id },
+    if (totalSessions >= MAX_SESSIONS) {
+      const oldestSession = await prisma.session.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true }
       });
+
+      if (oldestSession) {
+        await this.revokeSessionById(oldestSession.id, userId);
+      }
     }
   }
 
@@ -74,10 +106,6 @@ export class AuthService {
 
     if (!user.isActive) {
       throw new Error('Cuenta inactiva');
-    }
-
-    if (await this.isUserBlocked(user.id)) {
-      throw new Error('Cuenta bloqueada temporalmente');
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -131,6 +159,8 @@ export class AuthService {
       roleCode: user.role.code,
       societyId: user.role?.societyId || null,
       subscriptionId: subscription?.id || null,
+      subscription,
+      token: session.token,
       expiresAt: newExpiresAt.toISOString(),
     }, 300);
 
@@ -145,25 +175,11 @@ export class AuthService {
   }
 
   async destroyAllByUser(userId: string) {
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
+    await this.revokeUserSessions(userId);
   }
 
   async logout(userId: string, sessionId: string) {
-    // Buscar TODAS las sesiones del usuario para invalidar sus cachés en Redis
-    const sessions = await prisma.session.findMany({
-      where: { userId },
-      select: { token: true }
-    });
-
-    // Invalidar cada sesión cacheada en Redis
-    await Promise.all(
-      sessions.map(s => invalidateSessionCache(s.token))
-    );
-
-    // Eliminar todas las sesiones de la BD
-    await this.destroyAllByUser(userId);
+    await this.revokeSessionById(sessionId, userId);
   }
 
   async forgotPassword(email: string) {
@@ -187,9 +203,19 @@ export class AuthService {
     if (!reset || reset.expiresAt < new Date()) throw new Error('Token inválido o expirado');
 
     const hashedPass = await hashPassword(newPassword);
-    await prisma.account.updateMany({ where: { userId: reset.userId }, data: { password: hashedPass } });
-    await prisma.user.update({ where: { id: reset.userId }, data: { mustChangePassword: false } });
-    await prisma.passwordResetToken.delete({ where: { token: hashed } });
+    const sessions = await prisma.session.findMany({
+      where: { userId: reset.userId },
+      select: { token: true }
+    });
+
+    await prisma.$transaction([
+      prisma.account.updateMany({ where: { userId: reset.userId }, data: { password: hashedPass } }),
+      prisma.user.update({ where: { id: reset.userId }, data: { mustChangePassword: false } }),
+      prisma.passwordResetToken.delete({ where: { token: hashed } }),
+      prisma.session.deleteMany({ where: { userId: reset.userId } }),
+    ]);
+
+    await invalidateSessionCaches(sessions.map(session => session.token));
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -202,18 +228,26 @@ export class AuthService {
 
     const hashedPass = await hashPassword(newPassword);
     if (!account.id) throw new Error('Cuenta inválida');
-    await prisma.account.update({ where: { id: account.id }, data: { password: hashedPass } });
-    await prisma.user.update({ where: { id: userId }, data: { mustChangePassword: false } });
+    const sessions = await prisma.session.findMany({
+      where: { userId },
+      select: { token: true }
+    });
+
+    await prisma.$transaction([
+      prisma.account.update({ where: { id: account.id }, data: { password: hashedPass } }),
+      prisma.user.update({ where: { id: userId }, data: { mustChangePassword: false } }),
+      prisma.session.deleteMany({ where: { userId } }),
+    ]);
+
+    await invalidateSessionCaches(sessions.map(session => session.token));
     await sendPasswordChangeEmail(user?.email || '');
   }
 
-  async isUserBlocked(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    return user?.lockedUntil && user.lockedUntil > new Date();
-  }
-
   async incrementFailedAttempts(userId: string, email: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { failedLoginAttempts: true }
+    });
     const attempts = (user?.failedLoginAttempts ?? 0) + 1;
     const max = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5');
     const blockMins = parseInt(process.env.LOGIN_BLOCK_TIME || '15');
@@ -243,9 +277,7 @@ export class AuthService {
   }
 
   async deleteSessionById(userId: string, sessionId: string) {
-    const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.userId !== userId) throw new Error('No autorizado');
-    await prisma.session.delete({ where: { id: sessionId } });
+    await this.revokeSessionById(sessionId, userId);
   }
 
   async resetUserPassword(userId: string) {
@@ -256,40 +288,45 @@ export class AuthService {
     if (!user) throw new Error('Usuario no encontrado');
     const newPassword = generateRandomPassword();
     const hashedPassword = await argon2.hash(newPassword);
-    await prisma.account.updateMany({
+    const sessions = await prisma.session.findMany({
       where: { userId },
-      data: { password: hashedPassword },
+      select: { token: true }
     });
 
     // No forzamos cambio de contraseña si es ADMIN
-    if (user.role.code !== 'ADMIN') {
-      await prisma.user.update({
+    await prisma.$transaction([
+      prisma.account.updateMany({
+        where: { userId },
+        data: { password: hashedPassword },
+      }),
+      prisma.user.update({
         where: { id: userId },
-        data: { mustChangePassword: true }
-      });
-    }
+        data: { mustChangePassword: user.role.code !== 'ADMIN' }
+      }),
+      prisma.session.deleteMany({ where: { userId } }),
+    ]);
 
+    await invalidateSessionCaches(sessions.map(session => session.token));
     await sendResetByAdminEmail(user.email, newPassword);
   }
 
-  async getMyPermissions(userId: string, roleId: string) {
-    // 1. Obtener todos los permisos del rol
-    const rolePerms = await prisma.roleViewPermission.findMany({
-      where: { roleId, isActive: true },
-      include: {
-        view: { select: { code: true } },
-        permission: { select: { name: true } }
-      }
-    });
-
-    // 2. Obtener todos los permisos aditivos directos del usuario
-    const userPerms = await prisma.userViewPermission.findMany({
-      where: { userId, isActive: true },
-      include: {
-        view: { select: { code: true } },
-        permission: { select: { name: true } }
-      }
-    });
+  async getMyPermissions(userId: string, roleId: string, roleCode?: string) {
+    const [rolePerms, userPerms] = await Promise.all([
+      prisma.roleViewPermission.findMany({
+        where: { roleId, isActive: true },
+        include: {
+          view: { select: { code: true } },
+          permission: { select: { name: true } }
+        }
+      }),
+      prisma.userViewPermission.findMany({
+        where: { userId, isActive: true },
+        include: {
+          view: { select: { code: true } },
+          permission: { select: { name: true } }
+        }
+      })
+    ]);
 
     // 3. Estructurar el resultado para el Frontend
     const viewsMap: Record<string, Set<string>> = {};
@@ -311,9 +348,7 @@ export class AuthService {
       finalPermissions[view] = Array.from(actions);
     }
 
-    // Role code for module mapping
-    const role = await prisma.role.findUnique({ where: { id: roleId }, select: { code: true } });
-    const code = role?.code || '';
+    const code = roleCode || '';
 
     const hasRole = (allowedRoles: string[]) => allowedRoles.some(allowed => code === allowed || code.startsWith(`${allowed}-`));
 
@@ -334,74 +369,15 @@ export class AuthService {
     };
   }
 
-  async getCurrentUser(sessionId: string) {
-    if (!sessionId) throw new Error('No autorizado');
-
-    // Una sola query con include de user + role (elimina query separada de role)
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-      select: {
-        id: true,
-        token: true,
-        expiresAt: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            image: true,
-            emailVerified: true,
-            isActive: true,
-            mustChangePassword: true,
-            roleId: true,
-            role: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-                societyId: true,
-                isActive: true
-              }
-            }
-          }
-        }
-      },
-    });
-
-    if (!session || !session.user || !session.user.isActive) throw new Error('Sesión inválida');
-
-    // Extraemos role para enviarlo al nivel principal y lo eliminamos del objeto user
-    const { role, ...userData } = session.user;
-
-    let subscription = null;
-    if (role && role.code !== 'ADMIN' && role.code !== 'SUPPORT' && role.societyId) {
-      subscription = await prisma.subscription.findUnique({
-        where: { societyId: role.societyId },
-        select: { status: true, planId: true, endDate: true, autoRenew: true }
-      });
-    }
-
-    return {
-      user: userData,
-      expires: session.expiresAt,
-      token: session.token,
-      role,
-      subscription
-    };
-  }
   async verificationEmail(email: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+    if (!user || user.emailVerified) {
+      return;
     }
 
-    if (user.emailVerified) {
-      throw new Error('El correo ya fue verificado');
-    }
     const token = generateEmailToken(user.email);
     await sendEmailVerification(email, token);
-    return { message: 'Correo de verificación reenviado' };
   }
 
   async archiveUser(userId: string) {
@@ -423,28 +399,32 @@ export class AuthService {
     }
 
     const archivedEmail = `${user.email}.archived.${user.id}`;
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive: false,
-        isDeleted: true,
-        isArchived: true,
-        email: archivedEmail,
-        image: null,
-        person: {
-          disconnect: true,
-        },
-        failedLoginAttempts: 0,
-        lockedUntil: null,
-        sessions: {
-          deleteMany: {},
-        },
-        resetTokens: {
-          deleteMany: {},
-        },
-      },
+    const sessions = await prisma.session.findMany({
+      where: { userId },
+      select: { token: true }
     });
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          isActive: false,
+          isDeleted: true,
+          isArchived: true,
+          email: archivedEmail,
+          image: null,
+          person: {
+            disconnect: true,
+          },
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+        },
+      }),
+      prisma.session.deleteMany({ where: { userId } }),
+      prisma.passwordResetToken.deleteMany({ where: { userId } }),
+    ]);
+
+    await invalidateSessionCaches(sessions.map(session => session.token));
 
     return { success: true, message: "Usuario archivado correctamente." };
   }

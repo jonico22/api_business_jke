@@ -1,6 +1,7 @@
 // src/core/role_view_permission/role-view-permission.service.ts
 import prisma from '@/config/database';
 import {cache, clearRolePermissionCache } from '@/utils/cache';
+import { invalidatePermissionCacheByRole } from '@/middlewares/auth.middleware';
 
 
 class RoleViewPermissionService {
@@ -15,6 +16,7 @@ class RoleViewPermissionService {
     const result = await prisma.roleViewPermission.create({ data });
     cache.del('role_view_permissions');
     clearRolePermissionCache(roleId);
+    await invalidatePermissionCacheByRole(roleId);
     return result;
   }
 
@@ -34,8 +36,16 @@ class RoleViewPermissionService {
   }
 
   async remove(id: string) {
+    const existing = await prisma.roleViewPermission.findUnique({
+      where: { id },
+      select: { roleId: true }
+    });
     const result = await prisma.roleViewPermission.delete({ where: { id } });
     cache.del('role_view_permissions');
+    if (existing?.roleId) {
+      clearRolePermissionCache(existing.roleId);
+      await invalidatePermissionCacheByRole(existing.roleId);
+    }
     return result;
   }
   async getPermissionsByRole(roleId: string) {
@@ -97,6 +107,7 @@ class RoleViewPermissionService {
       },
     });
     clearRolePermissionCache(roleId);
+    await invalidatePermissionCacheByRole(roleId);
     return { message: 'Permisos eliminados', count: deleted.count };
   }
 }

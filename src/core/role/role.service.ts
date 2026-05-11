@@ -1,5 +1,6 @@
 // src/core/role/role.service.ts
 import prisma from '@/config/database';
+import { invalidatePermissionCacheByRole } from '@/middlewares/auth.middleware';
 
 class RoleService {
   async create(data: any) {
@@ -55,6 +56,8 @@ class RoleService {
         data: newPermissions
       });
     }
+
+    await invalidatePermissionCacheByRole(roleId);
 
     return { message: 'Permisos del rol actualizados correctamente' };
   }

@@ -144,6 +144,10 @@ export const redis = {
   },
 
   async deleteKeysByPrefix(prefix: string): Promise<void> {
+    return this.deleteKeysByPattern(`${prefix}*`);
+  },
+
+  async deleteKeysByPattern(pattern: string): Promise<void> {
     if (!this.status) return;
 
     let cursor = 0;
@@ -152,7 +156,7 @@ export const redis = {
 
       do {
         const scanResult = await client.scan(cursor.toString(), {
-          MATCH: `${prefix}*`,
+          MATCH: pattern,
           COUNT: 100
         });
 
@@ -163,10 +167,10 @@ export const redis = {
 
       if (keysToDelete.length > 0) {
         await client.del(keysToDelete);
-        logger.info(`[Redis] Eliminadas ${keysToDelete.length} claves con prefijo '${prefix}' usando SCAN.`);
+        logger.info(`[Redis] Eliminadas ${keysToDelete.length} claves con patrón '${pattern}' usando SCAN.`);
       }
     } catch (error) {
-      logger.error(`[Redis] Error limpiando prefijo ${prefix}:`, error);
+      logger.error(`[Redis] Error limpiando patrón ${pattern}:`, error);
     }
   },
 

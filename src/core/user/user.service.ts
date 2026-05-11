@@ -2,6 +2,7 @@
 import prisma from '@/config/database';
 import { hashPassword } from '@/utils/hash';
 import { createUserSchema, updateMeSchema } from './user.validation';
+import { invalidatePermissionCacheByUser } from '@/middlewares/auth.middleware';
 
 
 class UserService {
@@ -266,6 +267,8 @@ class UserService {
                 data: newPermissions
             });
         }
+
+        await invalidatePermissionCacheByUser(userId);
 
         return { message: 'Permisos especiales del usuario actualizados correctamente' };
     }

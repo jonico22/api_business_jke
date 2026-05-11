@@ -1,7 +1,7 @@
 // src/core/auth/auth.controller.ts
 import { Request, Response } from 'express';
 import { authService } from './auth.service';
-import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from './auth.validation';
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema, resendVerificationEmailSchema } from './auth.validation';
 import { errorResponse, successResponse } from '@/utils/response';
 
 import { sessionService } from "./session.service";
@@ -97,6 +97,12 @@ export const changePassword = async (req: Request, res: Response) => {
     const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
     const userId = req.user?.id;
     await authService.changePassword(userId, currentPassword, newPassword);
+    res.clearCookie("session-token", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
+    });
     res.json({ message: 'Contraseña cambiada correctamente' });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -141,13 +147,18 @@ export const resetUserPassword = async (req: Request, res: Response) => {
 
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    const sessionId = req.sessionId;
-
-    if (!sessionId) {
+    if (!req.sessionId || !req.session || !req.user) {
       return res.status(401).json({ error: 'No autorizado: sessionId faltante' });
     }
 
-    const result = await authService.getCurrentUser(sessionId);
+    const { role, ...userData } = req.user;
+    const result = {
+      user: userData,
+      expires: req.session.expiresAt,
+      token: req.session.token,
+      role,
+      subscription: req.subscription || null,
+    };
 
     // Configuración dinámica de la cookie
     res.cookie("session-token", result.token, {
@@ -189,13 +200,17 @@ export const refreshSession = async (req: Request, res: Response) => {
 };
 
 export const resendVerificationEmail = async (req: Request, res: Response) => {
-  const { email } = req.body;
   try {
-    const result = await authService.verificationEmail(email);
-    return successResponse(res, result, 'Correo de verificación reenviado');
+    const validation = resendVerificationEmailSchema.safeParse(req.body);
+    if (!validation.success) {
+      return errorResponse(res, 'Datos de entrada inválidos', 400, validation.error.format());
+    }
+
+    await authService.verificationEmail(validation.data.email);
+    return successResponse(res, null, 'Si el correo existe y requiere verificación, se reenviará el mensaje');
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Error al reenviar correo' });
+    return successResponse(res, null, 'Si el correo existe y requiere verificación, se reenviará el mensaje');
   }
 };
 
@@ -214,12 +229,13 @@ export const getMyPermissions = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     const roleId = req.user?.roleId;
+    const roleCode = req.role;
 
     if (!userId || !roleId) {
       return res.status(401).json({ message: 'Usuario no autenticado' });
     }
 
-    const permissions = await authService.getMyPermissions(userId, roleId);
+    const permissions = await authService.getMyPermissions(userId, roleId, roleCode);
     return successResponse(res, permissions, 'Permisos obtenidos correctamente');
   } catch (error) {
     console.error('[GetMyPermissions Error]:', error);

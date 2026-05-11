@@ -26,7 +26,7 @@ router.post('/logout', auth, logout);
 router.post('/forgot-password', validateTurnstile, forgotPassword);
 // restablecer contraseña con token
 router.post('/reset-password', validateTurnstile, resetPassword);
-router.post('/resend-verification-email', resendVerificationEmail);
+router.post('/resend-verification-email', validateTurnstile, resendVerificationEmail);
 // cambiar contraseña del usuario autenticado
 router.post('/change-password', auth, changePassword);
 

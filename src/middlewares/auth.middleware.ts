@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { redis } from '@/shared/services/redis.service';
 
 const SESSION_CACHE_TTL = 300; // 5 minutos en segundos
+const PERMISSION_CACHE_TTL = 60; // 1 minuto
 
 /**
  * Invalida la caché de sesión en Redis.
@@ -10,6 +11,23 @@ const SESSION_CACHE_TTL = 300; // 5 minutos en segundos
  */
 export const invalidateSessionCache = async (token: string) => {
   await redis.del(`session:${token}`);
+};
+
+export const invalidateSessionCaches = async (tokens: string[]) => {
+  await Promise.all(
+    tokens.map(token => invalidateSessionCache(token))
+  );
+};
+
+const buildPermissionCacheKey = (userId: string, roleId: string, requiredView: string, requiredPermission: string) =>
+  `perm:${roleId}:${userId}:${requiredView}:${requiredPermission}`;
+
+export const invalidatePermissionCacheByUser = async (userId: string) => {
+  await redis.deleteKeysByPattern(`perm:*:${userId}:*`);
+};
+
+export const invalidatePermissionCacheByRole = async (roleId: string) => {
+  await redis.deleteKeysByPrefix(`perm:${roleId}:`);
 };
 
 const auth = async (req: Request, res: Response, next: NextFunction) => {
@@ -31,6 +49,14 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       roleCode: string;
       societyId: string | null;
       subscriptionId: string | null;
+      subscription: {
+        id?: string;
+        status?: string;
+        planId?: string;
+        endDate?: string;
+        autoRenew?: boolean;
+      } | null;
+      token: string;
       expiresAt: string;
     }>(cacheKey);
 
@@ -44,17 +70,49 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       req.user = cached.user;
       req.role = cached.roleCode;
       req.sessionId = cached.sessionId;
+      req.session = {
+        id: cached.sessionId,
+        token: cached.token,
+        expiresAt: new Date(cached.expiresAt),
+      };
       req.societyId = cached.societyId;
       req.subscriptionId = cached.subscriptionId;
+      req.subscription = cached.subscription
+        ? {
+          ...cached.subscription,
+          endDate: cached.subscription.endDate ? new Date(cached.subscription.endDate) : undefined,
+        }
+        : undefined;
       return next();
     }
 
     // 3. Cache miss → Buscar en BD
     const session = await prisma.session.findUnique({
       where: { token },
-      include: {
+      select: {
+        id: true,
+        token: true,
+        expiresAt: true,
         user: {
-          include: { role: true }
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            emailVerified: true,
+            isActive: true,
+            mustChangePassword: true,
+            roleId: true,
+            role: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                societyId: true,
+                isActive: true,
+              }
+            }
+          }
         }
       },
     });
@@ -69,12 +127,19 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     // 4. Resolver subscriptionId en la misma pasada
     let subscriptionId: string | null = null;
+    let subscription: {
+      id?: string;
+      status?: string;
+      planId?: string;
+      endDate?: Date;
+      autoRenew?: boolean;
+    } | null = null;
     const societyId = session.user.role.societyId;
 
     if (societyId) {
-      const subscription = await prisma.subscription.findUnique({
+      subscription = await prisma.subscription.findUnique({
         where: { societyId },
-        select: { id: true }
+        select: { id: true, status: true, planId: true, endDate: true, autoRenew: true }
       });
       subscriptionId = subscription?.id || null;
     }
@@ -83,9 +148,14 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
     req.user = session.user;
     req.role = session.user.role.code;
     req.sessionId = session.id;
-    req.session = session;
+    req.session = {
+      id: session.id,
+      token: session.token,
+      expiresAt: session.expiresAt,
+    };
     req.societyId = societyId;
     req.subscriptionId = subscriptionId;
+    req.subscription = subscription || undefined;
 
     // 6. Guardar en Redis para las próximas peticiones
     await redis.set(cacheKey, {
@@ -94,6 +164,8 @@ const auth = async (req: Request, res: Response, next: NextFunction) => {
       roleCode: session.user.role.code,
       societyId,
       subscriptionId,
+      subscription,
+      token: session.token,
       expiresAt: session.expiresAt.toISOString(),
     }, SESSION_CACHE_TTL);
 
@@ -147,10 +219,13 @@ export const checkPermission = (requiredView: string, requiredPermission: string
 
       // 1. Validar Suscripción Activa (Solo si el usuario pertenece a una sociedad y no es ADMIN interno)
       if (req.societyId && req.role !== 'ADMIN' && req.role !== 'SUPPORT') {
-        const subscription = await prisma.subscription.findUnique({
+        const subscription = req.subscription || await prisma.subscription.findUnique({
           where: { societyId: req.societyId },
-          select: { status: true }
+          select: { id: true, status: true, planId: true, endDate: true, autoRenew: true }
         });
+
+        req.subscription = subscription || undefined;
+        req.subscriptionId = subscription?.id || req.subscriptionId;
 
         if (!subscription || subscription.status !== 'ACTIVE') {
           return res.status(403).json({
@@ -165,32 +240,34 @@ export const checkPermission = (requiredView: string, requiredPermission: string
         return next();
       }
 
-      // 3. Buscar en BD si el Rol tiene el permiso requerido (RoleViewPermission)
-      const rolePerm = await prisma.roleViewPermission.findFirst({
-        where: {
-          roleId,
-          view: { code: requiredView },
-          permission: { name: requiredPermission },
-          isActive: true
-        }
-      });
-
-      if (rolePerm) {
-        return next(); // ✅ Tiene permiso por Rol
+      const cacheKey = buildPermissionCacheKey(userId, roleId, requiredView, requiredPermission);
+      const cachedPermission = await redis.get<boolean>(cacheKey);
+      if (cachedPermission) {
+        return next();
       }
 
-      // 4. Buscar si el Usuario tiene un permiso especial aditivo (UserViewPermission)
-      const userPerm = await prisma.userViewPermission.findFirst({
-        where: {
-          userId,
-          view: { code: requiredView },
-          permission: { name: requiredPermission },
-          isActive: true
-        }
-      });
+      const [rolePerm, userPerm] = await Promise.all([
+        prisma.roleViewPermission.findFirst({
+          where: {
+            roleId,
+            view: { code: requiredView },
+            permission: { name: requiredPermission },
+            isActive: true
+          }
+        }),
+        prisma.userViewPermission.findFirst({
+          where: {
+            userId,
+            view: { code: requiredView },
+            permission: { name: requiredPermission },
+            isActive: true
+          }
+        })
+      ]);
 
-      if (userPerm) {
-        return next(); // ✅ Tiene permiso aditivo directo
+      if (rolePerm || userPerm) {
+        await redis.set(cacheKey, true, PERMISSION_CACHE_TTL);
+        return next();
       }
 
       // ❌ Ninguna condición se cumplió, Acceso denegado

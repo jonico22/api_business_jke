@@ -12,6 +12,7 @@ import { generateRandomPassword } from '@/utils/hash';
 
 import { redis } from '@/shared/services/redis.service';
 import { requestApiSalePut } from '@/services/api-sales.service';
+import { invalidatePermissionCacheByUser, invalidateSessionCaches } from '@/middlewares/auth.middleware';
 
 
 /**
@@ -309,7 +310,13 @@ export const toggleBusinessUserStatus = async (req: Request, res: Response) => {
 
     // 4. Invalida la sesión (si lo desactivaron para botarlo del sistema de inmediato)
     if (!newStatus) {
+      const sessions = await prisma.session.findMany({
+        where: { userId: targetUserId },
+        select: { token: true }
+      });
       await prisma.session.deleteMany({ where: { userId: targetUserId } });
+      await invalidateSessionCaches(sessions.map(session => session.token));
+      await invalidatePermissionCacheByUser(targetUserId);
     }
 
     return successResponse(res, { isActive: newStatus }, `El acceso del usuario a la plataforma ha sido ${newStatus ? 'activado' : 'suspendido'}`);
@@ -373,6 +380,7 @@ export const removeBusinessUser = async (req: Request, res: Response) => {
 
     // 4. Delegar la eliminación final al user.service
     await userService.deleteUser(targetUserId);
+    await invalidatePermissionCacheByUser(targetUserId);
 
     // 5. Sincronizar recuento de usuarios con Ventas
     try {
@@ -497,6 +505,8 @@ export const updateBusinessUser = async (req: Request, res: Response) => {
     if (data.phone !== undefined) personUpdateData.phone = data.phone;
 
     const dbTransactions = [];
+    let sessionTokensToInvalidate: string[] = [];
+    let shouldInvalidatePermissionCache = false;
 
     if (Object.keys(personUpdateData).length > 0) {
       dbTransactions.push(
@@ -509,6 +519,12 @@ export const updateBusinessUser = async (req: Request, res: Response) => {
 
     // Si cambió el Rol 
     if (newRoleId && authorizedLink.user.roleId !== newRoleId) {
+      const sessions = await prisma.session.findMany({
+        where: { userId: targetUserId },
+        select: { token: true }
+      });
+      sessionTokensToInvalidate = sessions.map(session => session.token);
+      shouldInvalidatePermissionCache = true;
       dbTransactions.push(
         prisma.user.update({
           where: { id: targetUserId },
@@ -523,6 +539,14 @@ export const updateBusinessUser = async (req: Request, res: Response) => {
 
     if (dbTransactions.length > 0) {
       await prisma.$transaction(dbTransactions);
+    }
+
+    if (sessionTokensToInvalidate.length > 0) {
+      await invalidateSessionCaches(sessionTokensToInvalidate);
+    }
+
+    if (shouldInvalidatePermissionCache) {
+      await invalidatePermissionCacheByUser(targetUserId);
     }
 
     return successResponse(res, null, 'Usuario de negocio actualizado correctamente');

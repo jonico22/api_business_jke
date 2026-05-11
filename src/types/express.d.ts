@@ -24,6 +24,14 @@ declare global {
             session?: { id: string;[key: string]: any };
             societyId?: string;
             subscriptionId?: string;
+            subscription?: {
+                id?: string;
+                status?: string;
+                planId?: string;
+                endDate?: Date;
+                autoRenew?: boolean;
+                [key: string]: any;
+            };
         }
     }
 }

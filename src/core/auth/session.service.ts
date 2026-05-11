@@ -1,5 +1,6 @@
 import prisma from '@/config/database';
 import { randomBytes } from "crypto";
+import { invalidateSessionCache } from '@/middlewares/auth.middleware';
 
 const REGENERATE_SESSION_TOKEN = process.env.REGENERATE_SESSION_TOKEN === "true";
 
@@ -20,6 +21,12 @@ export const sessionService = {
         updatedAt: new Date(),
       },
     });
+
+    await invalidateSessionCache(session.token);
+    if (newToken !== session.token) {
+      await invalidateSessionCache(newToken);
+    }
+
     return {
       token: newToken,
       expiresAt,

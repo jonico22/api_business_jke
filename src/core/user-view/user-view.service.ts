@@ -1,5 +1,6 @@
 // src/core/user_view/user-view.service.ts
 import prisma from '@/config/database';
+import { invalidatePermissionCacheByUser } from '@/middlewares/auth.middleware';
 
 class UserViewService {
   async assign(data: { userId: string; viewId: string; permissionId: string }) {
@@ -9,7 +10,9 @@ class UserViewService {
     });
 
     if (existing) throw new Error('Ya asignado');
-    return prisma.userViewPermission.create({ data });
+    const result = await prisma.userViewPermission.create({ data });
+    await invalidatePermissionCacheByUser(userId);
+    return result;
   }
 
   async getAll() {
@@ -33,7 +36,15 @@ class UserViewService {
   }
 
   async remove(id: string) {
-    return prisma.userViewPermission.delete({ where: { id } });
+    const existing = await prisma.userViewPermission.findUnique({
+      where: { id },
+      select: { userId: true }
+    });
+    const result = await prisma.userViewPermission.delete({ where: { id } });
+    if (existing?.userId) {
+      await invalidatePermissionCacheByUser(existing.userId);
+    }
+    return result;
   }
 }
 
