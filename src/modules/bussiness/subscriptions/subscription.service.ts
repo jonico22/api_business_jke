@@ -34,6 +34,8 @@ export const subscriptionService = {
 
     const subscriptionsWithFlag = subscriptions.map((sub: any) => ({
       ...sub,
+      // El precio aplicable proviene de la tarifa usada en la solicitud.
+      price: sub.request?.tariff?.totalCost,
       isPublicReview: sub.request?.tariff?.promotion?.code === 'BETA'
     }));
 
@@ -82,6 +84,8 @@ export const subscriptionService = {
 
     return {
       ...sub,
+      // El precio aplicable proviene de la tarifa usada en la solicitud.
+      price: sub.request?.tariff?.totalCost,
       isPublicReview: (sub as any).request?.tariff?.promotion?.code === 'BETA',
       hasPendingPayment: !!pendingPayment,
       isNearingExpiration
